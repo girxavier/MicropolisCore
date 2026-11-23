@@ -47,40 +47,13 @@ export class MicropolisSimulator {
     callback: JSCallback | null = null;
     mapData: Uint16Array | null = null;
     mopData: Uint16Array | null = null;
-    cityFileName = '/cities/haight.cty';
+    cityFileName = '/cities/orleans.cty';
     cityFileNames = [
-      "/cities/about.cty",
-      "/cities/badnews.cty",
-      "/cities/bluebird.cty",
-      "/cities/bruce.cty",
-      "/cities/deadwood.cty",
-      "/cities/finnigan.cty",
-      "/cities/freds.cty",
-      "/cities/haight.cty",
-      "/cities/happisle.cty",
-      "/cities/joffburg.cty",
-      "/cities/kamakura.cty",
-      "/cities/kobe.cty",
-      "/cities/kowloon.cty",
-      "/cities/kyoto.cty",
-      "/cities/linecity.cty",
-      "/cities/med_isle.cty",
-      "/cities/ndulls.cty",
-      "/cities/neatmap.cty",
-      "/cities/radial.cty",
-      "/cities/scenario_bern.cty",
-      "/cities/scenario_boston.cty",
-      "/cities/scenario_detroit.cty",
-      "/cities/scenario_dullsville.cty",
-      "/cities/scenario_hamburg.cty",
-      "/cities/scenario_rio_de_janeiro.cty",
-      "/cities/scenario_san_francisco.cty",
-      "/cities/scenario_tokyo.cty",
-      "/cities/senri.cty",
-      "/cities/southpac.cty",
-      "/cities/splats.cty",
-      "/cities/wetcity.cty",
-      "/cities/yokohama.cty",
+      "/cities/marseille.cty",
+      "/cities/gap.cty",
+      "/cities/orleans.cty",
+      "/cities/brest.cty",
+      "/cities/toulouse.cty",
     ];
     gameSpeed = 3;
     keyFramesPerSecondValues = [ 1, 5, 10, 30, 60, 120, 120, 120, 120 ];
