@@ -1063,6 +1063,7 @@ function createTypedArrayFromMap(mapInstance) {
       .function("updatePaused", &Callback::updatePaused, allow_raw_pointers())
       .function("updateSpeed", &Callback::updateSpeed, allow_raw_pointers())
       .function("updateTaxRate", &Callback::updateTaxRate, allow_raw_pointers())
+      .function("updateClimate", &Callback::updateClimate, allow_raw_pointers())
       ;
 
   class_<JSCallback, base<Callback>>("JSCallback")
@@ -1134,6 +1135,11 @@ function createTypedArrayFromMap(mapInstance) {
     .property("crimeMaxY", &Micropolis::crimeMaxY)
     .property("cityPop", &Micropolis::cityPop)
     .property("cityTime", &Micropolis::cityTime)
+    .property("temperatureMin", &Micropolis::temperatureMin)
+    .property("temperatureMax", &Micropolis::temperatureMax)
+    .property("temperatureMean", &Micropolis::temperatureMean)
+    .property("climateReady", &Micropolis::climateReady)
+    .property("climateEpochCityTime", &Micropolis::climateEpochCityTime)
     .property("cityYear", &Micropolis::cityYear)
     .property("cityMonth", &Micropolis::cityMonth)
     .property("cityYes", &Micropolis::cityYes)
