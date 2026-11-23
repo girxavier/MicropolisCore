@@ -216,6 +216,11 @@ void Micropolis::init()
 
     // Quad cityTime;
     cityTime = 0;
+    temperatureMin = 0.0;
+    temperatureMax = 0.0;
+    temperatureMean = 0.0;
+    climateReady = false;
+    climateEpochCityTime = -1;
 
     // Quad cityMonth;
     cityMonth = 0;
