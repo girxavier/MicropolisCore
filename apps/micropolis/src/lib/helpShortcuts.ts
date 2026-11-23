@@ -9,7 +9,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 	{
 		title: 'Tools',
 		rows: GAME_TOOL_GROUPS.flatMap((group) =>
-			group.tools.map((tool) => ({
+			group.tools.filter((tool) => tool.shortcut !== '—').map((tool) => ({
 				keys: tool.shortcut,
 				action: toolMenuLabel(tool),
 			})),
