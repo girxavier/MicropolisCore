@@ -133,7 +133,7 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 export const GAME_TOOLS: ToolDef[] = GAME_TOOL_GROUPS.flatMap((g) => g.tools);
 
 export const TOOL_BY_SHORTCUT: Record<string, ToolId> = Object.fromEntries(
-	GAME_TOOLS.map((t) => [t.shortcut.toLowerCase(), t.id]),
+	GAME_TOOLS.filter((t) => t.shortcut !== '—').map((t) => [t.shortcut.toLowerCase(), t.id]),
 );
 
 export function toolMenuLabel(tool: ToolDef): string {
