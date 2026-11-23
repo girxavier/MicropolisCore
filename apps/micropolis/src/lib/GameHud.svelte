@@ -13,7 +13,7 @@
 		editorModeState.active
 			? 'Temps figé'
 			: micropolisReactive.simPaused
-				? 'Paused'
+				? 'En pause'
 				: `Vitesse ${micropolisReactive.gameSpeedIndex + 1}`
 	);
 	const taxLabel = $derived(`Tax ${micropolisReactive.cityTax}%`);
