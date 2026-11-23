@@ -124,6 +124,7 @@ public:
     virtual void updatePaused(Micropolis *micropolis, emscripten::val callbackVal, bool simPaused) = 0;
     virtual void updateSpeed(Micropolis *micropolis, emscripten::val callbackVal, int speed) = 0;
     virtual void updateTaxRate(Micropolis *micropolis, emscripten::val callbackVal, int cityTax) = 0;
+    virtual void updateClimate(Micropolis *micropolis, emscripten::val callbackVal, double tmin, double tmax, double tmoy, int month, int unit) = 0;
 
 };
 
@@ -168,6 +169,7 @@ public:
     virtual void updatePaused(Micropolis *micropolis, emscripten::val callbackVal, bool simPaused) override;
     virtual void updateSpeed(Micropolis *micropolis, emscripten::val callbackVal, int speed) override;
     virtual void updateTaxRate(Micropolis *micropolis, emscripten::val callbackVal, int cityTax) override;
+    virtual void updateClimate(Micropolis *micropolis, emscripten::val callbackVal, double tmin, double tmax, double tmoy, int month, int unit) override;
 };
 
 
