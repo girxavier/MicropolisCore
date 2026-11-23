@@ -72,6 +72,10 @@ let zoneStatus = $state<MicropolisZoneStatus>({ visible: false });
 let cityPop = $state(0);
 let cityScore = $state(0);
 let cityTime = $state(0);
+let temperatureMin = $state(0);
+let temperatureMax = $state(0);
+let temperatureMean = $state(0);
+let climateReady = $state(false);
 
 function syncFromEngine(): void {
 	const m = attachedSimulator?.micropolis;
@@ -89,6 +93,10 @@ function syncFromEngine(): void {
 	cityPop = m.cityPop;
 	cityScore = m.cityScore;
 	cityTime = m.cityTime;
+	temperatureMin = m.temperatureMin;
+	temperatureMax = m.temperatureMax;
+	temperatureMean = m.temperatureMean;
+	climateReady = m.climateReady;
 }
 
 /**
@@ -242,6 +250,21 @@ class MicropolisReactiveCallback {
 		cityMonth = month;
 	}
 
+	updateClimate(
+		_micropolis: Micropolis | null,
+		_callbackVal: unknown,
+		tmin: number,
+		tmax: number,
+		tmoy: number,
+		_month: number,
+		_unit: number
+	): void {
+		temperatureMin = tmin;
+		temperatureMax = tmax;
+		temperatureMean = tmoy;
+		climateReady = true;
+	}
+
 	updateDemand(_micropolis: Micropolis | null, _callbackVal: unknown, r: number, c: number, i: number): void {
 		demandR = r;
 		demandC = c;
@@ -350,6 +373,10 @@ export interface MicropolisReactiveSnapshot {
 	cityPop: number;
 	cityScore: number;
 	cityTime: number;
+	temperatureMin: number;
+	temperatureMax: number;
+	temperatureMean: number;
+	climateReady: boolean;
 	worldWidth: number;
 	worldHeight: number;
 }
@@ -659,6 +686,18 @@ export const micropolisReactive = {
 	get cityTime() {
 		return cityTime;
 	},
+	get temperatureMin() {
+		return temperatureMin;
+	},
+	get temperatureMax() {
+		return temperatureMax;
+	},
+	get temperatureMean() {
+		return temperatureMean;
+	},
+	get climateReady() {
+		return climateReady;
+	},
 	get worldWidth() {
 		return attachedSimulator?.micropolisengine?.WORLD_W ?? 0;
 	},
@@ -696,6 +735,10 @@ export const micropolisReactive = {
 			cityPop,
 			cityScore,
 			cityTime,
+			temperatureMin,
+			temperatureMax,
+			temperatureMean,
+			climateReady,
 			worldWidth: attachedSimulator?.micropolisengine?.WORLD_W ?? 0,
 			worldHeight: attachedSimulator?.micropolisengine?.WORLD_H ?? 0
 		};
