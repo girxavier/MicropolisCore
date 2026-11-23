@@ -126,6 +126,7 @@ SUBHEADERS = \
 	src/climate.h \
 	src/data_types.h \
 	src/frontendmessage.h \
+	src/js_callback.h \
 	src/map_type.h \
 	src/position.h \
 	src/text.h \
