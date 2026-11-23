@@ -67,6 +67,7 @@ export class MicropolisSimulator {
     private disposed: boolean = false;
     private isInitialized: boolean = false;
     private hasLoadedCity: boolean = false;
+    private editorSavedFunds: number | null = null;
     private renderCallbacks: Set<() => void> = new Set();
   
     constructor() {
@@ -168,9 +169,30 @@ export class MicropolisSimulator {
     }
     
     setGameSpeed(speed: number) {
-        this.gameSpeed = speed;
-        this.setFramesPerSecond(this.keyFramesPerSecondValues[this.gameSpeed]);
-        this.micropolis?.setPasses(this.keyPassesValues[this.gameSpeed]);
+        const safeSpeed = Math.max(0, Math.min(this.keyFramesPerSecondValues.length - 1, Math.floor(speed)));
+        this.gameSpeed = safeSpeed;
+        const fps = this.keyFramesPerSecondValues[safeSpeed];
+        if (this.paused) this.pausedFramesPerSecond = fps;
+        else this.setFramesPerSecond(fps);
+        this.micropolis?.setPasses(this.keyPassesValues[safeSpeed]);
+    }
+
+    /** Enter a frozen, no-budget editing session. */
+    enterEditorMode() {
+        if (!this.micropolis) return;
+        if (this.editorSavedFunds === null) this.editorSavedFunds = this.micropolis.totalFunds;
+        this.setPaused(true);
+        this.micropolis.setFunds(1_000_000_000);
+    }
+
+    /** Restore the previous budget and resume normal simulation. */
+    exitEditorMode() {
+        if (!this.micropolis) return;
+        if (this.editorSavedFunds !== null) {
+            this.micropolis.setFunds(this.editorSavedFunds);
+            this.editorSavedFunds = null;
+        }
+        this.setPaused(false);
     }
 
     resetFramesPerSecond() {
