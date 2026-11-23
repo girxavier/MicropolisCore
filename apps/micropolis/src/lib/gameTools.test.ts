@@ -23,10 +23,15 @@ describe('direct building variants', () => {
 	const module = {
 		Tiles: {
 			RZB: { value: 265 },
+			FREEZ: { value: 244 },
 			CZB: { value: 436 },
 			IND1: { value: 621 }
 		}
 	} as never;
+
+	it('places a free residential lot for individual houses', () => {
+		expect(resolveDirectBuildingCenterTile(module, 'res-houses')).toBe(244);
+	});
 
 	it('uses engine residential and commercial density bands', () => {
 		expect(resolveDirectBuildingCenterTile(module, 'res-building-1')).toBe(337);
