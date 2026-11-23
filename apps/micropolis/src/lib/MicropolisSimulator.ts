@@ -1,7 +1,7 @@
 /// <reference path="../types/micropolisengine.d.ts" />
 
 import type { MainModule } from '../types/micropolisengine.d.js';
-import type { Micropolis, Callback, JSCallback } from '../types/micropolisengine.d.js';
+import type { Micropolis, Callback, JSCallback, Scenario } from '../types/micropolisengine.d.js';
 import { loadMicropolisBrowserModule } from '$lib/wasm/browser';
 import { createMapMopViews } from '$lib/wasm/views';
 
@@ -257,6 +257,16 @@ export class MicropolisSimulator {
             this.render();
         }
         return loaded;
+    }
+
+    /** Load one of Micropolis' built-in scenarios through the C++ engine. */
+    loadScenario(scenario: number): void {
+        if (!this.micropolis) return;
+        this.micropolis.loadScenario(scenario as Scenario);
+        this.cityFileName = '';
+        this.hasLoadedCity = true;
+        this.syncMapViews();
+        this.render();
     }
 }
 
