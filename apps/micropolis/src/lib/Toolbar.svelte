@@ -1,13 +1,29 @@
 <script lang="ts">
 	import { GAME_TOOL_GROUPS, toolMenuLabel, type ToolId } from '$lib/gameTools';
 	import { toolState } from '$lib/ToolState.svelte';
+	import { editorModeState } from '$lib/EditorMode.svelte';
+	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
 	}
+
+	function toggleEditorMode() {
+		const next = !editorModeState.active;
+		editorModeState.set(next);
+		micropolisReactive.attachedSimulator?.setPaused(next);
+	}
 </script>
 
 <nav class="toolbar" aria-label="City tools">
+	<button type="button" class="mode-toggle" class:active={editorModeState.active} onclick={toggleEditorMode}>
+		{editorModeState.active ? 'REPRENDRE LE JEU' : 'MODE MAQUETTISTE'}
+	</button>
+	{#if editorModeState.active}
+		<div class="tool-group-label">Historique</div>
+		<button type="button" class="tool-item" onclick={() => import('$lib/CommandBus').then(({ commandBus }) => commandBus.undo())}>↶ Annuler (Ctrl+Z)</button>
+		<button type="button" class="tool-item" onclick={() => import('$lib/CommandBus').then(({ commandBus }) => commandBus.redo())}>↷ Rétablir (Ctrl+Y)</button>
+	{/if}
 	{#each GAME_TOOL_GROUPS as group (group.id)}
 		{#if group.label}
 			<div class="tool-group-label">{group.label}</div>
@@ -50,6 +66,20 @@
 		scrollbar-width: thin;
 		scrollbar-color: #4a4a68 transparent;
 	}
+
+	.mode-toggle {
+		margin: 0.3rem;
+		padding: 0.45rem 0.35rem;
+		border: 1px solid #9aa8c8;
+		border-radius: 4px;
+		background: #253c5f;
+		color: #fff;
+		font: inherit;
+		font-size: 0.62rem;
+		font-weight: 800;
+		cursor: pointer;
+	}
+	.mode-toggle.active { background: #79522c; border-color: #e3b878; }
 
 	.tool-group-label {
 		padding: 0.28rem 0.45rem 0.05rem;
