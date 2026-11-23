@@ -491,8 +491,35 @@
     if (lastAppliedToolTile?.[0] === tileX && lastAppliedToolTile[1] === tileY) return;
     lastAppliedToolTile = [tileX, tileY];
 
+    const mapBefore = micropolisReactive.memory.mapU16;
+    const before = mapBefore ? new Uint16Array(mapBefore) : null;
     const tool = resolveEditingTool(eng, toolState.activeToolId);
     const result = micropolisReactive.poke.doTool(tool, tileX, tileY);
+    const afterMap = micropolisReactive.memory.mapU16;
+    if (before && afterMap) {
+      const changes: Array<{ index: number; before: number; after: number }> = [];
+      for (let i = 0; i < Math.min(before.length, afterMap.length); i++) {
+        if (before[i] !== afterMap[i]) changes.push({ index: i, before: before[i], after: afterMap[i] });
+      }
+      if (changes.length) {
+        const restore = (field: 'before' | 'after') => {
+          const live = micropolisReactive.memory.mapU16;
+          if (!live) return;
+          for (const change of changes) {
+            const x = Math.floor(change.index / eng.WORLD_H);
+            const y = change.index % eng.WORLD_H;
+            micropolisReactive.poke.setTile(x, y, change[field]);
+          }
+          micropolisReactive.poke.updateMaps();
+          micropolisSimulator?.render();
+        };
+        commandBus.recordUndo({
+          label: `Paint ${toolState.activeToolId}`,
+          run: () => restore('before'),
+          redo: () => restore('after')
+        });
+      }
+    }
     const feedback = toolResultMessage(result as { value: number });
     toolState.setLastToolFeedback(feedback);
     micropolisSimulator.render();
