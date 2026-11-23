@@ -2,6 +2,7 @@
 #define SM_CITY_CLIMATE_H
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <string>
