@@ -233,7 +233,7 @@ export function resolveDirectBuildingCenterTile(module: MainModule, id: ToolId):
 	}
 	if (id.startsWith('ind-building-') && suffix >= 1 && suffix <= 4) {
 		// Industrial variants use 2 land-value bands × 4 density levels.
-		return tiles.IND1.value + ((1 * 4 + (suffix - 1)) * 9);
+		return tiles.IND1.value + ((1 * 4 + (suffix - 1)) * 9) + 4;
 	}
 	return null;
 }
