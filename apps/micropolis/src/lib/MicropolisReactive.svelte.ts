@@ -446,6 +446,14 @@ export const micropolisReactive = {
 	 * Embind module (`WORLD_W`, `MapTileBits`, `EditingTool`, `Tiles`, …).
 	 * Prefer callback context for UI; use this for tools and typed constants.
 	 */
+	get cityFileNames(): string[] {
+		return attachedSimulator?.cityFileNames ?? [];
+	},
+
+	loadCity(fileName: string): boolean {
+		return attachedSimulator?.loadCity(fileName) ?? false;
+	},
+
 	get wasmModule(): MicropolisSimulator['micropolisengine'] | null {
 		return attachedSimulator?.micropolisengine ?? null;
 	},
