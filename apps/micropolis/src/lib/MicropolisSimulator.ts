@@ -222,7 +222,8 @@ export class MicropolisSimulator {
     
         const wasPaused = this.paused;
         this.paused = nowPaused;
-        this.micropolis!.simPaused = nowPaused;
+        if (!wasPaused && nowPaused) this.micropolis?.pause();
+        else if (wasPaused && !nowPaused) this.micropolis?.resume();
     
         if (!wasPaused && nowPaused) {
           if (this.framesPerSecond !== 0) {
