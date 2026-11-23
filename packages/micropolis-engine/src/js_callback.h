@@ -156,6 +156,13 @@ public:
         jsCallback.call<void>("updateTaxRate", micropolisPointerValue(micropolis), callbackVal, cityTax);
     }
 
+    void updateClimate(Micropolis *micropolis, emscripten::val callbackVal,
+                       double tmin, double tmax, double tmoy,
+                       int month, int unit) override {
+        jsCallback.call<void>("updateClimate", micropolisPointerValue(micropolis),
+                              callbackVal, tmin, tmax, tmoy, month, unit);
+    }
+
 private:
     emscripten::val jsCallback;
 };
