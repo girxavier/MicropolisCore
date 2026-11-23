@@ -187,13 +187,13 @@ export class MicropolisSimulator {
     }
 
     /** Restore the previous budget and resume normal simulation. */
-    exitEditorMode() {
+    exitEditorMode(resumeSimulation = true) {
         if (!this.micropolis) return;
         if (this.editorSavedFunds !== null) {
             this.micropolis.setFunds(this.editorSavedFunds);
             this.editorSavedFunds = null;
         }
-        this.setPaused(false);
+        if (resumeSimulation) this.setPaused(false);
     }
 
     resetFramesPerSecond() {
