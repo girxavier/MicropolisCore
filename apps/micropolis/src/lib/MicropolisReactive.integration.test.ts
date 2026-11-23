@@ -80,6 +80,25 @@ describe('micropolisReactive bridge', () => {
 		expect(snap.totalFunds).toBe(micropolis.totalFunds);
 	});
 
+	it('loads all five SmCity maps and initializes their climate profiles', () => {
+		const cities = [
+			'/cities/marseille.cty',
+			'/cities/gap.cty',
+			'/cities/orleans.cty',
+			'/cities/brest.cty',
+			'/cities/toulouse.cty'
+		];
+
+		for (const city of cities) {
+			expect(micropolis.loadCity(city)).toBe(true);
+			micropolisReactive.syncFromEngine();
+			expect(micropolis.climateReady).toBe(true);
+			expect(Number.isFinite(micropolis.temperatureMin)).toBe(true);
+			expect(Number.isFinite(micropolis.temperatureMax)).toBe(true);
+			expect(micropolisReactive.climateReady).toBe(true);
+		}
+	});
+
 	it('peek.tile matches getTile', () => {
 		const a = micropolis.getTile(10, 12);
 		const b = micropolisReactive.peek.tile(10, 12);
