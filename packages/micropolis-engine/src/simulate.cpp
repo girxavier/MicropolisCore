@@ -170,6 +170,7 @@ void Micropolis::simulate()
             }
 
             cityTime++;
+            updateClimateForTime();
             cityTaxAverage += cityTax;
 
             if (!(simCycle & 1)) {
