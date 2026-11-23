@@ -76,6 +76,7 @@ function createMicropolisCommands(): Command<MicropolisCommandContext>[] {
       }),
       run: ({ simulator }) => {
         if (!simulator?.micropolis) return;
+        commandBus.clearHistory();
         simulator.micropolis.generateSomeRandomCity();
         simulator.render();
       },
