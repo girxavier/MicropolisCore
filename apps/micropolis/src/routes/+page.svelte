@@ -18,6 +18,13 @@
 		animation (VitaMoo). Shared chrome, pie menus, and tabbed windows will grow from here.
 	</p>
 
+	<div class="editor-entry">
+		<a href="/play/micropolis?mode=edit" class="editor-button">
+			<span class="editor-title">MODE MAQUETTISTE</span>
+			<span class="editor-desc">Construire une ville librement, sans budget ni passage du temps</span>
+		</a>
+	</div>
+
 	<ul class="cards">
 		<li>
 			<a href="/play/micropolis" class="card micropolis">
@@ -46,6 +53,23 @@
 		line-height: 1.55;
 		margin: 0 0 1.5rem;
 	}
+
+	.editor-entry { margin: 0 0 1rem; }
+	.editor-button {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+		padding: 1.4rem 1.5rem;
+		border: 3px solid #c68a36;
+		border-radius: 10px;
+		background: linear-gradient(135deg, #49351f, #1d2938);
+		color: #fff;
+		text-decoration: none;
+		box-shadow: 0 4px 14px rgba(0,0,0,.22);
+	}
+	.editor-button:hover { transform: translateY(-2px); border-color: #f1c36d; }
+	.editor-title { font-size: 1.45rem; font-weight: 900; letter-spacing: .04em; }
+	.editor-desc { font-size: .98rem; line-height: 1.4; }
 
 	.cards {
 		list-style: none;
