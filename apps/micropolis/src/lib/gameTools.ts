@@ -20,7 +20,7 @@ export type ToolId =
 	| 'water'
 	| 'land'
 	| 'forest'
-	| 'res-building-1' | 'res-building-2' | 'res-building-3' | 'res-building-4'
+	| 'res-houses' | 'res-building-1' | 'res-building-2' | 'res-building-3' | 'res-building-4'
 	| 'com-building-1' | 'com-building-2' | 'com-building-3' | 'com-building-4' | 'com-building-5'
 	| 'ind-building-1' | 'ind-building-2' | 'ind-building-3' | 'ind-building-4';
 
@@ -92,6 +92,7 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 		id: 'residential-buildings',
 		label: 'Bâtiments résidentiels',
 		tools: [
+			{ id: 'res-houses', label: 'Maisons individuelles', shortcut: '—', cost: 0 },
 			{ id: 'res-building-1', label: 'Faible densité', shortcut: '—', cost: 0 },
 			{ id: 'res-building-2', label: 'Densité moyenne-faible', shortcut: '—', cost: 0 },
 			{ id: 'res-building-3', label: 'Densité moyenne-forte', shortcut: '—', cost: 0 },
@@ -181,7 +182,7 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 			return t.TOOL_LAND;
 		case 'forest':
 			return t.TOOL_FOREST;
-		case 'res-building-1': case 'res-building-2': case 'res-building-3': case 'res-building-4':
+		case 'res-houses': case 'res-building-1': case 'res-building-2': case 'res-building-3': case 'res-building-4':
 			return t.TOOL_RESIDENTIAL;
 		case 'com-building-1': case 'com-building-2': case 'com-building-3': case 'com-building-4': case 'com-building-5':
 			return t.TOOL_COMMERCIAL;
@@ -213,6 +214,7 @@ const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 	water: 1,
 	land: 1,
 	forest: 1,
+	'res-houses': 3,
 	'res-building-1': 3, 'res-building-2': 3, 'res-building-3': 3, 'res-building-4': 3,
 	'com-building-1': 3, 'com-building-2': 3, 'com-building-3': 3, 'com-building-4': 3, 'com-building-5': 3,
 	'ind-building-1': 3, 'ind-building-2': 3, 'ind-building-3': 3, 'ind-building-4': 3,
@@ -223,6 +225,7 @@ const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 export function resolveDirectBuildingCenterTile(module: MainModule, id: ToolId): number | null {
 	const tiles = module.Tiles;
 	const suffix = Number(id.slice(-1));
+	if (id === 'res-houses') return tiles.FREEZ.value;
 	if (id.startsWith('res-building-') && suffix >= 1 && suffix <= 4) {
 		// The engine's residential plop uses 4 land-value bands × 4 density levels.
 		return tiles.RZB.value + ((2 * 4 + (suffix - 1)) * 9);
