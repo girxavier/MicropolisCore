@@ -55,9 +55,10 @@ export class MicropolisSimulator {
       "/cities/brest.cty",
       "/cities/toulouse.cty",
     ];
-    gameSpeed = 3;
-    keyFramesPerSecondValues = [ 1, 5, 10, 30, 60, 120, 120, 120, 120 ];
-    keyPassesValues =          [ 1, 1, 1,  1,  1,  1,   4,   10,  50  ];
+    // 16 simulation phases make one city month: ~53, 27 and 13 seconds/month.
+    gameSpeed = 1;
+    keyFramesPerSecondValues = [0.3, 0.6, 1.2];
+    keyPassesValues = [1, 1, 1];
     tickIntervalId: number | NodeJS.Timeout | null = null;
     framesPerSecond: number = 0;
     pausedFramesPerSecond: number = 0;
