@@ -517,7 +517,11 @@
               : firstTile + dy * 3 + dx;
             const tileFlags = isHouseLot ? bits.BLBNCNBIT.value : bits.BNCNBIT.value;
             let value = tileId + tileFlags;
-            if (isCenter) value |= bits.ZONEBIT.value | bits.BULLBIT.value;
+            if (isCenter) {
+              value |= bits.ZONEBIT.value | bits.BULLBIT.value;
+              const powered = micropolisSimulator.micropolis?.getPowerGrid(tileX, tileY) ?? 0;
+              if (powered) value |= bits.PWRBIT.value;
+            }
             micropolisReactive.poke.setTile(left + dx, top + dy, value);
           }
         }
