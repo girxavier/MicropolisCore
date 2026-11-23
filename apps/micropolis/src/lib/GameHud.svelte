@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { toolState } from '$lib/ToolState.svelte';
+	import { editorModeState } from '$lib/EditorMode.svelte';
 
 	const funds = $derived(micropolisReactive.totalFunds);
+	const fundsLabel = $derived(editorModeState.active ? 'ÉDITION LIBRE' : `${funds.toLocaleString()}`);
 	const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 	const dateLabel = $derived(
 		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
 	);
 
 	const simLabel = $derived(
-		micropolisReactive.simPaused
+		editorModeState.active
+			? 'Temps figé'
+			: micropolisReactive.simPaused
 			? 'Paused'
 			: micropolisReactive.simSpeed > 0
 				? `Speed ${micropolisReactive.simSpeed + 1}`
@@ -47,7 +51,7 @@
         </select>
     </div>
 	<div class="hud-row hud-row-primary">
-		<span class="hud-funds">${funds.toLocaleString()}</span>
+		<span class="hud-funds">{fundsLabel}</span>
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
 	</div>
     <div class="hud-row hud-climate" aria-label="City temperatures">
