@@ -723,12 +723,14 @@ void Micropolis::simInit()
     setEnableSound(true); // Enable sound
     mustUpdateOptions = true; // Update options displayed at user
     scenario = SC_NONE;
-    startingYear = 1900;
+    // SmCity starts every new game in the same reference year.
+    startingYear = 2026;
     simPasses = 1;
     simPass = 0;
     setAutoGoto(true); // Enable auto-goto
     setCityTax(7);
-    cityTime = 50;
+    // cityTime 0 = first simulation unit of January 2026.
+    cityTime = 0;
     setEnableDisasters(true); // Enable disasters
     setAutoBulldoze(true); // Enable auto bulldoze
     setAutoBudget(true); // Enable auto-budget
