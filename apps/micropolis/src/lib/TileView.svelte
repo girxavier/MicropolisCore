@@ -494,6 +494,7 @@
 
     const mapBefore = micropolisReactive.memory.mapU16;
     const before = mapBefore ? new Uint16Array(mapBefore) : null;
+    const fundsBefore = micropolisSimulator.micropolis.totalFunds;
     const directBuildingCenter = editorModeState.active
       ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
       : null;
@@ -533,6 +534,7 @@
       result = micropolisReactive.poke.doTool(tool, tileX, tileY);
     }
     const afterMap = micropolisReactive.memory.mapU16;
+    const fundsDelta = micropolisSimulator.micropolis.totalFunds - fundsBefore;
     if (before && afterMap) {
       const changes: Array<{ index: number; before: number; after: number }> = [];
       for (let i = 0; i < Math.min(before.length, afterMap.length); i++) {
@@ -548,6 +550,8 @@
             micropolisReactive.poke.setTile(x, y, change[field]);
           }
           micropolisReactive.poke.updateMaps();
+          const currentFunds = micropolisReactive.totalFunds;
+          micropolisReactive.poke.setFunds(field === 'before' ? currentFunds - fundsDelta : currentFunds + fundsDelta);
           micropolisSimulator?.render();
         };
         commandBus.recordUndo({
