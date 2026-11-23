@@ -83,7 +83,8 @@ EMLDFLAGS = \
 	--emit-tsd=micropolisengine.d.ts \
 	--shell-file src/micropolisengine_template.html \
 	--js-library src/micropolisengine_lib.js \
-	--preload-file ../../content/micropolis/cities@cities/
+	--preload-file ../../content/micropolis/cities@cities/ \\
+	--preload-file ../../content/micropolis/climate@climate/
 
 
 ########################################################################
@@ -95,6 +96,7 @@ SOURCES = \
 	src/animate.cpp \
 	src/budget.cpp \
 	src/callback.cpp \
+	src/climate.cpp \\
 	src/connect.cpp \
 	src/disasters.cpp \
 	src/emscripten.cpp \
@@ -121,6 +123,7 @@ SOURCES = \
 
 SUBHEADERS = \
 	src/callback.h \
+	src/climate.h \\
 	src/data_types.h \
 	src/frontendmessage.h \
 	src/map_type.h \
