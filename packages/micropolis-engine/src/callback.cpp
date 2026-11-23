@@ -301,10 +301,8 @@ void ConsoleCallback::updateTaxRate(Micropolis *micropolis, emscripten::val call
 void ConsoleCallback::updateClimate(Micropolis *micropolis, emscripten::val callbackVal,
                                     double tmin, double tmax, double tmoy,
                                     int month, int unit) {
-    EM_ASM_({
-        console.log('updateClimate:', 'Tmin:', $0, 'Tmax:', $1, 'Tmoy:', $2,
-                    'month:', $3, 'unit:', $4);
-    }, tmin, tmax, tmoy, month, unit);
+    // The browser UI consumes this callback through JSCallback. Keep the
+    // console implementation quiet rather than logging every time unit.
 }
 
 
