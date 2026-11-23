@@ -4,7 +4,7 @@
 	"scripts": {
 		"dev": "concurrently -n vite,engine \"pnpm run dev:vite\" \"pnpm run dev:engine\"",
 		"dev:vite": "vite dev",
-		"dev:engine": "chokidar \"../../packages/micropolis-engine/src/*.cpp\" \"../../packages/micropolis-engine/src/*.h\" --initial --silent --command \"pnpm --filter @micropolis/engine-wasm run build\"",
+		"dev:engine": "chokidar \"../../packages/micropolis-engine/src/*.cpp\" \"../../packages/micropolis-engine/src/*.h\" \"../../content/micropolis/climate/*.csv\" --initial --silent --command \"pnpm --filter @micropolis/engine-wasm run build\"",
 		"prebuild": "pnpm --filter @micropolis/engine-wasm run build",
 		"build": "vite build",
 		"preview": "vite preview",
