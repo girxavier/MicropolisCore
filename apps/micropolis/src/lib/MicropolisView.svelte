@@ -79,6 +79,7 @@
     // Pause while the tile atlas loads. In editor mode, remain paused afterwards.
     micropolisSimulator.setPaused(true);
     if (startInEditor) micropolisSimulator.enterEditorMode();
+    else micropolisSimulator.exitEditorMode(false);
     micropolisSimulator.syncMapViews();
     await tileView!.initialize(micropolisSimulator);
     if (!startInEditor) micropolisSimulator.setPaused(false);
