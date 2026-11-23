@@ -126,7 +126,7 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 		tools: [
 			{ id: 'water', label: 'Eau douce (rivière / lac)', shortcut: 'M', cost: 0 },
 			{ id: 'forest', label: 'Forêt', shortcut: 'V', cost: 0 },
-			{ id: 'land', label: 'Effacer / aplanir', shortcut: 'G', cost: 0 },
+			{ id: 'land', label: 'Dégager le terrain', shortcut: 'G', cost: 0 },
 		],
 	},
 ];
