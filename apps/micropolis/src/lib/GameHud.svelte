@@ -4,7 +4,7 @@
 	import { editorModeState } from '$lib/EditorMode.svelte';
 
 	const funds = $derived(micropolisReactive.totalFunds);
-	const fundsLabel = $derived(editorModeState.active ? 'ÉDITION LIBRE' : `${funds.toLocaleString()}`);
+	const fundsLabel = $derived(editorModeState.active ? 'ÉDITION LIBRE' : ');
 	const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 	const dateLabel = $derived(
 		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
@@ -15,9 +15,215 @@
 			? 'Temps figé'
 			: micropolisReactive.simPaused
 			? 'Paused'
-			: micropolisReactive.simSpeed > 0
-				? `Speed ${micropolisReactive.simSpeed + 1}`
-				: 'Stopped'
+			: `Vitesse ${micropolisReactive.gameSpeedIndex + 1}`
+	);
+	const taxLabel = $derived(`Tax ${micropolisReactive.cityTax}%`);
+
+    function cityLabel(path: string): string {
+        const slug = path.split('/').pop()?.replace(/\.cty$/, '') ?? path;
+        const labels: Record<string, string> = {
+            marseille: 'Marseille',
+            gap: 'Gap',
+            orleans: 'Orléans',
+            brest: 'Brest',
+            toulouse: 'Toulouse'
+        };
+        return labels[slug] ?? slug;
+    }
+
+    function selectCity(event: Event) {
+        const select = event.currentTarget as HTMLSelectElement;
+        micropolisReactive.loadCity(select.value);
+    }
+
+</script>
+
+<div class="game-hud" aria-live="polite">
+    <div class="hud-row hud-city">
+        <select class="hud-city-select" value={micropolisReactive.cityFileName}
+                onchange={selectCity} aria-label="Ville">
+            <option value="" disabled>Scénario en cours</option>
+            {#each micropolisReactive.cityFileNames as city}
+                <option value={city}>{cityLabel(city)}</option>
+            {/each}
+        </select>
+    </div>
+	<div class="hud-row hud-row-primary">
+		<span class="hud-funds">{fundsLabel}</span>
+		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
+	</div>
+    <div class="hud-row hud-climate" aria-label="City temperatures">
+        <span class="climate-reading">
+            <span class="climate-label">T° MIN</span>
+            <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMin.toFixed(1)} °C` : '—'}</strong>
+        </span>
+        <span class="climate-reading climate-max">
+            <span class="climate-label">T° MAX</span>
+            <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMax.toFixed(1)} °C` : '—'}</strong>
+        </span>
+    </div>
+	<div class="hud-row hud-meta">
+		<span class="hud-rci">
+			<span class="rci-item"><span class="rci-letter">R</span> {micropolisReactive.demandR}</span>
+			<span class="rci-item"><span class="rci-letter">C</span> {micropolisReactive.demandC}</span>
+			<span class="rci-item"><span class="rci-letter">I</span> {micropolisReactive.demandI}</span>
+		</span>
+		<span class="hud-tax">{taxLabel}</span>
+		<span class="hud-speed" class:paused={micropolisReactive.simPaused}>{simLabel}</span>
+	</div>
+	{#if toolState.lastToolFeedback}
+		<div class="hud-feedback">{toolState.lastToolFeedback}</div>
+	{/if}
+</div>
+
+<style>
+	.game-hud {
+		position: absolute;
+		top: 0.5rem;
+		left: 0.5rem;
+		z-index: 20;
+		pointer-events: none;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 0.85rem;
+		line-height: 1.35;
+		color: #f4f4f0;
+		background: rgba(8, 12, 20, 0.82);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 6px;
+		padding: 0.45rem 0.65rem;
+		width: 20.5rem;
+		box-sizing: border-box;
+		backdrop-filter: blur(4px);
+	}
+
+	.hud-row {
+		display: grid;
+		gap: 0.5rem;
+	}
+
+.hud-city {
+        margin-bottom: 0.3rem;
+    }
+
+    .hud-city-select {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 3px;
+        padding: 0.18rem 0.3rem;
+        background: rgba(31, 48, 70, 0.95);
+        color: #f4f4f0;
+        font: inherit;
+        font-size: 0.75rem;
+        pointer-events: auto;
+    }
+
+	.hud-row-primary {
+		grid-template-columns: 7.25rem 1fr;
+		align-items: baseline;
+	}
+
+.hud-climate {
+        margin-top: 0.35rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+    }
+
+    .climate-reading {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.18rem 0.35rem;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .climate-label {
+        color: #a9c8ef;
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    .climate-max .climate-label {
+        color: #f4b77b;
+    }
+
+	.hud-meta {
+		margin-top: 0.25rem;
+		grid-template-columns: 1fr 4.25rem 4.5rem;
+		align-items: baseline;
+		font-size: 0.75rem;
+		color: #dce4f8;
+	}
+
+	.hud-rci {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.65rem;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.rci-item {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.35rem;
+	}
+
+	.rci-letter {
+		font-weight: 700;
+		min-width: 0.65rem;
+	}
+
+	.hud-funds,
+	.hud-date,
+	.hud-tax,
+	.hud-speed {
+		font-variant-numeric: tabular-nums;
+	}
+
+	.hud-date {
+		text-align: right;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.hud-tax,
+	.hud-speed {
+		text-align: right;
+	}
+
+	.hud-feedback {
+		margin-top: 0.35rem;
+		padding-top: 0.3rem;
+		border-top: 1px solid rgba(255, 255, 255, 0.2);
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: #ffc840;
+	}
+
+	.hud-funds {
+		font-weight: 700;
+		color: #9cf59c;
+	}
+
+	.paused {
+		color: #ffb347;
+	}
+</style>
+ + funds.toLocaleString());
+	const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+	const dateLabel = $derived(
+		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
+	);
+
+	const simLabel = $derived(
+		editorModeState.active
+			? 'Temps figé'
+			: micropolisReactive.simPaused
+			? 'Paused'
+			: `Vitesse ${micropolisReactive.gameSpeedIndex + 1}`
 	);
 	const taxLabel = $derived(`Tax ${micropolisReactive.cityTax}%`);
 
