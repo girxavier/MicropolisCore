@@ -4,7 +4,7 @@
 	import { editorModeState } from '$lib/EditorMode.svelte';
 
 	const funds = $derived(micropolisReactive.totalFunds);
-	const fundsLabel = $derived(editorModeState.active ? 'ÉDITION LIBRE' : '
+	const fundsLabel = $derived(editorModeState.active ? 'ÉDITION LIBRE' : '$' + funds.toLocaleString());
 	const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 	const dateLabel = $derived(
 		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
