@@ -44,7 +44,8 @@ private:
     };
 
     std::map<std::string, std::array<MonthlyReference, 12> > references;
-    std::map<std::string, double> cityWarming;
+    std::map<std::string, double> cityWarmingCoefficient;
+    double baseWarming;
     std::vector<ClimateYear> generatedYears;
 
     std::string activeCity;
