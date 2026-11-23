@@ -590,6 +590,18 @@
 
     const key = event.key;
 
+    if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) void commandBus.redo(commandContext(event));
+      else void commandBus.undo(commandContext(event));
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === 'y') {
+      event.preventDefault();
+      void commandBus.redo(commandContext(event));
+      return;
+    }
+
     if (key === 'Shift') {
       shiftPanHeld = true;
     }
