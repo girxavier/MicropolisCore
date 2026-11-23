@@ -128,6 +128,7 @@ public:
 #include "frontendmessage.h"
 #include "tool.h"
 #include "callback.h"
+#include "climate.h"
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -1108,6 +1109,14 @@ public:
      */
     Quad cityTime;
 
+    // SmCity climate state. The epoch is preserved in reserved miscHist slots.
+    double temperatureMin;
+    double temperatureMax;
+    double temperatureMean;
+    bool climateReady;
+    Quad climateEpochCityTime;
+    SmCityClimate climateModel;
+
     /**
      * City month, 4 time units per month.
      * @todo Remove, can be computed from Micropolis::cityTime.
@@ -1913,6 +1922,9 @@ public:
     void simUpdate();
 
     void simTick();
+
+    void initializeClimate(long long savedEpoch = -1);
+    void updateClimateForTime();
 
     void simulateRobots();
 
