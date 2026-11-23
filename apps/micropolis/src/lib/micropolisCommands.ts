@@ -11,7 +11,7 @@ export interface MicropolisCommandContext extends CommandContext {
   heatFlowRangeHigh?: number;
 }
 
-const keyFramesPerSecondValues = [1, 5, 10, 30, 60, 120, 120, 120, 120];
+const keyFramesPerSecondValues = [0.3, 0.6, 1.2];
 
 let registered = false;
 
