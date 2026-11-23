@@ -43,8 +43,9 @@
 				<summary>{group.label ?? group.id}</summary>
 				{#each group.tools as tool (tool.id)}
 					<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
-						title="{tool.shortcut}: {toolMenuLabel(tool)}" onclick={() => selectTool(tool.id)}>
-						<span class="tool-key">{tool.shortcut}:</span><span class="tool-name">{toolMenuLabel(tool)}</span>
+						title={tool.label} onclick={() => selectTool(tool.id)}>
+						{#if tool.shortcut !== '—'}<span class="tool-key">{tool.shortcut}:</span>{/if}
+						<span class="tool-name">{tool.label}</span>
 					</button>
 				{/each}
 			</details>
