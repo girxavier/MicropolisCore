@@ -54,6 +54,7 @@
     <div class="hud-row hud-city">
         <select class="hud-city-select" value={micropolisReactive.cityFileName}
                 onchange={selectCity} aria-label="Ville">
+            <option value="" disabled>Scénario en cours</option>
             {#each micropolisReactive.cityFileNames as city}
                 <option value={city}>{cityLabel(city)}</option>
             {/each}
