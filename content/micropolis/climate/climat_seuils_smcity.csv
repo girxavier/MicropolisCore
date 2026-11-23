@@ -1,0 +1,3 @@
+variable,seuil_degC_inclusif,increment_degC,operateur
+tmax,25.1,1.0,>=
+tmin,13.0,1.0,>=
