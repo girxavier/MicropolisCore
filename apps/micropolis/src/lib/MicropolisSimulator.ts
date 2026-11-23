@@ -285,6 +285,10 @@ export class MicropolisSimulator {
         if (loaded) {
             this.cityFileName = fileName;
             this.hasLoadedCity = true;
+            if (this.editorSavedFunds !== null) {
+                this.editorSavedFunds = this.micropolis.totalFunds;
+                this.micropolis.setFunds(1_000_000_000);
+            }
             this.syncMapViews();
             this.render();
         }
@@ -297,6 +301,10 @@ export class MicropolisSimulator {
         this.micropolis.loadScenario(scenario as Scenario);
         this.cityFileName = '';
         this.hasLoadedCity = true;
+        if (this.editorSavedFunds !== null) {
+            this.editorSavedFunds = this.micropolis.totalFunds;
+            this.micropolis.setFunds(1_000_000_000);
+        }
         this.syncMapViews();
         this.render();
     }
