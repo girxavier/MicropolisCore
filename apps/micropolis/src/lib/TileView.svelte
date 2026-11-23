@@ -24,7 +24,7 @@
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { toolState } from '$lib/ToolState.svelte';
   import { editorModeState } from '$lib/EditorMode.svelte';
-  import { resolveEditingTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
+  import { resolveEditingTool, resolveDirectBuildingCenterTile, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
   import {
     syncViewportScreenScale,
     panToKeepWorldAtScreen,
@@ -494,8 +494,34 @@
 
     const mapBefore = micropolisReactive.memory.mapU16;
     const before = mapBefore ? new Uint16Array(mapBefore) : null;
-    const tool = resolveEditingTool(eng, toolState.activeToolId);
-    const result = micropolisReactive.poke.doTool(tool, tileX, tileY);
+    const directBuildingCenter = editorModeState.active
+      ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
+      : null;
+    let result: { value: number } | number;
+    if (directBuildingCenter !== null) {
+      const left = tileX - 1;
+      const top = tileY - 1;
+      if (left < 0 || top < 0 || left + 3 > eng.WORLD_W || top + 3 > eng.WORLD_H) {
+        result = eng.ToolResult.TOOLRESULT_FAILED;
+      } else {
+        // Let the engine bulldozer remove any existing multi-tile structure first.
+        micropolisReactive.poke.doTool(eng.EditingTool.TOOL_BULLDOZER, tileX, tileY);
+        const bits = eng.MapTileBits;
+        const firstTile = directBuildingCenter - 4;
+        for (let dy = 0; dy < 3; dy++) {
+          for (let dx = 0; dx < 3; dx++) {
+            let value = firstTile + dy * 3 + dx + bits.BNCNBIT.value;
+            if (dx === 1 && dy === 1) value |= bits.ZONEBIT.value | bits.BULLBIT.value;
+            micropolisReactive.poke.setTile(left + dx, top + dy, value);
+          }
+        }
+        micropolisReactive.poke.updateMaps();
+        result = eng.ToolResult.TOOLRESULT_OK;
+      }
+    } else {
+      const tool = resolveEditingTool(eng, toolState.activeToolId);
+      result = micropolisReactive.poke.doTool(tool, tileX, tileY);
+    }
     const afterMap = micropolisReactive.memory.mapU16;
     if (before && afterMap) {
       const changes: Array<{ index: number; before: number; after: number }> = [];
