@@ -21,6 +21,16 @@
 		<span class="hud-funds">${funds.toLocaleString()}</span>
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
 	</div>
+    <div class="hud-row hud-climate" aria-label="City temperatures">
+        <span class="climate-reading">
+            <span class="climate-label">T° MIN</span>
+            <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMin.toFixed(1)} °C` : '—'}</strong>
+        </span>
+        <span class="climate-reading climate-max">
+            <span class="climate-label">T° MAX</span>
+            <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMax.toFixed(1)} °C` : '—'}</strong>
+        </span>
+    </div>
 	<div class="hud-row hud-meta">
 		<span class="hud-rci">
 			<span class="rci-item"><span class="rci-letter">R</span> {micropolisReactive.demandR}</span>
@@ -64,6 +74,33 @@
 		grid-template-columns: 7.25rem 1fr;
 		align-items: baseline;
 	}
+
+.hud-climate {
+        margin-top: 0.35rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+    }
+
+    .climate-reading {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.18rem 0.35rem;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .climate-label {
+        color: #a9c8ef;
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    .climate-max .climate-label {
+        color: #f4b77b;
+    }
 
 	.hud-meta {
 		margin-top: 0.25rem;
