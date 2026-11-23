@@ -38,7 +38,7 @@
 		{/each}
 	{:else}
 		<div class="tool-group-label">Vitesse du jeu</div>
-		{#each [{ index: 0, label: 'Lente · 58 s/mois' }, { index: 1, label: 'Normale · 29 s/mois' }, { index: 2, label: 'Rapide · 15 s/mois' }] as speed}
+		{#each [{ index: 0, label: 'Lente · 58 s/mois' }, { index: 1, label: 'Normale · 29 s/mois' }, { index: 2, label: 'Rapide · 10 s/mois' }] as speed}
 			<button type="button" class="tool-item" onclick={() => { const sim = micropolisReactive.attachedSimulator; sim?.setGameSpeed(speed.index); sim?.setPaused(false); }}>
 				<span class="tool-key">{speed.index + 1}:</span><span class="tool-name">{speed.label}</span>
 			</button>
