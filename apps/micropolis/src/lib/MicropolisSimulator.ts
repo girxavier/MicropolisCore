@@ -292,7 +292,8 @@ export async function getSharedSimulator(callback: Callback | null, render: (() 
         sharedSimulator.loadDefaultCityOnce();
         sharedSimulator.micropolis!.enableDisasters = true;
         sharedSimulator.setGameSpeed(sharedSimulator.gameSpeed);
-        sharedSimulator.setPaused(false);
+        // Start paused; the view decides whether to resume normal play or stay in editor mode.
+        sharedSimulator.setPaused(true);
         store.simulator = sharedSimulator;
     } else {
         // Keep existing wasm/callbacks; just attach this view's render
@@ -302,9 +303,7 @@ export async function getSharedSimulator(callback: Callback | null, render: (() 
     // Attach view and resume ticking if needed
     viewCount += 1;
     store.viewCount = (store.viewCount || 0) + 1;
-    if (store.viewCount === 1) {
-        try { sharedSimulator.setPaused(false); } catch {}
-    }
+    // MicropolisView owns the mode decision and explicitly resumes only normal play.
     return sharedSimulator;
 }
 
