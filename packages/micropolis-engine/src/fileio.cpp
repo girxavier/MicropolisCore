@@ -504,56 +504,56 @@ void Micropolis::loadScenario(Scenario s)
             name = "Dullsville";
             fname = "cities/scenario_dullsville.cty";
             scenario = SC_DULLSVILLE;
-            cityTime = ((1900 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(5000);
             break;
         case SC_SAN_FRANCISCO:
             name = "San Francisco";
             fname = "cities/scenario_san_francisco.cty";
             scenario = SC_SAN_FRANCISCO;
-            cityTime = ((1906 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(20000);
             break;
         case SC_HAMBURG:
             name = "Hamburg";
             fname = "cities/scenario_hamburg.cty";
             scenario = SC_HAMBURG;
-            cityTime = ((1944 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(20000);
             break;
         case SC_BERN:
             name = "Bern";
             fname = "cities/scenario_bern.cty";
             scenario = SC_BERN;
-            cityTime = ((1965 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(20000);
             break;
         case SC_TOKYO:
             name = "Tokyo";
             fname = "cities/scenario_tokyo.cty";
             scenario = SC_TOKYO;
-            cityTime = ((1957 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(20000);
             break;
         case SC_DETROIT:
             name = "Detroit";
             fname = "cities/scenario_detroit.cty";
             scenario = SC_DETROIT;
-            cityTime = ((1972 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(20000);
             break;
         case SC_BOSTON:
             name = "Boston";
             fname = "cities/scenario_boston.cty";
             scenario = SC_BOSTON;
-            cityTime = ((2010 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(20000);
             break;
         case SC_RIO:
             name = "Rio de Janeiro";
             fname = "cities/scenario_rio_de_janeiro.cty";
             scenario = SC_RIO;
-            cityTime = ((2047 - 1900) * 48) + 2;
+            cityTime = 0; // Every SmCity scenario starts in January 2026.
             setFunds(20000);
             break;
         default:
@@ -597,6 +597,21 @@ void Micropolis::didLoadScenario(int s, const std::string name, const std::strin
 bool Micropolis::loadCity(const std::string &filename)
 {
     if (loadFile(filename)) {
+
+        // The five bundled SmCity presets are starting maps, not saved games.
+        // Reset only these presets to January 2026; user save files keep their
+        // stored cityTime and climate epoch.
+        const bool isSmCityPreset =
+            filename.find("marseille.cty") != std::string::npos ||
+            filename.find("gap.cty") != std::string::npos ||
+            filename.find("orleans.cty") != std::string::npos ||
+            filename.find("brest.cty") != std::string::npos ||
+            filename.find("toulouse.cty") != std::string::npos;
+        if (isSmCityPreset) {
+            startingYear = 2026;
+            cityTime = 0;
+            climateEpochCityTime = 0;
+        }
 
         cityFileName = filename;
 
