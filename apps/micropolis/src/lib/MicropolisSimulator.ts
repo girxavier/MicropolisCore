@@ -246,6 +246,18 @@ export class MicropolisSimulator {
 			this.syncMapViews();
 		}
 	}
+
+    loadCity(fileName: string): boolean {
+        if (!this.micropolis) return false;
+        const loaded = this.micropolis.loadCity(fileName);
+        if (loaded) {
+            this.cityFileName = fileName;
+            this.hasLoadedCity = true;
+            this.syncMapViews();
+            this.render();
+        }
+        return loaded;
+    }
 }
 
 export async function getSharedSimulator(callback: Callback | null, render: (() => void) | null): Promise<MicropolisSimulator> {
