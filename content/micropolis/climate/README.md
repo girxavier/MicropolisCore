@@ -16,7 +16,7 @@ The climate data used by the Micropolis engine live in this directory. The C++ i
    Previous-year monthly means are computed from the four corrected units of that month.
 2. Pass 1 draws anomaly A uniformly between -3°C and +3°C. A is applied equally to Tmin and Tmax and persists for 2 or 3 consecutive units, then a new A is drawn. Persistence restarts within each month.
 3. Pass 2 draws anomaly B independently for each unit between -1°C and +1°C. It changes the amplitude symmetrically: subtract B/2 from Tmin and add B/2 to Tmax.
-4. Add the city-specific annual warming increment from `climat_parametres_smcity.csv`.
+4. Add the annual warming increment, calculated as the city coefficient in `climat_parametres_smcity.csv` multiplied by the base rate (0.108°C/year) in `climat_regles_smcity.csv`. The precomputed annual value in the city table is checked against this product.
 5. Apply both inclusive thresholds independently, in every month: Tmin >= 13°C adds 1°C to Tmin; Tmax >= 25.1°C adds 1°C to Tmax.
 6. For a resulting temperature above 38°C, apply the validated asymptotic limiter:
    `L(T) = 38 + 12 * (1 - exp(-(T - 38) / 12))`.
