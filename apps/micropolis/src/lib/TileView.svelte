@@ -508,10 +508,16 @@
         micropolisReactive.poke.doTool(eng.EditingTool.TOOL_BULLDOZER, tileX, tileY);
         const bits = eng.MapTileBits;
         const firstTile = directBuildingCenter - 4;
+        const isHouseLot = toolState.activeToolId === 'res-houses';
         for (let dy = 0; dy < 3; dy++) {
           for (let dx = 0; dx < 3; dx++) {
-            let value = firstTile + dy * 3 + dx + bits.BNCNBIT.value;
-            if (dx === 1 && dy === 1) value |= bits.ZONEBIT.value | bits.BULLBIT.value;
+            const isCenter = dx === 1 && dy === 1;
+            const tileId = isHouseLot
+              ? (isCenter ? eng.Tiles.FREEZ.value : eng.Tiles.HOUSE.value + ((dy * 3 + dx) % 12))
+              : firstTile + dy * 3 + dx;
+            const tileFlags = isHouseLot ? bits.BLBNCNBIT.value : bits.BNCNBIT.value;
+            let value = tileId + tileFlags;
+            if (isCenter) value |= bits.ZONEBIT.value | bits.BULLBIT.value;
             micropolisReactive.poke.setTile(left + dx, top + dy, value);
           }
         }
