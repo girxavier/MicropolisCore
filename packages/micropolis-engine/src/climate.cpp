@@ -92,6 +92,7 @@ bool SmCityClimate::loadTables()
 {
     references.clear();
     cityWarming.clear();
+    std::map<std::string, int> referenceRows;
 
     {
         std::ifstream file("climate/climat_reference_smcity.csv");
@@ -114,6 +115,7 @@ bool SmCityClimate::loadTables()
             }
             references[city][month - 1].tmin = parseNumber(f[3], 0.0);
             references[city][month - 1].tmax = parseNumber(f[4], 0.0);
+            ++referenceRows[city];
         }
     }
 
@@ -169,6 +171,14 @@ bool SmCityClimate::loadTables()
         }
     }
 
+    for (std::map<std::string, std::array<MonthlyReference, 12> >::const_iterator it = references.begin();
+         it != references.end(); ++it) {
+        if (referenceRows[it->first] != 12) return false;
+        for (int month = 0; month < 12; ++month) {
+            if (it->second[month].tmin > it->second[month].tmax) return false;
+        }
+    }
+
     return true;
 }
 
@@ -181,6 +191,9 @@ bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
     if (!loadTables()) return false;
     if (references.find(activeCity) == references.end()) return false;
     if (cityWarming.find(activeCity) == cityWarming.end()) return false;
+    if (anomalyAMin > anomalyAMax || anomalyBMin > anomalyBMax) return false;
+    if (anomalyPersistenceMin < 1 || anomalyPersistenceMax < anomalyPersistenceMin) return false;
+    if (tminIncrement < 0.0 || tmaxIncrement < 0.0 || limiterAmplitude <= 0.0) return false;
 
     climateEpoch = (savedEpoch >= 0) ? savedEpoch : cityTime;
     ready = true;
