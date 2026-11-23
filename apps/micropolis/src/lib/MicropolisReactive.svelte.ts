@@ -34,6 +34,7 @@ let demandC = $state(0);
 let demandI = $state(0);
 let gameLevel = $state(0);
 let simSpeed = $state(0);
+let gameSpeedIndex = $state(1);
 let simPasses = $state(1);
 let simPaused = $state(false);
 let cityTax = $state(0);
@@ -87,6 +88,7 @@ function syncFromEngine(): void {
 	cityFileName = m.cityFileName;
 	gameLevel = (m.gameLevel as unknown as { value: number })?.value ?? Number(m.gameLevel as unknown);
 	simSpeed = m.simSpeed;
+	gameSpeedIndex = attachedSimulator?.gameSpeed ?? gameSpeedIndex;
 	simPasses = m.simPasses;
 	simPaused = m.simPaused;
 	cityTax = m.cityTax;
@@ -297,6 +299,7 @@ class MicropolisReactiveCallback {
 
 	updatePasses(_micropolis: Micropolis | null, _callbackVal: unknown, passes: number): void {
 		simPasses = passes;
+		gameSpeedIndex = attachedSimulator?.gameSpeed ?? gameSpeedIndex;
 	}
 
 	updatePaused(_micropolis: Micropolis | null, _callbackVal: unknown, paused: boolean): void {
@@ -642,6 +645,9 @@ export const micropolisReactive = {
 	},
 	get simSpeed() {
 		return simSpeed;
+	},
+	get gameSpeedIndex() {
+		return gameSpeedIndex;
 	},
 	get simPasses() {
 		return simPasses;
