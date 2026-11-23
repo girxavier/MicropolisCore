@@ -42,6 +42,7 @@ SmCityClimate::SmCityClimate()
       tmaxIncrement(1.0),
       limiterStart(38.0),
       limiterAmplitude(12.0),
+      baseWarming(0.108),
       climateEpoch(0),
       ready(false)
 {
@@ -91,7 +92,8 @@ double SmCityClimate::limitHighTemperature(double value, double start,
 bool SmCityClimate::loadTables()
 {
     references.clear();
-    cityWarming.clear();
+    cityWarmingCoefficient.clear();
+    std::map<std::string, double> expectedAnnualWarming;
     std::map<std::string, int> referenceRows;
 
     {
@@ -127,7 +129,9 @@ bool SmCityClimate::loadTables()
         while (std::getline(file, line)) {
             const std::vector<std::string> f = splitCsv(line);
             if (f.size() < 3) continue;
-            cityWarming[normalizeCity(f[0])] = parseNumber(f[2], 0.0);
+            const std::string city = normalizeCity(f[0]);
+            cityWarmingCoefficient[city] = parseNumber(f[1], 0.0);
+            expectedAnnualWarming[city] = parseNumber(f[2], 0.0);
         }
     }
 
@@ -168,6 +172,7 @@ bool SmCityClimate::loadTables()
             else if (key == "anomalieapersistancemax") anomalyPersistenceMax = static_cast<int>(value);
             else if (key == "limiteurdebut") limiterStart = value;
             else if (key == "limiteuramplitude") limiterAmplitude = value;
+            else if (key == "rechauffementbase") baseWarming = value;
         }
     }
 
@@ -177,6 +182,13 @@ bool SmCityClimate::loadTables()
         for (int month = 0; month < 12; ++month) {
             if (it->second[month].tmin > it->second[month].tmax) return false;
         }
+    }
+
+    for (std::map<std::string, double>::const_iterator it = cityWarmingCoefficient.begin();
+         it != cityWarmingCoefficient.end(); ++it) {
+        if (expectedAnnualWarming.find(it->first) == expectedAnnualWarming.end()) return false;
+        const double calculated = it->second * baseWarming;
+        if (std::fabs(calculated - expectedAnnualWarming[it->first]) > 0.000001) return false;
     }
 
     return true;
@@ -190,7 +202,7 @@ bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
     activeCity = normalizeCity(cityName);
     if (!loadTables()) return false;
     if (references.find(activeCity) == references.end()) return false;
-    if (cityWarming.find(activeCity) == cityWarming.end()) return false;
+    if (cityWarmingCoefficient.find(activeCity) == cityWarmingCoefficient.end()) return false;
     if (anomalyAMin > anomalyAMax || anomalyBMin > anomalyBMax) return false;
     if (anomalyPersistenceMin < 1 || anomalyPersistenceMax < anomalyPersistenceMin) return false;
     if (tminIncrement < 0.0 || tmaxIncrement < 0.0 || limiterAmplitude <= 0.0) return false;
@@ -204,7 +216,7 @@ void SmCityClimate::generateYear(std::size_t yearIndex)
 {
     ClimateYear year;
     const std::array<MonthlyReference, 12> &historical = references[activeCity];
-    const double warming = cityWarming[activeCity];
+    const double warming = cityWarmingCoefficient[activeCity] * baseWarming;
     const double denominator = 5.0 + static_cast<double>(yearIndex);
 
     std::uint32_t seed = stableHash(activeCity);
