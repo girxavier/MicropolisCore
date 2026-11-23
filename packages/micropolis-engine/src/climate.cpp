@@ -323,6 +323,7 @@ void Micropolis::initializeClimate(long long savedEpoch)
 {
     climateReady = climateModel.initialize(cityName, cityTime, savedEpoch);
     if (!climateReady) {
+        climateEpochCityTime = cityTime;
         temperatureMin = 0.0;
         temperatureMax = 0.0;
         temperatureMean = 0.0;
