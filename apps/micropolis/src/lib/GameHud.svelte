@@ -4,7 +4,7 @@
 
 	const funds = $derived(micropolisReactive.totalFunds);
 	const dateLabel = $derived(
-		`${micropolisReactive.cityMonth}/${micropolisReactive.cityYear} · ${micropolisReactive.cityName || 'Micropolis'}`
+		`${micropolisReactive.cityMonth}/${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
 	);
 	const simLabel = $derived(
 		micropolisReactive.simPaused
