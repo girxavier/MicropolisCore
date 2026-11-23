@@ -1,4 +1,4 @@
-#include "climate.h"
+#include "micropolis.h"
 
 #include <algorithm>
 #include <cmath>
@@ -291,4 +291,38 @@ long long SmCityClimate::epochCityTime() const
 const SmCityClimateReading &SmCityClimate::current() const
 {
     return currentReading;
+}
+
+
+void Micropolis::initializeClimate(long long savedEpoch)
+{
+    climateReady = climateModel.initialize(cityName, cityTime, savedEpoch);
+    if (!climateReady) {
+        temperatureMin = 0.0;
+        temperatureMax = 0.0;
+        temperatureMean = 0.0;
+        return;
+    }
+
+    climateEpochCityTime = static_cast<Quad>(climateModel.epochCityTime());
+    updateClimateForTime();
+}
+
+void Micropolis::updateClimateForTime()
+{
+    if (!climateReady || !climateModel.update(cityTime)) {
+        return;
+    }
+
+    const SmCityClimateReading &reading = climateModel.current();
+    temperatureMin = reading.tmin;
+    temperatureMax = reading.tmax;
+    temperatureMean = reading.tmoy;
+
+    if (callback != NULL) {
+        callback->updateClimate(this, callbackVal,
+                                temperatureMin, temperatureMax,
+                                temperatureMean, reading.month,
+                                reading.unit);
+    }
 }
