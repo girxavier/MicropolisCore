@@ -14,9 +14,34 @@
 				: 'Stopped'
 	);
 	const taxLabel = $derived(`Tax ${micropolisReactive.cityTax}%`);
+
+    function cityLabel(path: string): string {
+        const slug = path.split('/').pop()?.replace(/\\.cty$/, '') ?? path;
+        const labels: Record<string, string> = {
+            marseille: 'Marseille',
+            gap: 'Gap',
+            orleans: 'Orléans',
+            brest: 'Brest',
+            toulouse: 'Toulouse'
+        };
+        return labels[slug] ?? slug;
+    }
+
+    function selectCity(event: Event) {
+        const select = event.currentTarget as HTMLSelectElement;
+        micropolisReactive.loadCity(select.value);
+    }
 </script>
 
 <div class="game-hud" aria-live="polite">
+    <div class="hud-row hud-city">
+        <select class="hud-city-select" value={micropolisReactive.cityFileName}
+                onchange={selectCity} aria-label="Ville">
+            {#each micropolisReactive.cityFileNames as city}
+                <option value={city}>{cityLabel(city)}</option>
+            {/each}
+        </select>
+    </div>
 	<div class="hud-row hud-row-primary">
 		<span class="hud-funds">${funds.toLocaleString()}</span>
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
@@ -69,6 +94,22 @@
 		display: grid;
 		gap: 0.5rem;
 	}
+
+.hud-city {
+        margin-bottom: 0.3rem;
+    }
+
+    .hud-city-select {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 3px;
+        padding: 0.18rem 0.3rem;
+        background: rgba(31, 48, 70, 0.95);
+        color: #f4f4f0;
+        font: inherit;
+        font-size: 0.75rem;
+        pointer-events: auto;
+    }
 
 	.hud-row-primary {
 		grid-template-columns: 7.25rem 1fr;
