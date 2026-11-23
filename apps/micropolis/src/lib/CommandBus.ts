@@ -244,6 +244,11 @@ export class CommandBus {
     return { handled: true, message: redo.label ? `Redid ${redo.label}` : 'Redo complete' };
   }
 
+  clearHistory(): void {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
   get canUndo(): boolean { return this.undoStack.length > 0; }
   get canRedo(): boolean { return this.redoStack.length > 0; }
 
