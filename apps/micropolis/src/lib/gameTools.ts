@@ -16,7 +16,10 @@ export type ToolId =
 	| 'coal'
 	| 'stadium'
 	| 'nuclear'
-	| 'airport';
+	| 'airport'
+	| 'water'
+	| 'land'
+	| 'forest';
 
 export interface ToolDef {
 	id: ToolId;
@@ -82,6 +85,15 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 			{ id: 'airport', label: 'Airport', shortcut: 'A', cost: 10000 },
 		],
 	},
+	{
+		id: 'terrain',
+		label: 'Terrain',
+		tools: [
+			{ id: 'water', label: 'Eau douce (rivière / lac)', shortcut: 'M', cost: 0 },
+			{ id: 'forest', label: 'Forêt', shortcut: 'V', cost: 0 },
+			{ id: 'land', label: 'Effacer / aplanir', shortcut: 'G', cost: 0 },
+		],
+	},
 ];
 
 export const GAME_TOOLS: ToolDef[] = GAME_TOOL_GROUPS.flatMap((g) => g.tools);
@@ -129,6 +141,12 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 			return t.TOOL_NUCLEARPOWER;
 		case 'airport':
 			return t.TOOL_AIRPORT;
+		case 'water':
+			return t.TOOL_WATER;
+		case 'land':
+			return t.TOOL_LAND;
+		case 'forest':
+			return t.TOOL_FOREST;
 		default:
 			return t.TOOL_ROAD;
 	}
@@ -152,6 +170,9 @@ const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 	stadium: 4,
 	nuclear: 4,
 	airport: 6,
+	water: 1,
+	land: 1,
+	forest: 1,
 };
 
 export interface ToolFootprint {
