@@ -18,6 +18,7 @@
   import { toolFootprintAtCenter } from '$lib/gameTools';
   import type { CursorPresence } from '$lib/input/types';
   import type { ScreenRect } from '$lib/input/viewportTileFrame';
+  import { editorModeState } from '$lib/EditorMode.svelte';
 
   let micropolisSimulator: MicropolisSimulator | null = null;
   let tileView: TileView | null = null;
@@ -70,11 +71,16 @@
     micropolisSimulator = await getSharedSimulator(micropolisReactive.engineCallback, viewRenderRef);
     micropolisReactive.attach(micropolisSimulator);
 
-    // Pause sim ticks until tile atlas is loaded — avoids render-before-ready race.
+    // The editor mode is selected from the start screen query parameter.
+    const startInEditor = typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('mode') === 'edit';
+    editorModeState.set(startInEditor);
+
+    // Pause while the tile atlas loads. In editor mode, remain paused afterwards.
     micropolisSimulator.setPaused(true);
     micropolisSimulator.syncMapViews();
     await tileView!.initialize(micropolisSimulator);
-    micropolisSimulator.setPaused(false);
+    if (!startInEditor) micropolisSimulator.setPaused(false);
 
     console.log("MicropolisView: onMount:", "micropolisSimulator:", micropolisSimulator);
 
