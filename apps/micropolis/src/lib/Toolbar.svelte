@@ -3,6 +3,7 @@
 	import { toolState } from '$lib/ToolState.svelte';
 	import { editorModeState } from '$lib/EditorMode.svelte';
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
+	import { commandBus } from '$lib/CommandBus';
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
@@ -11,7 +12,8 @@
 	function toggleEditorMode() {
 		const next = !editorModeState.active;
 		editorModeState.set(next);
-		micropolisReactive.attachedSimulator?.setPaused(next);
+		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
+		else micropolisReactive.attachedSimulator?.exitEditorMode();
 	}
 </script>
 
@@ -21,8 +23,8 @@
 	</button>
 	{#if editorModeState.active}
 		<div class="tool-group-label">Historique</div>
-		<button type="button" class="tool-item" onclick={() => import('$lib/CommandBus').then(({ commandBus }) => commandBus.undo())}>↶ Annuler (Ctrl+Z)</button>
-		<button type="button" class="tool-item" onclick={() => import('$lib/CommandBus').then(({ commandBus }) => commandBus.redo())}>↷ Rétablir (Ctrl+Y)</button>
+		<button type="button" class="tool-item" onclick={() => commandBus.undo()}>↶ Annuler (Ctrl+Z)</button>
+		<button type="button" class="tool-item" onclick={() => commandBus.redo()}>↷ Rétablir (Ctrl+Y)</button>
 	{/if}
 	{#each GAME_TOOL_GROUPS as group (group.id)}
 		{#if group.label}
