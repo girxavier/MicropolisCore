@@ -252,6 +252,7 @@ export interface Callback extends ClassHandle {
   updatePaused(_0: Micropolis | null, _1: any, _2: boolean): void;
   updateSpeed(_0: Micropolis | null, _1: any, _2: number): void;
   updateTaxRate(_0: Micropolis | null, _1: any, _2: number): void;
+  updateClimate(_0: Micropolis | null, _1: any, _2: number, _3: number, _4: number, _5: number, _6: number): void;
 }
 
 export interface JSCallback extends Callback {
@@ -288,6 +289,11 @@ export interface Micropolis extends ClassHandle {
   crimeMaxY: number;
   cityPop: number;
   cityTime: number;
+  temperatureMin: number;
+  temperatureMax: number;
+  temperatureMean: number;
+  climateReady: boolean;
+  climateEpochCityTime: number;
   cityYear: number;
   cityMonth: number;
   cityYes: number;
