@@ -7,16 +7,7 @@
 	const dateLabel = $derived(
 		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
 	);
-	const scenarios = [
-		{ id: 1, label: 'Dullsville' },
-		{ id: 2, label: 'San Francisco' },
-		{ id: 3, label: 'Hambourg' },
-		{ id: 4, label: 'Berne' },
-		{ id: 5, label: 'Tokyo' },
-		{ id: 6, label: 'Détroit' },
-		{ id: 7, label: 'Boston' },
-		{ id: 8, label: 'Rio de Janeiro' }
-	];
+
 	const simLabel = $derived(
 		micropolisReactive.simPaused
 			? 'Paused'
@@ -43,11 +34,6 @@
         micropolisReactive.loadCity(select.value);
     }
 
-	function selectScenario(event: Event) {
-		const select = event.currentTarget as HTMLSelectElement;
-		const scenario = Number(select.value);
-		if (scenario > 0) micropolisReactive.loadScenario(scenario);
-	}
 </script>
 
 <div class="game-hud" aria-live="polite">
@@ -60,14 +46,6 @@
             {/each}
         </select>
     </div>
-	<div class="hud-row hud-city">
-		<select class="hud-city-select" value="0" onchange={selectScenario} aria-label="Scénario">
-			<option value="0">Choisir un scénario…</option>
-			{#each scenarios as scenario}
-				<option value={scenario.id}>{scenario.label}</option>
-			{/each}
-		</select>
-	</div>
 	<div class="hud-row hud-row-primary">
 		<span class="hud-funds">${funds.toLocaleString()}</span>
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
