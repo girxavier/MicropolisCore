@@ -148,8 +148,11 @@ export class MicropolisSimulator {
     tick() {
         //console.log("MicropolisSimulator: tick");
         if (this.disposed) return;
-        this.micropolis?.simTick();
-        this.micropolis?.animateTiles();
+        // A paused simulator must not advance the calendar, even for a one-off UI refresh.
+        if (!this.paused) {
+            this.micropolis?.simTick();
+            this.micropolis?.animateTiles();
+        }
 
         // Fan out to all registered views (if any)
         if (this.renderCallbacks.size > 0) {
@@ -209,7 +212,12 @@ export class MicropolisSimulator {
             this.resetFramesPerSecond();
         }
     
-        this.tick();
+        // Refresh the display without calling simTick(): entering pause/editor mode
+        // must never advance the city by an extra simulation phase.
+        this.render();
+        for (const fn of this.renderCallbacks) {
+            try { fn(); } catch (e) { console.warn('MicropolisSimulator: view render failed:', e); }
+        }
       }
 
       dispose() {
