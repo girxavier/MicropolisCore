@@ -56,9 +56,9 @@ export class MicropolisSimulator {
       "/cities/toulouse.cty",
     ];
     // 16 phases per city-time unit × 4 city-time units per month = 64 ticks/month.
-    // At 1.1 / 2.2 / 4.4 ticks per second: about 58 / 29 / 15 seconds per month.
+    // At 1.1 / 2.2 / 6.4 ticks per second: about 58 / 29 / 10 seconds per month.
     gameSpeed = 1;
-    keyFramesPerSecondValues = [1.1, 2.2, 4.4];
+    keyFramesPerSecondValues = [1.1, 2.2, 6.4];
     keyPassesValues = [1, 1, 1];
     tickIntervalId: number | NodeJS.Timeout | null = null;
     framesPerSecond: number = 0;
