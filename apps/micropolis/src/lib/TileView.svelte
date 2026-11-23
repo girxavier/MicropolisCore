@@ -23,6 +23,7 @@
   import { registerMicropolisCommands, type MicropolisCommandContext } from '$lib/micropolisCommands';
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { toolState } from '$lib/ToolState.svelte';
+  import { editorModeState } from '$lib/EditorMode.svelte';
   import { resolveEditingTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
   import {
     syncViewportScreenScale,
@@ -614,6 +615,8 @@
     ) {
       const toolId = TOOL_BY_SHORTCUT[key.toLowerCase()];
       if (toolId) {
+        const terrainTools = ['water', 'land', 'forest'];
+        if (terrainTools.includes(toolId) && !editorModeState.active) return;
         toolState.setActiveTool(toolId);
         return;
       }
