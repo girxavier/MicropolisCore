@@ -29,8 +29,10 @@ export const HELP_SECTIONS: HelpSection[] = [
 		title: 'Simulation',
 		rows: [
 			{ keys: '0', action: 'Pause / resume' },
-			{ keys: '1–9', action: 'Simulation speed' },
+			{ keys: '1, 2, 3', action: 'Slow / normal / fast (10–60 s per month)' },
 			{ keys: '[ ]', action: 'Lower / raise tax rate' },
+			{ keys: 'Ctrl+Z', action: 'Undo last editor operation' },
+			{ keys: 'Ctrl+Y / Ctrl+Shift+Z', action: 'Redo editor operation' },
 		],
 	},
 	{
