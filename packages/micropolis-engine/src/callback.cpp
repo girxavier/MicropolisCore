@@ -298,5 +298,14 @@ void ConsoleCallback::updateTaxRate(Micropolis *micropolis, emscripten::val call
     }, cityTax);
 }
 
+void ConsoleCallback::updateClimate(Micropolis *micropolis, emscripten::val callbackVal,
+                                    double tmin, double tmax, double tmoy,
+                                    int month, int unit) {
+    EM_ASM_({
+        console.log('updateClimate:', 'Tmin:', $0, 'Tmax:', $1, 'Tmoy:', $2,
+                    'month:', $3, 'unit:', $4);
+    }, tmin, tmax, tmoy, month, unit);
+}
+
 
 ////////////////////////////////////////////////////////////////////////
