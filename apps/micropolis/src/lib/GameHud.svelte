@@ -16,7 +16,7 @@
 	const taxLabel = $derived(`Tax ${micropolisReactive.cityTax}%`);
 
     function cityLabel(path: string): string {
-        const slug = path.split('/').pop()?.replace(/\\.cty$/, '') ?? path;
+        const slug = path.split('/').pop()?.replace(/\.cty$/, '') ?? path;
         const labels: Record<string, string> = {
             marseille: 'Marseille',
             gap: 'Gap',
