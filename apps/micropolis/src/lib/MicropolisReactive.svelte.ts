@@ -454,6 +454,12 @@ export const micropolisReactive = {
 		return attachedSimulator?.loadCity(fileName) ?? false;
 	},
 
+	loadScenario(scenario: number): void {
+		attachedSimulator?.loadScenario(scenario);
+		syncFromEngine();
+		mapRevision++;
+	},
+
 	get wasmModule(): MicropolisSimulator['micropolisengine'] | null {
 		return attachedSimulator?.micropolisengine ?? null;
 	},
