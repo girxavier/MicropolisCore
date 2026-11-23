@@ -4,9 +4,11 @@
 	import { editorModeState } from '$lib/EditorMode.svelte';
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { commandBus } from '$lib/CommandBus';
+	let mobileOpen = $state(false);
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
+		mobileOpen = false;
 	}
 
 	function toggleEditorMode() {
@@ -17,7 +19,10 @@
 	}
 </script>
 
-<nav class="toolbar" aria-label="City tools">
+<button type="button" class="mobile-toolbar-toggle" aria-expanded={mobileOpen} onclick={() => mobileOpen = !mobileOpen}>
+	{mobileOpen ? 'FERMER' : 'OUTILS ☰'}
+</button>
+<nav class="toolbar" class:mobile-open={mobileOpen} aria-label="City tools">
 	<button type="button" class="mode-toggle" class:active={editorModeState.active} onclick={toggleEditorMode}>
 		{editorModeState.active ? 'REPRENDRE LE JEU' : 'MODE MAQUETTISTE'}
 	</button>
@@ -56,6 +61,8 @@
 </nav>
 
 <style>
+	.mobile-toolbar-toggle { display: none; }
+
 	.toolbar {
 		flex-shrink: 0;
 		width: max-content;
@@ -167,5 +174,39 @@
 
 	.tool-item.active .tool-key {
 		color: #ffe566;
+	}
+
+	@media (max-width: 700px) {
+		.mobile-toolbar-toggle {
+			display: block;
+			position: absolute;
+			left: .5rem;
+			top: 5.6rem;
+			z-index: 31;
+			padding: .5rem .65rem;
+			border: 1px solid #9aa8c8;
+			border-radius: 4px;
+			background: rgba(26, 26, 46, .96);
+			color: #fff;
+			font: 700 .68rem ui-monospace, monospace;
+			box-shadow: 0 2px 8px rgba(0,0,0,.35);
+		}
+		.toolbar {
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: min(17rem, 82vw);
+			max-width: 82vw;
+			height: 100%;
+			transform: translateX(-105%);
+			transition: transform .18s ease;
+			z-index: 30;
+			padding-top: 3.2rem;
+			box-shadow: 4px 0 18px rgba(0,0,0,.35);
+		}
+		.toolbar.mobile-open { transform: translateX(0); }
+		.tool-item { font-size: .68rem; padding: .22rem .55rem; }
+		.tool-group-label, .tool-category summary { font-size: .65rem; }
+		.mode-toggle { font-size: .7rem; padding: .55rem; }
 	}
 </style>
