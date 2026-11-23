@@ -607,7 +607,9 @@ bool Micropolis::loadCity(const std::string &filename)
             filename.find("orleans.cty") != std::string::npos ||
             filename.find("brest.cty") != std::string::npos ||
             filename.find("toulouse.cty") != std::string::npos;
-        if (isSmCityPreset) {
+        const bool hasSmCitySaveMetadata =
+            miscHist[66] == 0x534D && miscHist[67] == 1;
+        if (isSmCityPreset && !hasSmCitySaveMetadata) {
             startingYear = 2026;
             cityTime = 0;
             climateEpochCityTime = 0;
