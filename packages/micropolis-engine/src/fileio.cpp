@@ -368,6 +368,17 @@ bool Micropolis::loadFile(const std::string &filename)
 
     cityTime = max((Quad)0, cityTime);
 
+    // SmCity climate epoch uses reserved miscHist words 66..69.
+    // The marker keeps older city files compatible.
+    if (miscHist[66] == 0x534D && miscHist[67] == 1) {
+        n = *(Quad *)(miscHist + 68);
+        HALF_SWAP_LONGS(&n, 1);
+        climateEpochCityTime = (Quad)n;
+    } else {
+        climateEpochCityTime = cityTime;
+    }
+
+
     // If the tax is nonsensical, set it to a reasonable value.
     if (cityTax > 20 || cityTax < 0) {
         setCityTax(7);
@@ -441,6 +452,12 @@ bool Micropolis::saveFile(const std::string &filename)
     n = (int)(roadPercent * 65536);
     HALF_SWAP_LONGS(&n, 1);
     (*(Quad *)(miscHist + 62)) = n;
+
+    miscHist[66] = 0x534D; // SmCity climate metadata marker
+    miscHist[67] = 1;      // Climate metadata version
+    n = (climateEpochCityTime >= 0) ? climateEpochCityTime : cityTime;
+    HALF_SWAP_LONGS(&n, 1);
+    (*(Quad *)(miscHist + 68)) = n;
 
     bool result =
         save_short(resHist, HISTORY_LENGTH / 2, f) &&
@@ -549,6 +566,7 @@ void Micropolis::loadScenario(Scenario s)
     setCityTax(7);
 
     loadFileData(fname);
+    initializeClimate(cityTime);
 
     initWillStuff();
     initFundingLevel();
@@ -591,6 +609,7 @@ bool Micropolis::loadCity(const std::string &filename)
 
         std::string newCityName = cityFileName.substr(pos, last - pos);
         setCityName(newCityName);
+        initializeClimate(climateEpochCityTime);
 
         doSimInit();
 
