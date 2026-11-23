@@ -11,6 +11,7 @@
 import type { EditingTool, GameLevel, Micropolis, JSCallback, ToolResult } from '../types/micropolisengine.d.js';
 import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
+import { commandBus } from './CommandBus';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -454,10 +455,12 @@ export const micropolisReactive = {
 	},
 
 	loadCity(fileName: string): boolean {
+		commandBus.clearHistory();
 		return attachedSimulator?.loadCity(fileName) ?? false;
 	},
 
 	loadScenario(scenario: number): void {
+		commandBus.clearHistory();
 		attachedSimulator?.loadScenario(scenario);
 		syncFromEngine();
 		mapRevision++;
@@ -559,16 +562,19 @@ export const micropolisReactive = {
 			return ok;
 		},
 		generateSomeRandomCity(): void {
+			commandBus.clearHistory();
 			requireMicropolis().generateSomeRandomCity();
 			syncFromEngine();
 			mapRevision++;
 		},
 		clearMap(): void {
+			commandBus.clearHistory();
 			requireMicropolis().clearMap();
 			syncFromEngine();
 			mapRevision++;
 		},
 		generateMap(seed: number): void {
+			commandBus.clearHistory();
 			requireMicropolis().generateMap(seed);
 			syncFromEngine();
 			mapRevision++;
