@@ -25,24 +25,34 @@
 		<div class="tool-group-label">Historique</div>
 		<button type="button" class="tool-item" onclick={() => commandBus.undo()}>↶ Annuler (Ctrl+Z)</button>
 		<button type="button" class="tool-item" onclick={() => commandBus.redo()}>↷ Rétablir (Ctrl+Y)</button>
-	{/if}
-	{#each GAME_TOOL_GROUPS as group (group.id)}
-		{#if group.label}
-			<div class="tool-group-label">{group.label}</div>
-		{/if}
-		{#each group.tools as tool (tool.id)}
-			<button
-				type="button"
-				class="tool-item"
-				class:active={toolState.activeToolId === tool.id}
-				title="{tool.shortcut}: {toolMenuLabel(tool)}"
-				onclick={() => selectTool(tool.id)}
-			>
-				<span class="tool-key">{tool.shortcut}:</span>
-				<span class="tool-name">{toolMenuLabel(tool)}</span>
+		{#each GAME_TOOL_GROUPS as group (group.id)}
+			<details class="tool-category" open={group.id === 'terrain'}>
+				<summary>{group.label ?? group.id}</summary>
+				{#each group.tools as tool (tool.id)}
+					<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
+						title="{tool.shortcut}: {toolMenuLabel(tool)}" onclick={() => selectTool(tool.id)}>
+						<span class="tool-key">{tool.shortcut}:</span><span class="tool-name">{toolMenuLabel(tool)}</span>
+					</button>
+				{/each}
+			</details>
+		{/each}
+	{:else}
+		<div class="tool-group-label">Vitesse du jeu</div>
+		{#each [{ index: 0, label: 'Lente · 53 s/mois' }, { index: 1, label: 'Normale · 27 s/mois' }, { index: 2, label: 'Rapide · 13 s/mois' }] as speed}
+			<button type="button" class="tool-item" onclick={() => { const sim = micropolisReactive.attachedSimulator; sim?.setGameSpeed(speed.index); sim?.setPaused(false); }}>
+				<span class="tool-key">{speed.index + 1}:</span><span class="tool-name">{speed.label}</span>
 			</button>
 		{/each}
-	{/each}
+		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain') as group (group.id)}
+			{#if group.label}<div class="tool-group-label">{group.label}</div>{/if}
+			{#each group.tools as tool (tool.id)}
+				<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
+					title="{tool.shortcut}: {toolMenuLabel(tool)}" onclick={() => selectTool(tool.id)}>
+					<span class="tool-key">{tool.shortcut}:</span><span class="tool-name">{toolMenuLabel(tool)}</span>
+				</button>
+			{/each}
+		{/each}
+	{/if}
 </nav>
 
 <style>
@@ -82,6 +92,18 @@
 		cursor: pointer;
 	}
 	.mode-toggle.active { background: #79522c; border-color: #e3b878; }
+
+	.tool-category { border-top: 1px solid rgba(255,255,255,.1); }
+	.tool-category summary {
+		padding: .35rem .45rem;
+		color: #c4cbe0;
+		font-size: .58rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		cursor: pointer;
+		user-select: none;
+	}
+	.tool-category[open] summary { color: #f0c16a; }
 
 	.tool-group-label {
 		padding: 0.28rem 0.45rem 0.05rem;
