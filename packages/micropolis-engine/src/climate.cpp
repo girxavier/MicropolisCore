@@ -30,7 +30,8 @@ double parseNumber(const std::string &value, double fallback)
 } // namespace
 
 SmCityClimate::SmCityClimate()
-    : anomalyAMin(-3.0),
+    : baseWarming(0.108),
+      anomalyAMin(-3.0),
       anomalyAMax(3.0),
       anomalyBMin(-1.0),
       anomalyBMax(1.0),
@@ -42,7 +43,6 @@ SmCityClimate::SmCityClimate()
       tmaxIncrement(1.0),
       limiterStart(38.0),
       limiterAmplitude(12.0),
-      baseWarming(0.108),
       climateEpoch(0),
       ready(false)
 {
