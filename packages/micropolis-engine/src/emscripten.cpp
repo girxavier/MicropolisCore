@@ -1141,6 +1141,7 @@ function createTypedArrayFromMap(mapInstance) {
     .property("temperatureMin", &Micropolis::temperatureMin)
     .property("temperatureMax", &Micropolis::temperatureMax)
     .property("temperatureMean", &Micropolis::temperatureMean)
+    .property("climateIndex", &Micropolis::climateIndex)
     .property("climateReady", &Micropolis::climateReady)
     .property("climateEpochCityTime", &Micropolis::climateEpochCityTime)
     .property("cityYear", &Micropolis::cityYear)
