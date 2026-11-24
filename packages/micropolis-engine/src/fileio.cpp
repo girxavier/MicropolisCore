@@ -368,14 +368,29 @@ bool Micropolis::loadFile(const std::string &filename)
 
     cityTime = max((Quad)0, cityTime);
 
-    // SmCity climate epoch uses reserved miscHist words 66..69.
-    // The marker keeps older city files compatible.
-    if (miscHist[66] == 0x534D && miscHist[67] == 1) {
+    // SmCity climate metadata occupies reserved miscHist words 66..73.
+    // Version 1 stored the climate epoch; version 2 also stores the annual
+    // city-index accumulator and the current year's warming contribution.
+    if (miscHist[66] == 0x534D && miscHist[67] >= 1) {
         n = *(Quad *)(miscHist + 68);
         HALF_SWAP_LONGS(&n, 1);
         climateEpochCityTime = (Quad)n;
+        climateAnnualIndexSum = 0.0;
+        climateMonthlySamples = 0;
+        climateCurrentYearWarming = 0.0;
+        climateLastSampleMonth = -1;
+        if (miscHist[67] >= 2) {
+            climateAnnualIndexSum = static_cast<double>(miscHist[70]) / 10.0;
+            climateMonthlySamples = max(0, min(12, (int)miscHist[71]));
+            climateCurrentYearWarming = static_cast<double>(miscHist[72]) / 1000.0;
+            climateLastSampleMonth = miscHist[73];
+        }
     } else {
         climateEpochCityTime = cityTime;
+        climateAnnualIndexSum = 0.0;
+        climateMonthlySamples = 0;
+        climateCurrentYearWarming = 0.0;
+        climateLastSampleMonth = -1;
     }
 
 
@@ -454,10 +469,14 @@ bool Micropolis::saveFile(const std::string &filename)
     (*(Quad *)(miscHist + 62)) = n;
 
     miscHist[66] = 0x534D; // SmCity climate metadata marker
-    miscHist[67] = 1;      // Climate metadata version
+    miscHist[67] = 2;      // Climate metadata version
     n = (climateEpochCityTime >= 0) ? climateEpochCityTime : cityTime;
     HALF_SWAP_LONGS(&n, 1);
     (*(Quad *)(miscHist + 68)) = n;
+    miscHist[70] = static_cast<short>(climateAnnualIndexSum * 10.0 + 0.5);
+    miscHist[71] = static_cast<short>(climateMonthlySamples);
+    miscHist[72] = static_cast<short>(climateCurrentYearWarming * 1000.0);
+    miscHist[73] = static_cast<short>(climateLastSampleMonth);
 
     bool result =
         save_short(resHist, HISTORY_LENGTH / 2, f) &&
@@ -608,7 +627,7 @@ bool Micropolis::loadCity(const std::string &filename)
             filename.find("brest.cty") != std::string::npos ||
             filename.find("toulouse.cty") != std::string::npos;
         const bool hasSmCitySaveMetadata =
-            miscHist[66] == 0x534D && miscHist[67] == 1;
+            miscHist[66] == 0x534D && miscHist[67] >= 1;
         if (isSmCityPreset && !hasSmCitySaveMetadata) {
             startingYear = 2026;
             cityTime = 0;
