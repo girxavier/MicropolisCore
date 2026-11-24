@@ -55,7 +55,7 @@
 {/if}
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
 	</div>
-    <div class="hud-row hud-climate" aria-label="City temperatures">
+    <div class="hud-row hud-climate" aria-label="Températures du moteur climatique">
         <span class="climate-reading">
             <span class="climate-label">T° MIN</span>
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMin.toFixed(1)} °C` : '—'}</strong>
@@ -64,6 +64,10 @@
             <span class="climate-label">T° MAX</span>
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMax.toFixed(1)} °C` : '—'}</strong>
         </span>
+    </div>
+    <div class="hud-row hud-city-climate-index" aria-label="Indice climat de la carte">
+        <span>INDICE CLIMAT</span>
+        <strong>{micropolisReactive.cityClimateIndex === null ? '—' : `${micropolisReactive.cityClimateIndex >= 0 ? '+' : ''}${micropolisReactive.cityClimateIndex.toFixed(1)}`}</strong>
     </div>
 	<div class="hud-row hud-meta">
 		<span class="hud-rci">
@@ -150,6 +154,18 @@
 
     .climate-max .climate-label {
         color: #f4b77b;
+    }
+
+    .hud-city-climate-index {
+        margin-top: 0.2rem;
+        grid-template-columns: 1fr auto;
+        align-items: baseline;
+        padding: 0.18rem 0.35rem;
+        border-radius: 3px;
+        background: rgba(120, 190, 145, 0.12);
+        color: #c9f3d5;
+        font-size: 0.76rem;
+        font-variant-numeric: tabular-nums;
     }
 
 	.hud-meta {

@@ -5,6 +5,7 @@
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { commandBus } from '$lib/CommandBus';
 	let mobileOpen = $state(false);
+	let editorNotice = $state('');
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
@@ -18,12 +19,34 @@
 		mobileOpen = false;
 	}
 
+	function resetMap() {
+		if (!confirm('Réinitialiser entièrement la carte ? Cette action efface la ville en cours.')) return;
+		micropolisReactive.poke.clearMap();
+		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.refreshCityClimateIndex();
+		micropolisReactive.syncFromEngine();
+		editorNotice = 'Carte réinitialisée.';
+	}
+
+	function generateTerrain() {
+		if (!confirm('Générer un nouveau terrain ? La carte actuelle sera remplacée.')) return;
+		const seed = Math.floor(Math.random() * 0x7fffffff);
+		micropolisReactive.poke.generateMap(seed);
+		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.refreshCityClimateIndex();
+		editorNotice = `Terrain généré · graine ${seed}.`;
+	}
+
 	function toggleEditorMode() {
 		mobileOpen = false;
 		const next = !editorModeState.active;
 		editorModeState.set(next);
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
-		else micropolisReactive.attachedSimulator?.exitEditorMode();
+		else {
+			if (toolState.activeToolId === 'clear') toolState.setActiveTool('road');
+			micropolisReactive.refreshCityClimateIndex();
+			micropolisReactive.attachedSimulator?.exitEditorMode();
+		}
 	}
 </script>
 
@@ -35,13 +58,18 @@
 		{editorModeState.active ? 'REPRENDRE LE JEU' : 'MODE MAQUETTISTE'}
 	</button>
 	{#if editorModeState.active}
+		<div class="tool-group-label">Carte et terrain</div>
+		<button type="button" class="tool-item clear-tool" onclick={() => selectTool('clear')}>CLEAR · Terre nue</button>
+		<button type="button" class="tool-item" onclick={generateTerrain}>Générer un terrain</button>
+		<button type="button" class="tool-item" onclick={resetMap}>RESET · Carte vierge</button>
+		{#if editorNotice}<div class="tool-group-label" role="status">{editorNotice}</div>{/if}
 		<div class="tool-group-label">Historique</div>
 		<button type="button" class="tool-item" onclick={() => commandBus.undo()}>↶ Annuler (Ctrl+Z)</button>
 		<button type="button" class="tool-item" onclick={() => commandBus.redo()}>↷ Rétablir (Ctrl+Y)</button>
 		{#each GAME_TOOL_GROUPS as group (group.id)}
 			<details class="tool-category" open={group.id === 'terrain'}>
 				<summary>{group.label ?? group.id}</summary>
-				{#each group.tools as tool (tool.id)}
+				{#each group.tools.filter((tool) => tool.id !== 'clear') as tool (tool.id)}
 					<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
 						title={tool.label} onclick={() => selectTool(tool.id)}>
 						{#if tool.shortcut !== '—'}<span class="tool-key">{tool.shortcut}:</span>{/if}
@@ -59,7 +87,7 @@
 		{/each}
 		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain' && !group.id.endsWith('-buildings')) as group (group.id)}
 			{#if group.label}<div class="tool-group-label">{group.label}</div>{/if}
-			{#each group.tools as tool (tool.id)}
+			{#each group.tools.filter((tool) => tool.id !== 'clear') as tool (tool.id)}
 				<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
 					title="{tool.shortcut}: {toolMenuLabel(tool)}" onclick={() => selectTool(tool.id)}>
 					<span class="tool-key">{tool.shortcut}:</span><span class="tool-name">{toolMenuLabel(tool)}</span>

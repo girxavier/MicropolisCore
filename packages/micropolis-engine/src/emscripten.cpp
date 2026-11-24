@@ -1076,7 +1076,13 @@ function createTypedArrayFromMap(mapInstance) {
     // Simulation Control and Settings
     .function("setCallback", &Micropolis::setCallback, allow_raw_pointers())
     .function("init", &Micropolis::init)
+    .function("setAnnualCityClimateIndex", &Micropolis::setAnnualCityClimateIndex)
+    .function("setZoneLocked", &Micropolis::setZoneLocked)
+    .function("isZoneLocked", &Micropolis::isZoneLocked)
+    .function("clearZoneLocks", &Micropolis::clearZoneLocks)
     .function("loadCity", &Micropolis::loadCity)
+    .function("saveCity", &Micropolis::saveCity)
+    .function("saveCityAs", &Micropolis::saveCityAs)
     .function("loadScenario", &Micropolis::loadScenario)
     .function("simTick", &Micropolis::simTick)
     .function("simUpdate", &Micropolis::simUpdate)
@@ -1256,6 +1262,7 @@ function createTypedArrayFromMap(mapInstance) {
 
     // Game State and Data Access
     .function("getTile", &Micropolis::getTile)
+    .function("getPowerGrid", &Micropolis::getPowerGrid)
     .function("setTile", &Micropolis::setTile)
     .function("setFunds", &Micropolis::setFunds)
     .function("updateMaps", &Micropolis::updateMaps)

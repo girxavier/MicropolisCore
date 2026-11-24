@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "indexRange": [
+    -100,
+    100
+  ],
+  "aggregation": "signed_climate_index",
+  "types": {
+    "R.D1": 10,
+    "R.D2": 35,
+    "R.D3": 75,
+    "C.PROX": 20,
+    "C.RETAIL": 55,
+    "C.SERVICE": 25,
+    "C.LOG": 65,
+    "I.LIGHT": 45,
+    "I.HEAVY": 90,
+    "I.TECH": 55,
+    "I.DATA": 100,
+    "CIV.ADMIN": 20,
+    "CIV.POLICE": 15,
+    "CIV.FIRE": 15,
+    "CIV.CLINIC": 20,
+    "CIV.HOSPITAL": 40,
+    "CIV.SCHOOL": 5,
+    "CIV.LYCEE": 15,
+    "CIV.UNIVERSITY": 30,
+    "CIV.LIBRARY": 5,
+    "CIV.MUSEUM": 10,
+    "CIV.THEATRE": 10,
+    "CIV.GYM": 20,
+    "CIV.POOL": 35,
+    "CIV.STADIUM": 25,
+    "CIV.WASTE_DROP": 10,
+    "CIV.REUSE": -15,
+    "CIV.SORTING": -10,
+    "CIV.INCINERATOR": 75,
+    "CIV.LANDFILL": 50,
+    "CIV.CHURCH": null,
+    "INF.POWER.COAL": 100,
+    "INF.POWER.OIL": 95,
+    "INF.POWER.GAS": 75,
+    "INF.POWER.NUCLEAR": 15,
+    "INF.POWER.WIND": -75,
+    "INF.POWER.SOLAR": -75,
+    "INF.POWER.HYDRO": -75,
+    "INF.GRID.ELECTRIC": 0,
+    "INF.GRID.WATER": 0,
+    "INF.TRANSPORT.ROAD": 35,
+    "INF.TRANSPORT.RAIL": -15,
+    "INF.TRANSPORT.SEAPORT": null,
+    "INF.TRANSPORT.AIRPORT": null,
+    "INF.TELECOM": null,
+    "LAND.SEA": -75,
+    "LAND.RIVER": -25,
+    "LAND.FLEUVE": -50,
+    "LAND.CANAL": -15,
+    "LAND.TREE": -10,
+    "LAND.GROVE": -25,
+    "LAND.FOREST": -75,
+    "LAND.HEATH": -10,
+    "LAND.MEADOW": -15,
+    "LAND.VEGETATED_WASTE": -20,
+    "LAND.PARK": -25,
+    "LAND.SQUARE": -25,
+    "LAND.BARE": 0,
+    "LAND.RUBBLE": null,
+    "LAND.FLOOD": null,
+    "LAND.RADIOACTIVE": null,
+    "LAND.FIRE": null
+  },
+  "agriculture": {
+    "MAR": {
+      "D1": {
+        "BIO": -25,
+        "CONV": -20
+      },
+      "D2": {
+        "BIO": -20,
+        "CONV": -15
+      },
+      "D3": {
+        "BIO": -15,
+        "CONV": -10
+      },
+      "D4": {
+        "BIO": -10,
+        "CONV": -5
+      },
+      "D5": {
+        "BIO": -5,
+        "CONV": 0
+      }
+    },
+    "CER": {
+      "D1": {
+        "BIO": 20,
+        "CONV": 20
+      },
+      "D2": {
+        "BIO": 45,
+        "CONV": 45
+      },
+      "D3": {
+        "BIO": 50,
+        "CONV": 50
+      },
+      "D4": {
+        "BIO": 100,
+        "CONV": 100
+      },
+      "D5": {
+        "BIO": 100,
+        "CONV": 100
+      }
+    },
+    "ELE": {
+      "D1": {
+        "BIO": 45,
+        "CONV": 45
+      },
+      "D2": {
+        "BIO": 60,
+        "CONV": 60
+      },
+      "D3": {
+        "BIO": 75,
+        "CONV": 75
+      },
+      "D4": {
+        "BIO": 100,
+        "CONV": 100
+      },
+      "D5": {
+        "BIO": 100,
+        "CONV": 100
+      }
+    },
+    "VIT": {
+      "D1": {
+        "BIO": -25,
+        "CONV": -20
+      },
+      "D2": {
+        "BIO": -15,
+        "CONV": -10
+      },
+      "D3": {
+        "BIO": -5,
+        "CONV": 0
+      },
+      "D4": {
+        "BIO": 5,
+        "CONV": 15
+      },
+      "D5": {
+        "BIO": 15,
+        "CONV": 25
+      }
+    },
+    "ARB": {},
+    "POL": {},
+    "HOR": {}
+  }
+}

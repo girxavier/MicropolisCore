@@ -19,11 +19,17 @@ describe('micropolisReactive bridge', () => {
 		const mm = createMapMopViews(engine, micropolis);
 		micropolis.init();
 
-		const simulatorLike = {
+		let simulatorLike: MicropolisSimulator;
+		simulatorLike = {
 			micropolis,
 			micropolisengine: engine,
 			mapData: mm?.mapData ?? null,
-			mopData: mm?.mopData ?? null
+			mopData: mm?.mopData ?? null,
+			syncMapViews: () => {
+				const views = createMapMopViews(engine, micropolis);
+				simulatorLike.mapData = views?.mapData ?? null;
+				simulatorLike.mopData = views?.mopData ?? null;
+			}
 		} as MicropolisSimulator;
 
 		micropolisReactive.attach(simulatorLike);

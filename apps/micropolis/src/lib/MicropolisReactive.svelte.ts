@@ -12,6 +12,9 @@ import type { EditingTool, GameLevel, Micropolis, JSCallback, ToolResult } from 
 import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
+import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
+import { getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
+import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -66,6 +69,7 @@ export type MicropolisZoneStatus =
 			growthRate: number;
 			x: number;
 			y: number;
+			tileId: number;
 	  };
 
 let zoneStatus = $state<MicropolisZoneStatus>({ visible: false });
@@ -78,6 +82,9 @@ let temperatureMin = $state(0);
 let temperatureMax = $state(0);
 let temperatureMean = $state(0);
 let climateReady = $state(false);
+let cityClimateIndex = $state<number | null>(null);
+let localClimateTemperatures: Float32Array | null = null;
+let zoneLockRevision = $state(0);
 
 function syncFromEngine(): void {
 	const m = attachedSimulator?.micropolis;
@@ -102,6 +109,94 @@ function syncFromEngine(): void {
 	climateReady = m.climateReady;
 }
 
+/** Recompute and persist the current month's map-derived urban climate index. */
+function isLockableZoneType(typeId: string | null): boolean {
+	return !!typeId && (typeId.startsWith('R.') || typeId.startsWith('C.') || typeId.startsWith('I.'));
+}
+
+function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
+	const map = attachedSimulator?.mapData;
+	const engine = attachedSimulator?.micropolisengine;
+	if (!map || !engine) return { x, y };
+	const zoneBit = engine.MapTileBits.ZONEBIT.value;
+	for (let radius = 0; radius <= 4; radius += 1) {
+		for (let dx = -radius; dx <= radius; dx += 1) for (let dy = -radius; dy <= radius; dy += 1) {
+			if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+			const cx = x + dx, cy = y + dy;
+			if (cx < 0 || cy < 0 || cx >= engine.WORLD_W || cy >= engine.WORLD_H) continue;
+			const tile = map[cx * engine.WORLD_H + cy];
+			if (tile !== undefined && (tile & zoneBit) !== 0) return { x: cx, y: cy };
+		}
+	}
+	return { x, y };
+}
+
+function isLockableZoneCenter(x: number, y: number): boolean {
+	const map = attachedSimulator?.mapData;
+	const engine = attachedSimulator?.micropolisengine;
+	if (!map || !engine || x < 0 || y < 0 || x >= engine.WORLD_W || y >= engine.WORLD_H) return false;
+	const tile = map[x * engine.WORLD_H + y] ?? 0;
+	return (tile & engine.MapTileBits.ZONEBIT.value) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
+}
+
+function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void {
+	const engine = attachedSimulator?.micropolis;
+	const module = attachedSimulator?.micropolisengine;
+	const map = attachedSimulator?.mapData;
+	if (!engine || !module || !map || typeof engine.clearZoneLocks !== 'function' || typeof engine.setZoneLocked !== 'function') return;
+	engine.clearZoneLocks();
+	const validLocks: Record<string, boolean> = {};
+	const zoneBit = module.MapTileBits.ZONEBIT.value;
+	for (const [key, locked] of Object.entries(data.lockedZones ?? {})) {
+		if (!locked) continue;
+		const [x, y] = key.split(',').map(Number);
+		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= module.WORLD_W || y >= module.WORLD_H) continue;
+		const tile = map[x * module.WORLD_H + y];
+		if ((tile & zoneBit) === 0 || !isLockableZoneType(resolveConstructionTypeFromTileId(tile))) continue;
+		validLocks[key] = true;
+		engine.setZoneLocked(x, y, true);
+	}
+	if (Object.keys(validLocks).length !== Object.keys(data.lockedZones ?? {}).length) {
+		saveScenarioData({ ...data, lockedZones: validLocks, updatedAt: new Date().toISOString() });
+	}
+	zoneLockRevision++;
+}
+
+function refreshLocalClimateTemperatureField(): void {
+	const simulator = attachedSimulator;
+	if (!simulator?.mapData || simulator.mapData.length !== 12000) return;
+	const scenario = loadScenarioData(cityFileName || simulator.cityFileName || simulator.micropolis?.cityName || 'default');
+	localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, scenario, 1);
+}
+
+function refreshCityClimateIndex(): void {
+	const simulator = attachedSimulator;
+	const scenarioId = cityFileName || simulator?.cityFileName || simulator?.micropolis?.cityName || '';
+	if (!scenarioId || !simulator?.mapData || simulator.mapData.length !== 12000) return;
+	try {
+		const scenario = loadScenarioData(scenarioId);
+		const index = computeMapCityClimateIndex(simulator.mapData, scenario);
+		cityClimateIndex = index;
+		const data = recordMonthlyClimateIndex(scenario, cityYear, cityMonth, index);
+		// Cartographic field only: never fed back into the annual climate engine.
+		localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, data, 1);
+		saveScenarioData(data);
+		applyScenarioZoneLocks(data);
+		const engine = simulator.micropolis;
+		if (engine && typeof engine.setAnnualCityClimateIndex === 'function') {
+			const yearIndex = Math.max(0, Math.floor((engine.cityTime - engine.climateEpochCityTime) / 48));
+			const previousYear = getAnnualClimateIndices(data, cityYear - 1);
+			if (previousYear) engine.setAnnualCityClimateIndex(yearIndex, computeAnnualCityClimateIndex(previousYear));
+			if (cityMonth === 11) {
+				const completedYear = getAnnualClimateIndices(data, cityYear);
+				if (completedYear) engine.setAnnualCityClimateIndex(yearIndex + 1, computeAnnualCityClimateIndex(completedYear));
+			}
+		}
+	} catch (error) {
+		console.warn('SmCity climate index could not be refreshed:', error);
+	}
+}
+
 /**
  * Embind callback object — pass to `new micropolisengine.JSCallback(...)`.
  * Singleton so the simulator always feeds the same reactive store.
@@ -116,11 +211,15 @@ class MicropolisReactiveCallback {
 
 	didGenerateMap(_micropolis: Micropolis | null, _callbackVal: unknown, _seed: number): void {
 		syncFromEngine();
+		attachedSimulator?.syncMapViews();
+		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadCity(_micropolis: Micropolis | null, _callbackVal: unknown, _filename: string): void {
 		syncFromEngine();
+		attachedSimulator?.syncMapViews();
+		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
@@ -214,7 +313,8 @@ class MicropolisReactiveCallback {
 			pollution: pollutionIndex,
 			growthRate: growthRateIndex,
 			x,
-			y
+			y,
+			tileId: _micropolis?.getTile(x, y) ?? 0
 		};
 	}
 
@@ -251,6 +351,7 @@ class MicropolisReactiveCallback {
 	updateDate(_micropolis: Micropolis | null, _callbackVal: unknown, year: number, month: number): void {
 		cityYear = year;
 		cityMonth = month;
+		refreshCityClimateIndex();
 	}
 
 	updateClimate(
@@ -266,6 +367,7 @@ class MicropolisReactiveCallback {
 		temperatureMax = tmax;
 		temperatureMean = tmoy;
 		climateReady = true;
+		refreshLocalClimateTemperatureField();
 	}
 
 	updateDemand(_micropolis: Micropolis | null, _callbackVal: unknown, r: number, c: number, i: number): void {
@@ -438,6 +540,7 @@ export const micropolisReactive = {
 	attach(sim: MicropolisSimulator): void {
 		attachedSimulator = sim;
 		syncFromEngine();
+		refreshCityClimateIndex();
 	},
 
 	detach(): void {
@@ -445,6 +548,32 @@ export const micropolisReactive = {
 	},
 
 	syncFromEngine,
+	refreshCityClimateIndex,
+	isZoneLockableAt(x: number, y: number): boolean {
+		const center = findZoneLockCenter(x, y);
+		return typeof attachedSimulator?.micropolis?.setZoneLocked === 'function' && isLockableZoneCenter(center.x, center.y);
+	},
+	isZoneLockedAt(x: number, y: number): boolean {
+		void zoneLockRevision;
+		const center = findZoneLockCenter(x, y);
+		return getScenarioZoneLock(loadScenarioData(cityFileName || attachedSimulator?.micropolis?.cityName || 'default'), center.x, center.y);
+	},
+	setZoneLockedAt(x: number, y: number, locked: boolean): void {
+		const center = findZoneLockCenter(x, y);
+		if (!isLockableZoneCenter(center.x, center.y)) return;
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const next = updateScenarioZoneLock(loadScenarioData(scenarioId), center.x, center.y, locked);
+		saveScenarioData(next);
+		if (typeof attachedSimulator?.micropolis?.setZoneLocked === 'function') attachedSimulator.micropolis.setZoneLocked(center.x, center.y, locked);
+		zoneLockRevision++;
+	},
+	clearScenarioZoneLocks(): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const data = loadScenarioData(scenarioId);
+		saveScenarioData({ ...data, lockedZones: {}, updatedAt: new Date().toISOString() });
+		if (typeof attachedSimulator?.micropolis?.clearZoneLocks === 'function') attachedSimulator.micropolis.clearZoneLocks();
+		zoneLockRevision++;
+	},
 
 	/**
 	 * Embind module (`WORLD_W`, `MapTileBits`, `EditingTool`, `Tiles`, …).
@@ -461,9 +590,16 @@ export const micropolisReactive = {
 
 	loadScenario(scenario: number): void {
 		commandBus.clearHistory();
+		if (typeof attachedSimulator?.micropolis?.clearZoneLocks === 'function') attachedSimulator.micropolis.clearZoneLocks();
 		attachedSimulator?.loadScenario(scenario);
+		zoneLockRevision++;
 		syncFromEngine();
+		refreshCityClimateIndex();
 		mapRevision++;
+	},
+
+	get localClimateTemperatures(): Float32Array | null {
+		return localClimateTemperatures;
 	},
 
 	get wasmModule(): MicropolisSimulator['micropolisengine'] | null {
@@ -723,6 +859,9 @@ export const micropolisReactive = {
 	},
 	get climateReady() {
 		return climateReady;
+	},
+	get cityClimateIndex() {
+		return cityClimateIndex;
 	},
 	get worldWidth() {
 		return attachedSimulator?.micropolisengine?.WORLD_W ?? 0;

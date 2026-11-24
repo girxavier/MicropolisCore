@@ -41,11 +41,17 @@ describe('micropolisReactive simulation and callbacks', () => {
 		micropolis.init();
 		micropolis.loadCity('/cities/haight.cty');
 
-		const simulatorLike = {
+		let simulatorLike: MicropolisSimulator;
+		simulatorLike = {
 			micropolis,
 			micropolisengine: engine,
 			mapData: mm?.mapData ?? null,
-			mopData: mm?.mopData ?? null
+			mopData: mm?.mopData ?? null,
+			syncMapViews: () => {
+				const views = createMapMopViews(engine, micropolis);
+				simulatorLike.mapData = views?.mapData ?? null;
+				simulatorLike.mopData = views?.mopData ?? null;
+			}
 		} as MicropolisSimulator;
 
 		micropolisReactive.attach(simulatorLike);

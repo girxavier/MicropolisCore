@@ -199,6 +199,7 @@ bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
 {
     ready = false;
     generatedYears.clear();
+    annualCityClimateIndices.clear();
     activeCity = normalizeCity(cityName);
     if (!loadTables()) return false;
     if (references.find(activeCity) == references.end()) return false;
@@ -212,11 +213,21 @@ bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
     return update(cityTime);
 }
 
+bool SmCityClimate::setAnnualCityClimateIndex(std::size_t yearIndex, double index)
+{
+    if (!std::isfinite(index) || index < -100.0 || index > 100.0) return false;
+    annualCityClimateIndices[yearIndex] = index;
+    if (generatedYears.size() > yearIndex) generatedYears.resize(yearIndex);
+    return true;
+}
+
 void SmCityClimate::generateYear(std::size_t yearIndex)
 {
     ClimateYear year;
     const std::array<MonthlyReference, 12> &historical = references[activeCity];
-    const double warming = cityWarmingCoefficient[activeCity] * baseWarming;
+    const std::map<std::size_t, double>::const_iterator cityIndex = annualCityClimateIndices.find(yearIndex);
+    const double cityShift = (cityIndex == annualCityClimateIndices.end()) ? 0.0 : cityIndex->second / 100.0;
+    const double warming = cityWarmingCoefficient[activeCity] * baseWarming + cityShift;
     const double denominator = 5.0 + static_cast<double>(yearIndex);
 
     std::uint32_t seed = stableHash(activeCity);
@@ -318,6 +329,34 @@ const SmCityClimateReading &SmCityClimate::current() const
     return currentReading;
 }
 
+
+bool Micropolis::setZoneLocked(int x, int y, bool locked)
+{
+    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
+    const unsigned int key = static_cast<unsigned int>(x * WORLD_H + y);
+    if (locked) lockedZoneCenters.insert(key);
+    else lockedZoneCenters.erase(key);
+    return true;
+}
+
+bool Micropolis::isZoneLocked(int x, int y) const
+{
+    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
+    return lockedZoneCenters.find(static_cast<unsigned int>(x * WORLD_H + y)) != lockedZoneCenters.end();
+}
+
+void Micropolis::clearZoneLocks()
+{
+    lockedZoneCenters.clear();
+}
+
+bool Micropolis::setAnnualCityClimateIndex(int yearIndex, double index)
+{
+    if (!climateReady || yearIndex < 0) return false;
+    if (!climateModel.setAnnualCityClimateIndex(static_cast<std::size_t>(yearIndex), index)) return false;
+    updateClimateForTime();
+    return true;
+}
 
 void Micropolis::initializeClimate(long long savedEpoch)
 {

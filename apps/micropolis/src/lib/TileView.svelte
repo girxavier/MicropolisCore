@@ -484,8 +484,10 @@
   }
 
   function applyToolAt(tx: number, ty: number): void {
-    const eng = micropolisSimulator?.micropolisengine;
-    if (!eng || !micropolisSimulator) return;
+    const simulator = micropolisSimulator;
+    const eng = simulator?.micropolisengine;
+    const micropolis = simulator?.micropolis;
+    if (!eng || !simulator || !micropolis) return;
 
     const tileX = Math.floor(tx);
     const tileY = Math.floor(ty);
@@ -494,12 +496,18 @@
 
     const mapBefore = micropolisReactive.memory.mapU16;
     const before = mapBefore ? new Uint16Array(mapBefore) : null;
-    const fundsBefore = micropolisSimulator.micropolis.totalFunds;
+    const fundsBefore = micropolis.totalFunds;
     const directBuildingCenter = editorModeState.active
       ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
       : null;
     let result: { value: number } | number;
-    if (directBuildingCenter !== null) {
+    if (editorModeState.active && toolState.activeToolId === 'clear') {
+      // CLEAR removes a whole structure through the engine, then restores the selected cell to bare dirt.
+      micropolisReactive.poke.doTool(eng.EditingTool.TOOL_BULLDOZER, tileX, tileY);
+      micropolisReactive.poke.setTile(tileX, tileY, eng.Tiles.DIRT.value);
+      micropolisReactive.poke.updateMaps();
+      result = eng.ToolResult.TOOLRESULT_OK;
+    } else if (directBuildingCenter !== null) {
       const left = tileX - 1;
       const top = tileY - 1;
       if (left < 0 || top < 0 || left + 3 > eng.WORLD_W || top + 3 > eng.WORLD_H) {
@@ -520,7 +528,7 @@
             let value = tileId + tileFlags;
             if (isCenter) {
               value |= bits.ZONEBIT.value | bits.BULLBIT.value;
-              const powered = micropolisSimulator.micropolis?.getPowerGrid(tileX, tileY) ?? 0;
+              const powered = micropolis.getPowerGrid(tileX, tileY);
               if (powered) value |= bits.PWRBIT.value;
             }
             micropolisReactive.poke.setTile(left + dx, top + dy, value);
@@ -534,7 +542,7 @@
       result = micropolisReactive.poke.doTool(tool, tileX, tileY);
     }
     const afterMap = micropolisReactive.memory.mapU16;
-    const fundsDelta = micropolisSimulator.micropolis.totalFunds - fundsBefore;
+    const fundsDelta = micropolis.totalFunds - fundsBefore;
     if (before && afterMap) {
       const changes: Array<{ index: number; before: number; after: number }> = [];
       for (let i = 0; i < Math.min(before.length, afterMap.length); i++) {
@@ -552,7 +560,7 @@
           micropolisReactive.poke.updateMaps();
           const currentFunds = micropolisReactive.totalFunds;
           micropolisReactive.poke.setFunds(field === 'before' ? currentFunds - fundsDelta : currentFunds + fundsDelta);
-          micropolisSimulator?.render();
+          simulator.render();
         };
         commandBus.recordUndo({
           label: `Paint ${toolState.activeToolId}`,
@@ -563,7 +571,8 @@
     }
     const feedback = toolResultMessage(result as { value: number });
     toolState.setLastToolFeedback(feedback);
-    micropolisSimulator.render();
+    if (editorModeState.active) micropolisReactive.refreshCityClimateIndex();
+    simulator.render();
   }
 
   function isPanMouseButton(button: number): boolean {

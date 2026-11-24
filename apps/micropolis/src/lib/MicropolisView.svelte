@@ -9,6 +9,7 @@
   import Toolbar from '$lib/Toolbar.svelte';
   import MessageOverlay from '$lib/MessageOverlay.svelte';
   import ZoneStatusPanel from '$lib/ZoneStatusPanel.svelte';
+  import ScenarioEditorPanel from '$lib/ScenarioEditorPanel.svelte';
   import BudgetModal from '$lib/BudgetModal.svelte';
   import SoftwareSpriteLayer from '$lib/sprites/SoftwareSpriteLayer.svelte';
   import { triggerSkywriting, toggleSkywritingPilot } from '$lib/sprites/plugins/skywriting/SkywritingPlugin.svelte';
@@ -20,7 +21,7 @@
   import type { ScreenRect } from '$lib/input/viewportTileFrame';
   import { editorModeState } from '$lib/EditorMode.svelte';
 
-  let micropolisSimulator: MicropolisSimulator | null = null;
+  let micropolisSimulator = $state<MicropolisSimulator | null>(null);
   let tileView: TileView | null = null;
   let viewRenderRef: (() => void) | null = null;
 
@@ -82,6 +83,7 @@
     else micropolisSimulator.exitEditorMode(false);
     micropolisSimulator.syncMapViews();
     await tileView!.initialize(micropolisSimulator);
+    micropolisReactive.refreshCityClimateIndex();
     if (!startInEditor) micropolisSimulator.setPaused(false);
 
     console.log("MicropolisView: onMount:", "micropolisSimulator:", micropolisSimulator);
@@ -118,6 +120,7 @@
       />
       <GameHud />
       <ZoneStatusPanel />
+      <ScenarioEditorPanel />
       <BudgetModal />
       <HelpModal />
     </div>

@@ -101,6 +101,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -954,6 +955,13 @@ public:
     void setCallback(Callback *callback, emscripten::val callbackVal);
 
     void init();
+
+    // Apply a completed annual map-derived climate index to one climate year.
+    bool setAnnualCityClimateIndex(int yearIndex, double index);
+    bool setZoneLocked(int x, int y, bool locked);
+    bool isZoneLocked(int x, int y) const;
+    void clearZoneLocks();
+    std::set<unsigned int> lockedZoneCenters;
 
 
 private:

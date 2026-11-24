@@ -3,6 +3,7 @@ import type { EditingTool, MainModule } from '../types/micropolisengine.d.js';
 export type ToolId =
 	| 'query'
 	| 'bulldoze'
+	| 'clear'
 	| 'wire'
 	| 'road'
 	| 'rail'
@@ -48,7 +49,10 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 	},
 	{
 		id: 'clear',
-		tools: [{ id: 'bulldoze', label: 'Bulldoze', shortcut: 'B', cost: 1 }],
+		tools: [
+			{ id: 'clear', label: 'CLEAR · Terre nue', shortcut: 'X', cost: 0 },
+			{ id: 'bulldoze', label: 'Bulldozer', shortcut: 'B', cost: 1 }
+		],
 	},
 	{
 		id: 'transport',
@@ -147,6 +151,7 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 		case 'query':
 			return t.TOOL_QUERY;
 		case 'bulldoze':
+		case 'clear':
 			return t.TOOL_BULLDOZER;
 		case 'wire':
 			return t.TOOL_WIRE;
@@ -196,6 +201,7 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 /** Tile footprint per tool — mirrors `gToolSize[]` in micropolis-engine `tool.cpp`. */
 const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 	query: 1,
+	clear: 1,
 	bulldoze: 1,
 	wire: 1,
 	road: 1,
@@ -272,6 +278,7 @@ export function toolCursor(id: ToolId, panning: boolean, shiftPanHeld = false): 
 		case 'query':
 			return 'crosshair';
 		case 'bulldoze':
+		case 'clear':
 			return 'cell';
 		default:
 			return 'default';

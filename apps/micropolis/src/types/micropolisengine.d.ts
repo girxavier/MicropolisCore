@@ -12,6 +12,9 @@ declare namespace RuntimeExports {
     function removeRunDependency(id: any): void;
 }
 interface WasmModule {
+  FS_readFile?: (_path: string) => Uint8Array;
+  FS_unlink?: (_path: string) => void;
+  FS_createDataFile(parent: string, name: string, data: Uint8Array, canRead?: boolean, canWrite?: boolean, canOwn?: boolean): any;
 }
 
 type EmbindString = ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string;
@@ -374,7 +377,13 @@ export interface Micropolis extends ClassHandle {
   set cityName(value: EmbindString);
   setCallback(_0: Callback | null, _1: any): void;
   init(): void;
+  setAnnualCityClimateIndex(_0: number, _1: number): boolean;
+  setZoneLocked(_0: number, _1: number, _2: boolean): boolean;
+  isZoneLocked(_0: number, _1: number): boolean;
+  clearZoneLocks(): void;
   loadCity(_0: EmbindString): boolean;
+  saveCity(): void;
+  saveCityAs(_0: EmbindString): void;
   loadScenario(_0: Scenario): void;
   simTick(): void;
   simUpdate(): void;
@@ -414,6 +423,7 @@ export interface Micropolis extends ClassHandle {
   randomlySeedRandom(): void;
   seedRandom(_0: number): void;
   getTile(_0: number, _1: number): number;
+  getPowerGrid(_0: number, _1: number): number;
   setTile(_0: number, _1: number, _2: number): void;
   setFunds(_0: number): void;
   updateMaps(): void;
