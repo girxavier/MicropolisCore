@@ -1,18 +1,6 @@
 name: SmCity build and checks
 
 on:
-  pull_request:
-    branches:
-      - SmCity-climate
-    paths:
-      - 'apps/micropolis/**'
-      - 'packages/micropolis-engine/**'
-      - 'content/micropolis/**'
-      - 'packages/**'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'package.json'
-      - '.github/workflows/smcity-ci.yml'
   push:
     branches:
       - smcity/editor-scenario-tools
