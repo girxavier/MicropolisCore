@@ -12,21 +12,23 @@ describe('SmCity construction catalog', () => {
 		]);
 	});
 
-	it('keeps every market-gardening scale and mode within -25 to 0', () => {
-		for (const scale of ['D1', 'D2', 'D3', 'D4', 'D5']) {
-			for (const mode of ['BIO', 'CONV']) {
-				expect(getAgriculturalClimateRule('MAR', scale, mode)).toEqual({
-					kind: 'range', min: -25, max: 0
+	it('assigns progressive market-gardening values by scale, all within -25 to 0', () => {
+		const expected = [[-25, -20], [-20, -15], [-15, -10], [-10, -5], [-5, 0]];
+		for (let index = 0; index < expected.length; index += 1) {
+			for (const [modeIndex, mode] of ['BIO', 'CONV'].entries()) {
+				expect(getAgriculturalClimateRule('MAR', `D${index + 1}`, mode)).toEqual({
+					kind: 'fixed', value: expected[index][modeIndex]
 				});
 			}
 		}
 	});
 
-	it('keeps every viticulture scale and mode within -25 to +25', () => {
-		for (const scale of ['D1', 'D2', 'D3', 'D4', 'D5']) {
-			for (const mode of ['BIO', 'CONV']) {
-				expect(getAgriculturalClimateRule('VIT', scale, mode)).toEqual({
-					kind: 'range', min: -25, max: 25
+	it('assigns progressive viticulture values by scale, all within -25 to +25', () => {
+		const expected = [[-25, -20], [-15, -10], [-5, 0], [5, 15], [15, 25]];
+		for (let index = 0; index < expected.length; index += 1) {
+			for (const [modeIndex, mode] of ['BIO', 'CONV'].entries()) {
+				expect(getAgriculturalClimateRule('VIT', `D${index + 1}`, mode)).toEqual({
+					kind: 'fixed', value: expected[index][modeIndex]
 				});
 			}
 		}
