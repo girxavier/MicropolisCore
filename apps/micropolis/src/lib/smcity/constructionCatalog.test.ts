@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createEmptyScenarioData, updateScenarioTypeProperty } from './scenarioData';
 import {
 	getAgriculturalClimateRule,
 	getConstructionClimateRule,
@@ -45,6 +46,16 @@ describe('SmCity construction catalog', () => {
 		expect(getConstructionClimateRule('LAND.FLEUVE')).toEqual({ kind: 'fixed', value: -50 });
 		expect(getConstructionClimateRule('LAND.SEA')).toEqual({ kind: 'fixed', value: -75 });
 		expect(getConstructionClimateRule('LAND.FOREST')).toEqual({ kind: 'fixed', value: -75 });
+	});
+
+	it('applies scenario overrides to all occurrences of a shared type', () => {
+		const scenario = updateScenarioTypeProperty(createEmptyScenarioData('orleans'), 'R.D2', 'climateIndex', 12);
+		expect(getConstructionClimateRule('R.D2', scenario)).toEqual({ kind: 'fixed', value: 12 });
+	});
+
+	it('allows scale- and mode-specific agricultural overrides', () => {
+		const scenario = updateScenarioTypeProperty(createEmptyScenarioData('orleans'), 'A.MAR.D3.BIO', 'climateIndex', -7);
+		expect(getAgriculturalClimateRule('MAR', 'D3', 'BIO', scenario)).toEqual({ kind: 'fixed', value: -7 });
 	});
 
 	it('maps queried legacy tiles to unambiguous shared construction types', () => {
