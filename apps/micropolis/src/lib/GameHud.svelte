@@ -152,6 +152,18 @@
         color: #f4b77b;
     }
 
+    .hud-city-climate-index {
+        margin-top: 0.2rem;
+        grid-template-columns: 1fr auto;
+        align-items: baseline;
+        padding: 0.18rem 0.35rem;
+        border-radius: 3px;
+        background: rgba(120, 190, 145, 0.12);
+        color: #c9f3d5;
+        font-size: 0.76rem;
+        font-variant-numeric: tabular-nums;
+    }
+
 	.hud-meta {
 		margin-top: 0.25rem;
 		grid-template-columns: 1fr 4.25rem 4.5rem;
