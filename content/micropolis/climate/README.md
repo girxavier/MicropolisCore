@@ -8,6 +8,7 @@ The climate data used by the Micropolis engine live in this directory. The C++ i
 - `climat_parametres_smcity.csv`: city-specific annual warming increments.
 - `climat_seuils_smcity.csv`: inclusive Tmin/Tmax thresholds and their increments.
 - `climat_regles_smcity.csv`: anomaly ranges, persistence and high-temperature limiter parameters.
+- `climat_indices_objets_smcity.csv`: editable 0–255 climate indices and footprint weights for map tile families.
 
 ## Calculation order for each of the 48 annual units
 
