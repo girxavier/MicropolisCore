@@ -24,6 +24,16 @@ describe('toolFootprintAtCenter', () => {
 		expect(toolFootprintAtCenter(10, 20, 'network')).toEqual({ x: 10, y: 20, w: 1, h: 1 });
 		expect(GAME_TOOL_GROUPS.find((group) => group.id === 'special')?.tools.map((tool) => tool.id)).toContain('network');
 	});
+
+	it('routes every RCI subgroup to the correct engine tool and 3×3 footprint', () => {
+		const module = {
+			EditingTool: { TOOL_RESIDENTIAL: 0, TOOL_COMMERCIAL: 1, TOOL_INDUSTRIAL: 2 }
+		} as never;
+		expect(resolveEditingTool(module, 'res-lv4-building-4')).toBe(0);
+		expect(resolveEditingTool(module, 'com-lv3-building-5')).toBe(1);
+		expect(resolveEditingTool(module, 'ind-lv2-building-4')).toBe(2);
+		expect(toolFootprintAtCenter(10, 20, 'res-lv4-building-4')).toEqual({ x: 9, y: 19, w: 3, h: 3 });
+	});
 });
 
 describe('direct building variants', () => {
