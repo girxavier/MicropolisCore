@@ -955,6 +955,9 @@ public:
 
     void init();
 
+    // Apply a completed annual map-derived climate index to one climate year.
+    bool setAnnualCityClimateIndex(int yearIndex, double index);
+
 
 private:
 

@@ -55,7 +55,7 @@
 {/if}
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
 	</div>
-    <div class="hud-row hud-climate" aria-label="City temperatures">
+    <div class="hud-row hud-climate" aria-label="Températures du moteur climatique">
         <span class="climate-reading">
             <span class="climate-label">T° MIN</span>
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMin.toFixed(1)} °C` : '—'}</strong>
@@ -64,6 +64,10 @@
             <span class="climate-label">T° MAX</span>
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMax.toFixed(1)} °C` : '—'}</strong>
         </span>
+    </div>
+    <div class="hud-row hud-city-climate-index" aria-label="Indice climat de la carte">
+        <span>INDICE CLIMAT</span>
+        <strong>{micropolisReactive.cityClimateIndex === null ? '—' : `${micropolisReactive.cityClimateIndex >= 0 ? '+' : ''}${micropolisReactive.cityClimateIndex.toFixed(1)}`}</strong>
     </div>
 	<div class="hud-row hud-meta">
 		<span class="hud-rci">

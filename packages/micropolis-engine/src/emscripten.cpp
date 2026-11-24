@@ -1076,6 +1076,7 @@ function createTypedArrayFromMap(mapInstance) {
     // Simulation Control and Settings
     .function("setCallback", &Micropolis::setCallback, allow_raw_pointers())
     .function("init", &Micropolis::init)
+    .function("setAnnualCityClimateIndex", &Micropolis::setAnnualCityClimateIndex)
     .function("loadCity", &Micropolis::loadCity)
     .function("saveCity", &Micropolis::saveCity)
     .function("saveCityAs", &Micropolis::saveCityAs)

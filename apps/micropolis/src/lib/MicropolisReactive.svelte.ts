@@ -12,8 +12,8 @@ import type { EditingTool, GameLevel, Micropolis, JSCallback, ToolResult } from 
 import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
-import { computeMapCityClimateIndex } from './smcity/urbanClimate';
-import { loadScenarioData, recordMonthlyClimateIndex, saveScenarioData } from './smcity/scenarioData';
+import { computeAnnualCityClimateIndex, computeMapCityClimateIndex } from './smcity/urbanClimate';
+import { getAnnualClimateIndices, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData } from './smcity/scenarioData';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -116,8 +116,18 @@ function refreshCityClimateIndex(): void {
 		const scenarioId = cityFileName || simulator.cityFileName || 'default';
 		const data = recordMonthlyClimateIndex(loadScenarioData(scenarioId), cityYear, cityMonth, index);
 		saveScenarioData(data);
+		const engine = simulator.micropolis;
+		if (engine && typeof engine.setAnnualCityClimateIndex === 'function') {
+			const yearIndex = Math.max(0, Math.floor((engine.cityTime - engine.climateEpochCityTime) / 48));
+			const previousYear = getAnnualClimateIndices(data, cityYear - 1);
+			if (previousYear) engine.setAnnualCityClimateIndex(yearIndex, computeAnnualCityClimateIndex(previousYear));
+			if (cityMonth === 11) {
+				const completedYear = getAnnualClimateIndices(data, cityYear);
+				if (completedYear) engine.setAnnualCityClimateIndex(yearIndex + 1, computeAnnualCityClimateIndex(completedYear));
+			}
+		}
 	} catch (error) {
-		console.warn('SmCity urban climate index could not be refreshed:', error);
+		console.warn('SmCity climate index could not be refreshed:', error);
 	}
 }
 

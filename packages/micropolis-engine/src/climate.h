@@ -26,6 +26,7 @@ public:
     bool initialize(const std::string &cityName, long long cityTime,
                     long long savedEpoch = -1);
     bool update(long long cityTime);
+    bool setAnnualCityClimateIndex(std::size_t yearIndex, double index);
 
     bool isReady() const;
     long long epochCityTime() const;
@@ -47,6 +48,7 @@ private:
     std::map<std::string, double> cityWarmingCoefficient;
     double baseWarming;
     std::vector<ClimateYear> generatedYears;
+    std::map<std::size_t, double> annualCityClimateIndices;
 
     std::string activeCity;
     double anomalyAMin;

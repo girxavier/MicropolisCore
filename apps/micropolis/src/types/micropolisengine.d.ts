@@ -376,6 +376,7 @@ export interface Micropolis extends ClassHandle {
   set cityName(value: EmbindString);
   setCallback(_0: Callback | null, _1: any): void;
   init(): void;
+  setAnnualCityClimateIndex(_0: number, _1: number): boolean;
   loadCity(_0: EmbindString): boolean;
   saveCity(): void;
   saveCityAs(_0: EmbindString): void;
