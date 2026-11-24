@@ -1,3 +1,6 @@
+import { getConstructionClimateRule, resolveConstructionTypeFromTileId } from './constructionCatalog';
+import type { ScenarioData } from './scenarioData';
+
 /**
  * Pure calculations for the SmCity urban-climate layer.
  *
@@ -36,6 +39,25 @@ export function computeCityClimateIndex(cellIndices: ArrayLike<number>): number 
 	}
 
 	return total / cellIndices.length;
+}
+
+/**
+ * Calculate the raw city index from the actual map buffer. Every map cell is
+ * included; legacy tile IDs without an unambiguous SmCity mapping contribute 0.
+ */
+export function computeMapCityClimateIndex(mapTiles: ArrayLike<number>, scenario?: ScenarioData): number {
+	if (mapTiles.length !== SM_CITY_MAP_CELL_COUNT) {
+		throw new RangeError(`Expected ${SM_CITY_MAP_CELL_COUNT} map cells; received ${mapTiles.length}`);
+	}
+	let total = 0;
+	for (let index = 0; index < mapTiles.length; index += 1) {
+		const typeId = resolveConstructionTypeFromTileId(mapTiles[index]);
+		if (!typeId) continue;
+		const rule = getConstructionClimateRule(typeId, scenario);
+		if (rule.kind === 'fixed') total += rule.value;
+		else if (rule.kind === 'range') total += (rule.min + rule.max) / 2;
+	}
+	return total / mapTiles.length;
 }
 
 /** Average the twelve monthly city indices of one complete calendar year. */
