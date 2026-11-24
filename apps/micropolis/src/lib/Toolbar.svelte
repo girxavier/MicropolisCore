@@ -23,7 +23,6 @@
 		if (!confirm('Réinitialiser entièrement la carte ? Cette action efface la ville en cours.')) return;
 		micropolisReactive.poke.clearMap();
 		micropolisReactive.syncFromEngine();
-		micropolisReactive.refreshCityClimateIndex();
 		editorNotice = 'Carte réinitialisée.';
 	}
 
