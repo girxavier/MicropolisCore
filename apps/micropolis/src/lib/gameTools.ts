@@ -53,7 +53,7 @@ function rciVariantTools(family: 'res' | 'com' | 'ind', bands: number, densities
 		for (let density = 1; density <= densities; density += 1) {
 			tools.push({
 				id: `${family}-lv${band}-building-${density}` as ToolId,
-				label: `VF ${band} · densité ${density}`,
+				label: `Valeur foncière ${band} · densité ${density}`,
 				shortcut: '—',
 				cost: 0
 			});
@@ -206,6 +206,9 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 		case 'ind-building-1': case 'ind-building-2': case 'ind-building-3': case 'ind-building-4':
 			return t.TOOL_INDUSTRIAL;
 		default:
+			if (id.startsWith('res-lv')) return t.TOOL_RESIDENTIAL;
+			if (id.startsWith('com-lv')) return t.TOOL_COMMERCIAL;
+			if (id.startsWith('ind-lv')) return t.TOOL_INDUSTRIAL;
 			return t.TOOL_ROAD;
 	}
 }
