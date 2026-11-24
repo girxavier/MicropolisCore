@@ -220,11 +220,15 @@ bool SmCityClimate::loadTables()
 
 bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
                                long long savedEpoch,
-                               double savedCurrentYearWarming)
+                               double savedCurrentYearWarming,
+                               const std::vector<double> &savedWarmingHistory)
 {
     ready = false;
     generatedYears.clear();
     cityWarmingByYear.clear();
+    for (std::size_t i = 0; i < savedWarmingHistory.size(); ++i) {
+        cityWarmingByYear[i] = savedWarmingHistory[i];
+    }
     activeCity = normalizeCity(cityName);
     if (!loadTables()) return false;
     if (references.find(activeCity) == references.end()) return false;
@@ -382,11 +386,24 @@ double SmCityClimate::tileClimateWeight(int tile) const
     return 0.0;
 }
 
+std::vector<double> SmCityClimate::cityWarmingHistory() const
+{
+    if (cityWarmingByYear.empty()) return std::vector<double>();
+    const std::size_t lastYear = cityWarmingByYear.rbegin()->first;
+    std::vector<double> history(lastYear + 1, 0.0);
+    for (std::map<std::size_t, double>::const_iterator it = cityWarmingByYear.begin();
+         it != cityWarmingByYear.end(); ++it) {
+        history[it->first] = it->second;
+    }
+    return history;
+}
+
 
 void Micropolis::initializeClimate(long long savedEpoch)
 {
     climateReady = climateModel.initialize(
-        cityName, cityTime, savedEpoch, climateCurrentYearWarming);
+        cityName, cityTime, savedEpoch, climateCurrentYearWarming,
+        climateSavedWarmingHistory);
     if (!climateReady) {
         climateEpochCityTime = cityTime;
         climateIndex = 127.5;
