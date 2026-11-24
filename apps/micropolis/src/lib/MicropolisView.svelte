@@ -21,7 +21,7 @@
   import type { ScreenRect } from '$lib/input/viewportTileFrame';
   import { editorModeState } from '$lib/EditorMode.svelte';
 
-  let micropolisSimulator: MicropolisSimulator | null = null;
+  let micropolisSimulator = $state<MicropolisSimulator | null>(null);
   let tileView: TileView | null = null;
   let viewRenderRef: (() => void) | null = null;
 
