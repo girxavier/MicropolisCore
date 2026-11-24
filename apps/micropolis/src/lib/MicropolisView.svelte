@@ -18,7 +18,8 @@
   import { toolFootprintAtCenter } from '$lib/gameTools';
   import type { CursorPresence } from '$lib/input/types';
   import type { ScreenRect } from '$lib/input/viewportTileFrame';
-  import { editorModeState } from '$lib/EditorMode.svelte';
+  import { editorModeState, scenarioDialogState } from '$lib/EditorMode.svelte';
+  import ScenarioSaveLoadModal from '$lib/ScenarioSaveLoadModal.svelte';
 
   let micropolisSimulator: MicropolisSimulator | null = null;
   let tileView: TileView | null = null;
@@ -118,6 +119,9 @@
       />
       <GameHud />
       <ZoneStatusPanel />
+      {#if scenarioDialogState.open && editorModeState.active}
+        <ScenarioSaveLoadModal onClose={() => scenarioDialogState.set(false)} />
+      {/if}
       <BudgetModal />
       <HelpModal />
     </div>
