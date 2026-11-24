@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveConstructionTypeFromTileId } from './constructionCatalog';
 import { createEmptyScenarioData, updateScenarioTypeProperty } from './scenarioData';
 import {
 	getAgriculturalClimateRule,

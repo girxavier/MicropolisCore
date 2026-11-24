@@ -368,6 +368,12 @@
           "id": "CIV.LANDFILL",
           "label": "Décharge",
           "climateIndex": 50
+        },
+        {
+          "id": "CIV.CHURCH",
+          "label": "Église / lieu de culte",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
         }
       ]
     },
@@ -429,6 +435,24 @@
           "id": "INF.TRANSPORT.RAIL",
           "label": "Voie ferrée",
           "climateIndex": -15
+        },
+        {
+          "id": "INF.TRANSPORT.SEAPORT",
+          "label": "Port maritime",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
+        },
+        {
+          "id": "INF.TRANSPORT.AIRPORT",
+          "label": "Aéroport",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
+        },
+        {
+          "id": "INF.TELECOM",
+          "label": "Télécommunications",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
         }
       ]
     },
@@ -500,6 +524,30 @@
           "id": "LAND.BARE",
           "label": "Sol nu ou stabilisé",
           "climateIndex": 0
+        },
+        {
+          "id": "LAND.RUBBLE",
+          "label": "Décombres",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
+        },
+        {
+          "id": "LAND.FLOOD",
+          "label": "Inondation",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
+        },
+        {
+          "id": "LAND.RADIOACTIVE",
+          "label": "Terrain radioactif",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
+        },
+        {
+          "id": "LAND.FIRE",
+          "label": "Incendie",
+          "climateIndex": null,
+          "status": "coefficient_to_define"
         }
       ],
       "notes": [
