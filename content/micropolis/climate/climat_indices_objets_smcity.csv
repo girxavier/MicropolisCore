@@ -1,0 +1,39 @@
+tile_start,tile_end,indice_climat,poids,objet
+2,20,0,1,eau
+21,43,0,1,vegetation et arbres
+44,47,190,1,decombres
+48,51,150,1,inondation
+52,52,255,1,radioactivite
+56,63,210,1,incendie
+64,206,110,1,voirie et trafic
+208,223,85,1,lignes electriques
+224,238,100,1,voies ferrees
+239,239,110,1,route et alimentation electrique
+240,248,0,0,zone residentielle vide
+249,260,127.5,1,maisons individuelles peu denses
+265,309,127.5,0.1111111111,residentiel faible densite
+310,354,155,0.1111111111,residentiel densite moyenne
+355,399,185,0.1111111111,residentiel forte densite
+400,404,205,0.1111111111,residentiel tres forte densite
+405,413,135,0.1111111111,hopital
+414,422,80,0.1111111111,eglise
+423,431,0,0,zone commerciale vide
+436,478,170,0.1111111111,commercial faible densite
+479,522,190,0.1111111111,commercial densite moyenne
+523,566,210,0.1111111111,commercial forte densite
+567,609,230,0.1111111111,commercial tres forte densite
+612,620,0,0,zone industrielle vide
+621,638,205,0.1111111111,industrie faible densite
+639,656,220,0.1111111111,industrie densite moyenne
+657,674,235,0.1111111111,industrie forte densite
+675,692,245,0.1111111111,industrie tres forte densite
+693,708,205,0.0625,port maritime
+709,744,225,0.0277777778,aeroport
+745,760,255,0.0625,centrale a charbon
+761,769,145,0.1111111111,caserne de pompiers
+770,778,145,0.1111111111,commissariat
+779,810,185,0.0625,stade
+811,826,245,0.0625,centrale nucleaire
+840,843,15,0.25,fontaine
+844,851,180,0.1111111111,teleporteur
+956,1018,80,0.1111111111,eglises speciales
