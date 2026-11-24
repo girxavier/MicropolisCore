@@ -14,13 +14,21 @@
   } from '$lib/smcity/scenarioData';
 
   type CatalogRow = { id: string; label: string; climateIndex?: number | null; climateIndexByScale?: Record<string, Record<string, number>> };
-  type CatalogCategory = { id: string; label: string; types?: CatalogRow[]; specializations?: CatalogRow[] };
+  type CatalogCategory = { id: string; label: string; types?: CatalogRow[]; specializations?: CatalogRow[]; scales?: { id: string; label: string }[]; productionModes?: string[] };
   const categories = (catalog as { categories: CatalogCategory[]; commonProperties: string[] }).categories;
   const commonProperties = (catalog as { commonProperties: string[] }).commonProperties;
-  const rows = $derived(categories.flatMap((category) => [
-    ...(category.types ?? []),
-    ...(category.specializations ?? [])
-  ]));
+  const typeOptions = $derived(categories.flatMap((category) => {
+    const regular = (category.types ?? []).map((row) => ({ id: row.id, label: row.label, climateIndex: row.climateIndex ?? null }));
+    if (category.id !== 'A') return regular;
+    const agricultural = (category.specializations ?? []).flatMap((specialization) =>
+      (category.scales ?? []).flatMap((scale) => (category.productionModes ?? []).map((mode) => ({
+        id: `A.${specialization.id}.${scale.id}.${mode}`,
+        label: `${specialization.label} · ${scale.id} · ${mode}`,
+        climateIndex: specialization.climateIndexByScale?.[scale.id]?.[mode] ?? specialization.climateIndex ?? null
+      })))
+    );
+    return [...regular, ...agricultural];
+  }));
   let scenarioData = $state<ScenarioData>(createEmptyScenarioData('default'));
   let loadedScenarioId = $state('');
   let selectedTypeId = $state('R.D1');
@@ -29,7 +37,7 @@
   let status = $state('');
   let scenarioId = $derived(micropolisReactive.cityFileName || 'default');
   let queriedTile = $derived(micropolisReactive.zoneStatus.visible ? micropolisReactive.zoneStatus : null);
-  let selectedType = $derived(rows.find((row) => row.id === selectedTypeId));
+  let selectedType = $derived(typeOptions.find((row) => row.id === selectedTypeId));
   let currentProperties = $derived(scenarioData.constructionTypes[selectedTypeId] ?? {});
   let currentValue = $derived(currentProperties[propertyName] ?? selectedType?.climateIndex ?? '');
 
@@ -91,7 +99,7 @@
           cityMonth: micropolisReactive.cityMonth
         }
       });
-      status = 'Tables et métadonnées du scénario exportées (la carte et l’état complet de la simulation ne sont pas inclus).';
+      status = 'Tables et métadonnées du scénario exportées ; la carte et l’état complet de la simulation ne sont pas inclus.';
     } catch (error) {
       status = error instanceof Error ? error.message : 'Échec de l’export.';
     }
@@ -125,9 +133,11 @@
               {#each category.types ?? [] as row}
                 <option value={row.id}>{row.label}</option>
               {/each}
-              {#each category.specializations ?? [] as row}
-                <option value={`A.${row.id}`}>{row.label}</option>
-              {/each}
+              {#if category.id === 'A'}
+                {#each typeOptions.filter((row) => row.id.startsWith('A.')) as row}
+                  <option value={row.id}>{row.label}</option>
+                {/each}
+              {/if}
             </optgroup>
           {/each}
         </select>
