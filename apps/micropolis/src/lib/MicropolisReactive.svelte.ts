@@ -159,6 +159,7 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 	if (Object.keys(validLocks).length !== Object.keys(data.lockedZones ?? {}).length) {
 		saveScenarioData({ ...data, lockedZones: validLocks, updatedAt: new Date().toISOString() });
 	}
+	zoneLockRevision++;
 }
 
 function refreshLocalClimateTemperatureField(): void {
