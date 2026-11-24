@@ -1078,6 +1078,7 @@ function createTypedArrayFromMap(mapInstance) {
     .function("init", &Micropolis::init)
     .function("loadCity", &Micropolis::loadCity)
     .function("saveCityAs", &Micropolis::saveCityAs)
+    .function("getPowerGrid", &Micropolis::getPowerGrid)
     .function("loadScenario", &Micropolis::loadScenario)
     .function("simTick", &Micropolis::simTick)
     .function("simUpdate", &Micropolis::simUpdate)
