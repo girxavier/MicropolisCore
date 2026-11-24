@@ -66,6 +66,9 @@
 # Emscripten settings
 
 
+SHELL := C:/PROGRA~1/Git/bin/bash.exe
+.SHELLFLAGS := -c
+
 EMCC = em++
 
 EMCXXFLAGS = \
@@ -153,7 +156,7 @@ all: $(LIBRARY)
 
 # Compilation rule for wasm
 $(LIBRARY): $(OBJECTS)
-	mkdir -p build
+	mkdir -p build;
 	$(EMCC) \
 		$(EMLDFLAGS) \
 		-o $(LIBRARY).html \
@@ -167,11 +170,8 @@ $(LIBRARY): $(OBJECTS)
 
 install: all
 	echo "MicropolisEngine: makefile: make install"
-	pwd
-	ls -la .
-	ls -la build
-	cp build/micropolisengine.wasm ../../apps/micropolis/src/lib
-	cp build/micropolisengine.data ../../apps/micropolis/src/lib
+	cp build/micropolisengine.wasm ../../apps/micropolis/src/lib;
+	cp build/micropolisengine.data ../../apps/micropolis/src/lib;
 	{ printf '%s\n' '// @ts-nocheck'; cat build/micropolisengine.js; } > ../../apps/micropolis/src/lib/micropolisengine.js
 	if [ -f build/micropolisengine.d.ts ]; then cp build/micropolisengine.d.ts ../../apps/micropolis/src/types; else echo "micropolisengine.d.ts was not generated; keeping existing TypeScript bindings"; fi
 

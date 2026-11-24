@@ -1,7 +1,7 @@
 /// <reference path="../types/micropolisengine.d.ts" />
 
 import type { MainModule } from '../types/micropolisengine.d.js';
-import type { Micropolis, Callback, JSCallback, Scenario } from '../types/micropolisengine.d.js';
+import type { Micropolis, Callback, JSCallback } from '../types/micropolisengine.d.js';
 import { loadMicropolisBrowserModule } from '$lib/wasm/browser';
 import { createMapMopViews } from '$lib/wasm/views';
 
@@ -259,15 +259,31 @@ export class MicropolisSimulator {
         return loaded;
     }
 
-    /** Load one of Micropolis' built-in scenarios through the C++ engine. */
-    loadScenario(scenario: number): void {
-        if (!this.micropolis) return;
-        this.micropolis.loadScenario(scenario as Scenario);
-        this.cityFileName = '';
-        this.hasLoadedCity = true;
-        this.syncMapViews();
-        this.render();
-    }
+   /** Load one of Micropolis' built-in scenarios through the C++ engine. */
+loadScenario(scenario: number): void {
+    if (!this.micropolis || !this.micropolisengine) return;
+
+    const scenarios = [
+        this.micropolisengine.Scenario.SC_NONE,
+        this.micropolisengine.Scenario.SC_DULLSVILLE,
+        this.micropolisengine.Scenario.SC_SAN_FRANCISCO,
+        this.micropolisengine.Scenario.SC_HAMBURG,
+        this.micropolisengine.Scenario.SC_BERN,
+        this.micropolisengine.Scenario.SC_TOKYO,
+        this.micropolisengine.Scenario.SC_DETROIT,
+        this.micropolisengine.Scenario.SC_BOSTON,
+        this.micropolisengine.Scenario.SC_RIO
+    ];
+
+    const scenarioValue = scenarios[scenario];
+    if (scenarioValue === undefined) return;
+
+    this.micropolis.loadScenario(scenarioValue);
+    this.cityFileName = '';
+    this.hasLoadedCity = true;
+    this.syncMapViews();
+    this.render();
+}
 }
 
 export async function getSharedSimulator(callback: Callback | null, render: (() => void) | null): Promise<MicropolisSimulator> {

@@ -165,6 +165,7 @@
   {
     "comment": "Reverse Diagrams Page",
     "url": "/pages/reverse-diagrams",
+    "excludeFromAll": true,
     "title": "Reverse Diagrams",
     "header": "SimCity Reverse Diagrams",
     "contentSlug": "reverse-diagrams",

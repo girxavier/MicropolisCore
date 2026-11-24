@@ -9,8 +9,19 @@ nav:
   tooltip: "Explore SimCity Classic mechanics through visual diagrams"
   matchUrlPrefix: true
 ---
+---
+title: Reverse Diagrams
+slug: reverse-diagrams
+path: /reverse-diagrams
+header: "SimCity Reverse Diagrams"
+description: "📊 Chaim Gingold's detailed diagrams visually reverse-engineering the core simulation loops and mechanics of SimCity Classic."
+nav:
+  order: 60
+  tooltip: "Explore SimCity Classic mechanics through visual diagrams"
+  matchUrlPrefix: true
+---
 
-These diagrams, created by [**Chaim Gingold**](/pages/about/chaim-gingold) for his book "[**Building SimCity: How to Put the World in a Machine**](/pages/building-simcity)" (**MIT Press**, 2024), represent a vital step towards opening up what [**Alan Kay**](/pages/about/constructionist-education/alan-kay) described as **SimCity's** "black box." By meticulously visualizing the game's internal architecture based on deep analysis of the [**Micropolis source code**](/pages/micropolis-license), Chaim provided an unprecedented look into its inner workings. This aligns perfectly with [**Stone Librande's**](/pages/about/stone-librande) [**one-page design philosophy**](/pages/about/stone-librande#revolutionary-documentation-approach), making complex systems graspable.
+These diagrams, created by [**Chaim Gingold**](/pages/about/chaim-gingold) for his book [**Building SimCity: How to Put the World in a Machine**](/pages/building-simcity) (**MIT Press**, 2024), represent a vital step towards opening up what [**Alan Kay**](/pages/about/constructionist-education/alan-kay) described as **SimCity's** "black box." By meticulously visualizing the game's internal architecture based on deep analysis of the [**Micropolis source code**](/pages/micropolis-license), Chaim provided an unprecedented look into its inner workings. This aligns perfectly with [**Stone Librande's**](/pages/about/stone-librande) [**one-page design philosophy**](/pages/about/stone-librande#revolutionary-documentation-approach), making complex systems graspable.
 
 These static diagrams serve as the foundation for our ongoing project to create dynamic, interactive versions using [**SvelteKit**](https://kit.svelte.dev/), [**WebGL**](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API), and [**Canvas**](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API), aiming to make the simulation truly transparent and explorable, as discussed on the [**Chaim Gingold page**](/pages/about/chaim-gingold#building-simcity-how-to-put-the-world-in-a-machine).
 
@@ -28,10 +39,11 @@ The diagram PNGs and combined PDF live in the repository (and are copied into th
 | Page 4 — Map Scan | [`images/diagrams/SimCityReverseDiagrams-Page-4-Map-Scan.png`](../../../../../images/diagrams/SimCityReverseDiagrams-Page-4-Map-Scan.png) |
 | Page 5 — Make Traffic | [`images/diagrams/SimCityReverseDiagrams-Page-5-Make-Traffic.png`](../../../../../images/diagrams/SimCityReverseDiagrams-Page-5-Make-Traffic.png) |
 | Page 6 — Animation Characters | [`images/diagrams/SimCityReverseDiagrams-Page-6-Animation-Characters.png`](../../../../../images/diagrams/SimCityReverseDiagrams-Page-6-Animation-Characters.png) |
-| All pages (PDF) | [`images/diagrams/SimCityReverseDiagrams.pdf`](../../../../../images/diagrams/SimCityReverseDiagrams.pdf) |
+| All pages (PDF) | [`SimCityReverseDiagrams.pdf`](/pdf/SimCityReverseDiagrams.pdf) |
 
-Web static copies: `apps/micropolis/static/images/diagrams/` · `apps/micropolis/static/pdf/SimCityReverseDiagrams.pdf`  
-Index: [`images/diagrams/README.md`](../../../../../images/diagrams/README.md)
+Web static copies: `apps/micropolis/static/images/diagrams/` · `apps/micropolis/static/pdf/SimCityReverseDiagrams.pdf`
+
+Repository index: `images/diagrams/README.md`
 
 ## Diagrams Index
 
@@ -70,7 +82,7 @@ Making this data flow interactive is a key goal. Imagine clicking on the **Polic
 
 ![SimCity Maps Diagram](../../../../../images/diagrams/SimCityReverseDiagrams-Page-3-Maps.png)
 
-This diagram reveals the core data structure of the simulation: a collection of overlapping **multi-resolution maps**. The main **Map[ ]** array stores tile IDs and status bits (Zone, Building, Road, Power, etc.) at full resolution (1:1). However, other critical data like **Pollution**, **Land Value**, **Crime**, **Population Density**, and **Fire Radius** are stored in lower-resolution maps (1:2, 1:4, 1:8). This was a brilliant optimization by [**Will Wright**](/pages/about/will-wright), drastically reducing memory usage and computational load while still providing sufficient detail for believable simulation and visualization.
+This diagram reveals the core data structure of the simulation: a collection of overlapping **multi-resolution maps**. The main **Map[]** array stores tile IDs and status bits (Zone, Building, Road, Power, etc.) at full resolution (1:1). However, other critical data like **Pollution**, **Land Value**, **Crime**, **Population Density**, and **Fire Radius** are stored in lower-resolution maps (1:2, 1:4, 1:8). This was a brilliant optimization by [**Will Wright**](/pages/about/will-wright), drastically reducing memory usage and computational load while still providing sufficient detail for believable simulation and visualization.
 
 The **Primary Map Data** section shows the 16-bit structure of each main map tile: the low 10 bits (`ZONEBIT`) define the tile character (like roads, zones, buildings) and properties (burnable, bulldozable, animated), while the high 6 bits are status flags used by other systems (powered `PWRBIT`, conductive `CONDBIT`, etc.). The overlay maps like **Pollution**, **Crime**, **Fire Coverage**, and **Traffic/Population Density** operate at lower resolutions, storing averaged or derived data relevant to those specific systems.
 
@@ -114,9 +126,9 @@ Understanding these characters shows how **SimCity** prioritizes **implication o
 
 ## Full-resolution diagrams
 
-Download all six pages as one file: [**SimCityReverseDiagrams.pdf**](../../../../../images/diagrams/SimCityReverseDiagrams.pdf)
+Download all six pages as one file: [**SimCityReverseDiagrams.pdf**](/pdf/SimCityReverseDiagrams.pdf)
 
-Each image below is the full-resolution PNG from [`images/diagrams/`](../../../../../images/diagrams/README.md). Title first, diagram, then caption.
+Each image below is the full-resolution PNG from `images/diagrams/`. Title first, diagram, then caption.
 
 ### Page 1 — Simulation Loop (Simulate)
 
@@ -128,7 +140,7 @@ The main **simulation loop** in sixteen sequenced steps—one step per game fram
 
 ![SimCity Map Data Flow — full resolution](../../../../../images/diagrams/SimCityReverseDiagrams-Page-2-Map-Data-Flow.png)
 
-How **PopDensity**, **Crime**, **LandValue**, **Pollution**, **Terrain**, **PowerMap**, and **PTLScan** influence one another— including **Smooth-3** spatial spreading, **City Center** distance effects on **ComRate**, and multi-resolution map ratios (1:1 through 1:8). The dependency graph behind **SimCity's** emergent behavior.
+How **PopDensity**, **Crime**, **LandValue**, **Pollution**, **Terrain**, **PowerMap**, and **PTLScan** influence one another—including **Smooth-3** spatial spreading, **City Center** distance effects on **ComRate**, and multi-resolution map ratios (1:1 through 1:8). The dependency graph behind **SimCity's** emergent behavior.
 
 ### Page 3 — Maps
 
@@ -152,4 +164,4 @@ Stack-based pathfinding (**FindPath**, **Drive**, **TryDrive**) from residential
 
 ![SimCity Animation Characters — full resolution](../../../../../images/diagrams/SimCityReverseDiagrams-Page-6-Animation-Characters.png)
 
-Non-simulation sprites that communicate state: **LIGHTNINGBOLT** (no power), **HBRDG** bridge cycles, **RADAR** (powered airport), **FOUNTAIN**, **TELELAST** (tile IDs 827–851). Feedback without simulation overhead—**implication over simulation** made visible. 
+Non
