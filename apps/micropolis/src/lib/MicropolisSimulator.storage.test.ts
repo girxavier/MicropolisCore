@@ -27,21 +27,27 @@ describe('scenario sources and dated game saves', () => {
         files.set(parent + '/' + name, new Uint8Array(data));
       }
     } as unknown as MainModule;
-    const cityState = {
+    type MockCity = {
+      cityName: string;
+      cityFileName: string;
+      totalFunds: number;
+      setCityName(name: string): void;
+      setFunds(amount: number): void;
+      saveCityAs(path: string): void;
+      loadCity(path: string): boolean;
+    };
+    const city: MockCity = {
       cityName: 'Projet test',
       cityFileName: '/cities/orleans.cty',
-      totalFunds: 50000
-    };
-    const city = {
-      ...cityState,
-      setCityName(name: string) { cityState.cityName = name; },
-      setFunds(amount: number) { cityState.totalFunds = amount; },
+      totalFunds: 50000,
+      setCityName(name: string) { this.cityName = name; },
+      setFunds(amount: number) { this.totalFunds = amount; },
       saveCityAs(path: string) {
         files.set(path, new Uint8Array([1, 2, 3]));
-        cityState.cityFileName = path;
-        cityState.cityName = path.split('/').pop()?.replace(/\\.cty$/, '') ?? 'city';
+        this.cityFileName = path;
+        this.cityName = path.split('/').pop()?.replace(/\\.cty$/, '') ?? 'city';
       },
-      loadCity(path: string) { cityState.cityFileName = path; return files.has(path); }
+      loadCity(path: string) { this.cityFileName = path; return files.has(path); }
     } as unknown as Micropolis;
     const simulator = new MicropolisSimulator();
     simulator.micropolisengine = engine;
