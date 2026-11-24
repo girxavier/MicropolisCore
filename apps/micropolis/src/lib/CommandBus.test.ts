@@ -18,3 +18,30 @@ describe('CommandBus metadata', () => {
 		expect(command?.groupKey).toBe('commands.test.say-hello.group');
 	});
 });
+
+	describe('undo and redo history', () => {
+		it('restores and reapplies a reversible operation', async () => {
+			const bus = new CommandBus();
+			let value = 0;
+			bus.register({
+				id: 'test.increment',
+				label: 'Increment',
+				run: () => {
+					value = 1;
+					return {
+						undo: {
+							label: 'Increment',
+							run: () => { value = 0; },
+							redo: () => { value = 1; }
+						}
+					};
+				}
+			});
+			await bus.dispatch('test.increment');
+			expect(value).toBe(1);
+			await bus.undo();
+			expect(value).toBe(0);
+			await bus.redo();
+			expect(value).toBe(1);
+		});
+	});

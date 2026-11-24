@@ -2,6 +2,7 @@ import { commandBus, type Command, type CommandContext } from './CommandBus';
 import type { MicropolisSimulator } from './MicropolisSimulator';
 import type { TileRenderer } from '@micropolis/tile-renderer';
 import { cssPixelsPerTile, syncViewportScreenScale } from './input/viewportSync';
+import { editorModeState } from '$lib/EditorMode.svelte';
 
 export interface MicropolisCommandContext extends CommandContext {
   simulator?: MicropolisSimulator | null;
@@ -11,7 +12,7 @@ export interface MicropolisCommandContext extends CommandContext {
   heatFlowRangeHigh?: number;
 }
 
-const keyFramesPerSecondValues = [1, 5, 10, 30, 60, 120, 120, 120, 120];
+const keyFramesPerSecondValues = [1.1, 2.2, 6.4];
 
 let registered = false;
 
@@ -35,7 +36,7 @@ function createMicropolisCommands(): Command<MicropolisCommandContext>[] {
       context: ['simulator', 'keyboard', 'pie-menu', 'chat', 'llm'],
       shortcut: '0',
       policy: { risk: 'safe', allowLLM: true },
-      enabled: hasSimulator,
+      enabled: (context) => hasSimulator(context) && !editorModeState.active,
       preview: ({ simulator }) => ({
         label: simulator?.paused ? 'Resume simulation' : 'Pause simulation',
       }),
@@ -51,7 +52,7 @@ function createMicropolisCommands(): Command<MicropolisCommandContext>[] {
       context: ['simulator', 'keyboard', 'pie-menu', 'chat', 'llm'],
       shortcut: String(index + 1),
       policy: { risk: 'safe', allowLLM: true },
-      enabled: hasSimulator,
+      enabled: (context) => hasSimulator(context) && !editorModeState.active,
       preview: () => ({
         label: `Run simulation at speed ${index + 1}`,
       }),
@@ -75,6 +76,7 @@ function createMicropolisCommands(): Command<MicropolisCommandContext>[] {
       }),
       run: ({ simulator }) => {
         if (!simulator?.micropolis) return;
+        commandBus.clearHistory();
         simulator.micropolis.generateSomeRandomCity();
         simulator.render();
       },

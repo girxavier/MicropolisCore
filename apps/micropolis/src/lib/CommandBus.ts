@@ -35,6 +35,8 @@ export interface CommandUndo {
   label?: string;
   labelKey?: string;
   run: (context: CommandContext) => void | Promise<void>;
+  /** Inverse operation used by the global redo history. */
+  redo?: (context: CommandContext) => void | Promise<void>;
 }
 
 export interface CommandResult {
@@ -110,6 +112,7 @@ export class CommandBus {
   private shortcuts = new Map<string, string>();
   private listeners = new Set<CommandListener>();
   private undoStack: CommandUndo[] = [];
+  private redoStack: CommandUndo[] = [];
   private proposals = new Map<string, CommandProposal>();
 
   register<Context extends CommandContext>(command: Command<Context>): () => void {
@@ -202,6 +205,7 @@ export class CommandBus {
 
     if (undo) {
       this.undoStack.push(undo);
+      this.redoStack = [];
     }
 
     const dispatch = { command, context: commandContext, result };
@@ -218,14 +222,35 @@ export class CommandBus {
     return this.dispatch(commandId, { ...context, source: context.source ?? 'keyboard' });
   }
 
+  /** Add a reversible operation performed outside a registered command (e.g. map painting). */
+  recordUndo(undo: CommandUndo): void {
+    this.undoStack.push(undo);
+    this.redoStack = [];
+  }
+
   async undo(context: CommandContext = {}): Promise<CommandResult> {
     const undo = this.undoStack.pop();
-    if (!undo) {
-      return { handled: false, message: 'Nothing to undo' };
-    }
+    if (!undo) return { handled: false, message: 'Nothing to undo' };
     await undo.run({ ...context, source: context.source ?? 'system' });
+    if (undo.redo) this.redoStack.push(undo);
     return { handled: true, message: undo.label ? `Undid ${undo.label}` : 'Undo complete' };
   }
+
+  async redo(context: CommandContext = {}): Promise<CommandResult> {
+    const redo = this.redoStack.pop();
+    if (!redo?.redo) return { handled: false, message: 'Nothing to redo' };
+    await redo.redo({ ...context, source: context.source ?? 'system' });
+    this.undoStack.push(redo);
+    return { handled: true, message: redo.label ? `Redid ${redo.label}` : 'Redo complete' };
+  }
+
+  clearHistory(): void {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
+  get canUndo(): boolean { return this.undoStack.length > 0; }
+  get canRedo(): boolean { return this.redoStack.length > 0; }
 
   async propose(id: string, context: CommandContext = {}): Promise<CommandProposal> {
     const command = this.commands.get(id);

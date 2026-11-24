@@ -55,9 +55,11 @@ export class MicropolisSimulator {
       "/cities/brest.cty",
       "/cities/toulouse.cty",
     ];
-    gameSpeed = 3;
-    keyFramesPerSecondValues = [ 1, 5, 10, 30, 60, 120, 120, 120, 120 ];
-    keyPassesValues =          [ 1, 1, 1,  1,  1,  1,   4,   10,  50  ];
+    // 16 phases per city-time unit × 4 city-time units per month = 64 ticks/month.
+    // At 1.1 / 2.2 / 6.4 ticks per second: about 58 / 29 / 10 seconds per month.
+    gameSpeed = 1;
+    keyFramesPerSecondValues = [1.1, 2.2, 6.4];
+    keyPassesValues = [1, 1, 1];
     tickIntervalId: number | NodeJS.Timeout | null = null;
     framesPerSecond: number = 0;
     pausedFramesPerSecond: number = 0;
@@ -66,6 +68,7 @@ export class MicropolisSimulator {
     private disposed: boolean = false;
     private isInitialized: boolean = false;
     private hasLoadedCity: boolean = false;
+    private editorSavedFunds: number | null = null;
     private renderCallbacks: Set<() => void> = new Set();
   
     constructor() {
@@ -148,8 +151,11 @@ export class MicropolisSimulator {
     tick() {
         //console.log("MicropolisSimulator: tick");
         if (this.disposed) return;
-        this.micropolis?.simTick();
-        this.micropolis?.animateTiles();
+        // A paused simulator must not advance the calendar, even for a one-off UI refresh.
+        if (!this.paused) {
+            this.micropolis?.simTick();
+            this.micropolis?.animateTiles();
+        }
 
         // Fan out to all registered views (if any)
         if (this.renderCallbacks.size > 0) {
@@ -164,9 +170,30 @@ export class MicropolisSimulator {
     }
     
     setGameSpeed(speed: number) {
-        this.gameSpeed = speed;
-        this.setFramesPerSecond(this.keyFramesPerSecondValues[this.gameSpeed]);
-        this.micropolis?.setPasses(this.keyPassesValues[this.gameSpeed]);
+        const safeSpeed = Math.max(0, Math.min(this.keyFramesPerSecondValues.length - 1, Math.floor(speed)));
+        this.gameSpeed = safeSpeed;
+        const fps = this.keyFramesPerSecondValues[safeSpeed];
+        if (this.paused) this.pausedFramesPerSecond = fps;
+        else this.setFramesPerSecond(fps);
+        this.micropolis?.setPasses(this.keyPassesValues[safeSpeed]);
+    }
+
+    /** Enter a frozen, no-budget editing session. */
+    enterEditorMode() {
+        if (!this.micropolis) return;
+        if (this.editorSavedFunds === null) this.editorSavedFunds = this.micropolis.totalFunds;
+        this.setPaused(true);
+        this.micropolis.setFunds(1_000_000_000);
+    }
+
+    /** Restore the previous budget and resume normal simulation. */
+    exitEditorMode(resumeSimulation = true) {
+        if (!this.micropolis) return;
+        if (this.editorSavedFunds !== null) {
+            this.micropolis.setFunds(this.editorSavedFunds);
+            this.editorSavedFunds = null;
+        }
+        if (resumeSimulation) this.setPaused(false);
     }
 
     resetFramesPerSecond() {
@@ -195,7 +222,8 @@ export class MicropolisSimulator {
     
         const wasPaused = this.paused;
         this.paused = nowPaused;
-        this.micropolis!.simPaused = nowPaused;
+        if (!wasPaused && nowPaused) this.micropolis?.pause();
+        else if (wasPaused && !nowPaused) this.micropolis?.resume();
     
         if (!wasPaused && nowPaused) {
           if (this.framesPerSecond !== 0) {
@@ -209,7 +237,12 @@ export class MicropolisSimulator {
             this.resetFramesPerSecond();
         }
     
-        this.tick();
+        // Refresh the display without calling simTick(): entering pause/editor mode
+        // must never advance the city by an extra simulation phase.
+        this.render();
+        for (const fn of this.renderCallbacks) {
+            try { fn(); } catch (e) { console.warn('MicropolisSimulator: view render failed:', e); }
+        }
       }
 
       dispose() {
@@ -253,37 +286,47 @@ export class MicropolisSimulator {
         if (loaded) {
             this.cityFileName = fileName;
             this.hasLoadedCity = true;
+            if (this.editorSavedFunds !== null) {
+                this.editorSavedFunds = this.micropolis.totalFunds;
+                this.micropolis.setFunds(1_000_000_000);
+            }
             this.syncMapViews();
             this.render();
         }
         return loaded;
     }
 
-   /** Load one of Micropolis' built-in scenarios through the C++ engine. */
-loadScenario(scenario: number): void {
-    if (!this.micropolis || !this.micropolisengine) return;
+    /** Load one of Micropolis' built-in scenarios through the C++ engine. */
+    loadScenario(scenario: number): void {
+        if (!this.micropolis || !this.micropolisengine) return;
 
-    const scenarios = [
-        this.micropolisengine.Scenario.SC_NONE,
-        this.micropolisengine.Scenario.SC_DULLSVILLE,
-        this.micropolisengine.Scenario.SC_SAN_FRANCISCO,
-        this.micropolisengine.Scenario.SC_HAMBURG,
-        this.micropolisengine.Scenario.SC_BERN,
-        this.micropolisengine.Scenario.SC_TOKYO,
-        this.micropolisengine.Scenario.SC_DETROIT,
-        this.micropolisengine.Scenario.SC_BOSTON,
-        this.micropolisengine.Scenario.SC_RIO
-    ];
+        const scenarios = [
+            this.micropolisengine.Scenario.SC_NONE,
+            this.micropolisengine.Scenario.SC_DULLSVILLE,
+            this.micropolisengine.Scenario.SC_SAN_FRANCISCO,
+            this.micropolisengine.Scenario.SC_HAMBURG,
+            this.micropolisengine.Scenario.SC_BERN,
+            this.micropolisengine.Scenario.SC_TOKYO,
+            this.micropolisengine.Scenario.SC_DETROIT,
+            this.micropolisengine.Scenario.SC_BOSTON,
+            this.micropolisengine.Scenario.SC_RIO
+        ];
 
-    const scenarioValue = scenarios[scenario];
-    if (scenarioValue === undefined) return;
+        const scenarioValue = scenarios[scenario];
+        if (scenarioValue === undefined) return;
 
-    this.micropolis.loadScenario(scenarioValue);
-    this.cityFileName = '';
-    this.hasLoadedCity = true;
-    this.syncMapViews();
-    this.render();
-}
+        this.micropolis.loadScenario(scenarioValue);
+        this.cityFileName = '';
+        this.hasLoadedCity = true;
+
+        if (this.editorSavedFunds !== null) {
+            this.editorSavedFunds = this.micropolis.totalFunds;
+            this.micropolis.setFunds(1_000_000_000);
+        }
+
+        this.syncMapViews();
+        this.render();
+    }
 }
 
 export async function getSharedSimulator(callback: Callback | null, render: (() => void) | null): Promise<MicropolisSimulator> {
@@ -299,7 +342,8 @@ export async function getSharedSimulator(callback: Callback | null, render: (() 
         sharedSimulator.loadDefaultCityOnce();
         sharedSimulator.micropolis!.enableDisasters = true;
         sharedSimulator.setGameSpeed(sharedSimulator.gameSpeed);
-        sharedSimulator.setPaused(false);
+        // Start paused; the view decides whether to resume normal play or stay in editor mode.
+        sharedSimulator.setPaused(true);
         store.simulator = sharedSimulator;
     } else {
         // Keep existing wasm/callbacks; just attach this view's render
@@ -309,9 +353,7 @@ export async function getSharedSimulator(callback: Callback | null, render: (() 
     // Attach view and resume ticking if needed
     viewCount += 1;
     store.viewCount = (store.viewCount || 0) + 1;
-    if (store.viewCount === 1) {
-        try { sharedSimulator.setPaused(false); } catch {}
-    }
+    // MicropolisView owns the mode decision and explicitly resumes only normal play.
     return sharedSimulator;
 }
 

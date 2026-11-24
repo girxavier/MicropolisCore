@@ -23,7 +23,8 @@
   import { registerMicropolisCommands, type MicropolisCommandContext } from '$lib/micropolisCommands';
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { toolState } from '$lib/ToolState.svelte';
-  import { resolveEditingTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
+  import { editorModeState } from '$lib/EditorMode.svelte';
+  import { resolveEditingTool, resolveDirectBuildingCenterTile, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
   import {
     syncViewportScreenScale,
     panToKeepWorldAtScreen,
@@ -491,8 +492,75 @@
     if (lastAppliedToolTile?.[0] === tileX && lastAppliedToolTile[1] === tileY) return;
     lastAppliedToolTile = [tileX, tileY];
 
-    const tool = resolveEditingTool(eng, toolState.activeToolId);
-    const result = micropolisReactive.poke.doTool(tool, tileX, tileY);
+    const mapBefore = micropolisReactive.memory.mapU16;
+    const before = mapBefore ? new Uint16Array(mapBefore) : null;
+    const fundsBefore = micropolisSimulator.micropolis.totalFunds;
+    const directBuildingCenter = editorModeState.active
+      ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
+      : null;
+    let result: { value: number } | number;
+    if (directBuildingCenter !== null) {
+      const left = tileX - 1;
+      const top = tileY - 1;
+      if (left < 0 || top < 0 || left + 3 > eng.WORLD_W || top + 3 > eng.WORLD_H) {
+        result = eng.ToolResult.TOOLRESULT_FAILED;
+      } else {
+        // Let the engine bulldozer remove any existing multi-tile structure first.
+        micropolisReactive.poke.doTool(eng.EditingTool.TOOL_BULLDOZER, tileX, tileY);
+        const bits = eng.MapTileBits;
+        const firstTile = directBuildingCenter - 4;
+        const isHouseLot = toolState.activeToolId === 'res-houses';
+        for (let dy = 0; dy < 3; dy++) {
+          for (let dx = 0; dx < 3; dx++) {
+            const isCenter = dx === 1 && dy === 1;
+            const tileId = isHouseLot
+              ? (isCenter ? eng.Tiles.FREEZ.value : eng.Tiles.HOUSE.value + ((dy * 3 + dx) % 12))
+              : firstTile + dy * 3 + dx;
+            const tileFlags = isHouseLot ? bits.BLBNCNBIT.value : bits.BNCNBIT.value;
+            let value = tileId + tileFlags;
+            if (isCenter) {
+              value |= bits.ZONEBIT.value | bits.BULLBIT.value;
+              const powered = micropolisSimulator.micropolis?.getPowerGrid(tileX, tileY) ?? 0;
+              if (powered) value |= bits.PWRBIT.value;
+            }
+            micropolisReactive.poke.setTile(left + dx, top + dy, value);
+          }
+        }
+        micropolisReactive.poke.updateMaps();
+        result = eng.ToolResult.TOOLRESULT_OK;
+      }
+    } else {
+      const tool = resolveEditingTool(eng, toolState.activeToolId);
+      result = micropolisReactive.poke.doTool(tool, tileX, tileY);
+    }
+    const afterMap = micropolisReactive.memory.mapU16;
+    const fundsDelta = micropolisSimulator.micropolis.totalFunds - fundsBefore;
+    if (before && afterMap) {
+      const changes: Array<{ index: number; before: number; after: number }> = [];
+      for (let i = 0; i < Math.min(before.length, afterMap.length); i++) {
+        if (before[i] !== afterMap[i]) changes.push({ index: i, before: before[i], after: afterMap[i] });
+      }
+      if (changes.length) {
+        const restore = (field: 'before' | 'after') => {
+          const live = micropolisReactive.memory.mapU16;
+          if (!live) return;
+          for (const change of changes) {
+            const x = Math.floor(change.index / eng.WORLD_H);
+            const y = change.index % eng.WORLD_H;
+            micropolisReactive.poke.setTile(x, y, change[field]);
+          }
+          micropolisReactive.poke.updateMaps();
+          const currentFunds = micropolisReactive.totalFunds;
+          micropolisReactive.poke.setFunds(field === 'before' ? currentFunds - fundsDelta : currentFunds + fundsDelta);
+          micropolisSimulator?.render();
+        };
+        commandBus.recordUndo({
+          label: `Paint ${toolState.activeToolId}`,
+          run: () => restore('before'),
+          redo: () => restore('after')
+        });
+      }
+    }
     const feedback = toolResultMessage(result as { value: number });
     toolState.setLastToolFeedback(feedback);
     micropolisSimulator.render();
@@ -563,6 +631,18 @@
 
     const key = event.key;
 
+    if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) void commandBus.redo(commandContext(event));
+      else void commandBus.undo(commandContext(event));
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === 'y') {
+      event.preventDefault();
+      void commandBus.redo(commandContext(event));
+      return;
+    }
+
     if (key === 'Shift') {
       shiftPanHeld = true;
     }
@@ -575,6 +655,8 @@
     ) {
       const toolId = TOOL_BY_SHORTCUT[key.toLowerCase()];
       if (toolId) {
+        const terrainTools = ['water', 'land', 'forest'];
+        if (terrainTools.includes(toolId) && !editorModeState.active) return;
         toolState.setActiveTool(toolId);
         return;
       }

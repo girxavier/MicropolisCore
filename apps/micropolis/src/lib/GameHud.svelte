@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { toolState } from '$lib/ToolState.svelte';
+	import { editorModeState } from '$lib/EditorMode.svelte';
 
 	const funds = $derived(micropolisReactive.totalFunds);
 	const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
@@ -9,11 +10,11 @@
 	);
 
 	const simLabel = $derived(
-		micropolisReactive.simPaused
-			? 'Paused'
-			: micropolisReactive.simSpeed > 0
-				? `Speed ${micropolisReactive.simSpeed + 1}`
-				: 'Stopped'
+		editorModeState.active
+			? 'Temps figé'
+			: micropolisReactive.simPaused
+				? 'En pause'
+				: `Vitesse ${micropolisReactive.gameSpeedIndex + 1}`
 	);
 	const taxLabel = $derived(`Tax ${micropolisReactive.cityTax}%`);
 
@@ -47,7 +48,11 @@
         </select>
     </div>
 	<div class="hud-row hud-row-primary">
+{#if editorModeState.active}
+		<span class="hud-funds">ÉDITION LIBRE</span>
+{:else}
 		<span class="hud-funds">${funds.toLocaleString()}</span>
+{/if}
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
 	</div>
     <div class="hud-row hud-climate" aria-label="City temperatures">

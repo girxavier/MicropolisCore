@@ -11,6 +11,7 @@
 import type { EditingTool, GameLevel, Micropolis, JSCallback, ToolResult } from '../types/micropolisengine.d.js';
 import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
+import { commandBus } from './CommandBus';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -34,6 +35,7 @@ let demandC = $state(0);
 let demandI = $state(0);
 let gameLevel = $state(0);
 let simSpeed = $state(0);
+let gameSpeedIndex = $state(1);
 let simPasses = $state(1);
 let simPaused = $state(false);
 let cityTax = $state(0);
@@ -87,6 +89,7 @@ function syncFromEngine(): void {
 	cityFileName = m.cityFileName;
 	gameLevel = (m.gameLevel as unknown as { value: number })?.value ?? Number(m.gameLevel as unknown);
 	simSpeed = m.simSpeed;
+	gameSpeedIndex = attachedSimulator?.gameSpeed ?? gameSpeedIndex;
 	simPasses = m.simPasses;
 	simPaused = m.simPaused;
 	cityTax = m.cityTax;
@@ -297,6 +300,7 @@ class MicropolisReactiveCallback {
 
 	updatePasses(_micropolis: Micropolis | null, _callbackVal: unknown, passes: number): void {
 		simPasses = passes;
+		gameSpeedIndex = attachedSimulator?.gameSpeed ?? gameSpeedIndex;
 	}
 
 	updatePaused(_micropolis: Micropolis | null, _callbackVal: unknown, paused: boolean): void {
@@ -451,10 +455,12 @@ export const micropolisReactive = {
 	},
 
 	loadCity(fileName: string): boolean {
+		commandBus.clearHistory();
 		return attachedSimulator?.loadCity(fileName) ?? false;
 	},
 
 	loadScenario(scenario: number): void {
+		commandBus.clearHistory();
 		attachedSimulator?.loadScenario(scenario);
 		syncFromEngine();
 		mapRevision++;
@@ -556,16 +562,19 @@ export const micropolisReactive = {
 			return ok;
 		},
 		generateSomeRandomCity(): void {
+			commandBus.clearHistory();
 			requireMicropolis().generateSomeRandomCity();
 			syncFromEngine();
 			mapRevision++;
 		},
 		clearMap(): void {
+			commandBus.clearHistory();
 			requireMicropolis().clearMap();
 			syncFromEngine();
 			mapRevision++;
 		},
 		generateMap(seed: number): void {
+			commandBus.clearHistory();
 			requireMicropolis().generateMap(seed);
 			syncFromEngine();
 			mapRevision++;
@@ -642,6 +651,9 @@ export const micropolisReactive = {
 	},
 	get simSpeed() {
 		return simSpeed;
+	},
+	get gameSpeedIndex() {
+		return gameSpeedIndex;
 	},
 	get simPasses() {
 		return simPasses;
