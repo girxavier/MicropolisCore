@@ -12,6 +12,8 @@ declare namespace RuntimeExports {
     function removeRunDependency(id: any): void;
 }
 interface WasmModule {
+  FS_readFile?: (_path: string) => Uint8Array;
+  FS_unlink?: (_path: string) => void;
 }
 
 type EmbindString = ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string;
@@ -375,6 +377,8 @@ export interface Micropolis extends ClassHandle {
   setCallback(_0: Callback | null, _1: any): void;
   init(): void;
   loadCity(_0: EmbindString): boolean;
+  saveCity(): void;
+  saveCityAs(_0: EmbindString): void;
   loadScenario(_0: Scenario): void;
   simTick(): void;
   simUpdate(): void;
