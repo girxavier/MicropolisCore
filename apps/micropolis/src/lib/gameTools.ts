@@ -111,7 +111,7 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 		label: 'Major',
 		tools: [
 			{ id: 'seaport', label: 'Seaport', shortcut: 'H', cost: 3000 },
-			{ id: 'coal', label: 'Coal Power', shortcut: 'Y', cost: 3000 },
+			{ id: 'coal', label: 'Coal Power', shortcut: '—', cost: 3000 },
 			{ id: 'stadium', label: 'Stadium', shortcut: 'S', cost: 5000 },
 			{ id: 'nuclear', label: 'Nuclear', shortcut: 'N', cost: 5000 },
 			{ id: 'airport', label: 'Airport', shortcut: 'A', cost: 10000 },
