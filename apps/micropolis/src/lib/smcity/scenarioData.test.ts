@@ -6,6 +6,7 @@ import {
   getAnnualClimateIndices,
   recordMonthlyClimateIndex,
   updateScenarioZoneLock,
+  resetScenarioTypeProperties,
   getScenarioZoneLock,
   parseScenarioSave,
   serializeScenarioSave,
@@ -35,6 +36,15 @@ describe('SmCity scenario data', () => {
     expect(getAnnualClimateIndices(data, 2026)).toBeNull();
     for (let month = 1; month < 12; month += 1) data = recordMonthlyClimateIndex(data, 2026, month, month);
     expect(getAnnualClimateIndices(data, 2026)).toEqual([-10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  });
+
+  it('resets all overrides for one type without changing other types', () => {
+    const initial = createEmptyScenarioData('orleans');
+    const one = updateScenarioTypeProperty(initial, 'R.D1', 'climateIndex', 12);
+    const two = updateScenarioTypeProperty(one, 'C.PROX', 'climateIndex', 20);
+    const reset = resetScenarioTypeProperties(two, 'R.D1');
+    expect(reset.constructionTypes['R.D1']).toBeUndefined();
+    expect(reset.constructionTypes['C.PROX']?.climateIndex).toBe(20);
   });
 
   it('persists local evolution locks independently of shared construction properties', () => {

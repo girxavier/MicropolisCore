@@ -10,6 +10,7 @@
     loadScenarioData,
     saveScenarioData,
     updateScenarioTypeProperty,
+    resetScenarioTypeProperties,
     type ScenarioData,
     type ScenarioPropertyValue
   } from '$lib/smcity/scenarioData';
@@ -97,6 +98,15 @@
     } catch (error) {
       status = error instanceof Error ? error.message : 'Impossible d’enregistrer cette valeur.';
     }
+  }
+
+  function resetTypeToReference(): void {
+    if (!confirm(`Réinitialiser toutes les propriétés du type ${selectedTypeId} aux valeurs de référence ?`)) return;
+    scenarioData = resetScenarioTypeProperties(scenarioData, selectedTypeId);
+    saveScenarioData(scenarioData);
+    refreshValue();
+    micropolisReactive.refreshCityClimateIndex();
+    status = `Type ${selectedTypeId} réinitialisé aux valeurs de référence.`;
   }
 
   function exportSave(): void {
@@ -250,7 +260,10 @@
         Valeur (nombre, texte, true/false ou vide)
         <input bind:value={propertyValue} placeholder={String(currentValue ?? 'Non définie')} />
       </label>
-      <button type="button" onclick={applyProperty}>Appliquer à tout le type</button>
+      <div class="property-actions">
+        <button type="button" onclick={applyProperty}>Appliquer à tout le type</button>
+        <button type="button" class="reset-reference" onclick={resetTypeToReference}>Réinitialiser le type aux valeurs de référence</button>
+      </div>
     </div>
     <p class="shared-note">Sélectionner une construction avec QUERY identifie automatiquement les zones résidentielles prises en charge. La table modifiée est partagée : aucun réglage individuel n’est créé pour cette occurrence. Les types non encore reliés au catalogue peuvent être choisis dans la liste.</p>
     {#if status}<p class="status" role="status">{status}</p>{/if}
@@ -265,6 +278,9 @@
   .scenario-editor { position:absolute; z-index:28; top:0.65rem; right:0.65rem; width:min(32rem,calc(100% - 1.3rem)); max-height:55%; overflow:auto; padding:0.75rem; color:#f1f5f9; background:rgba(10,16,28,.96); border:1px solid #64748b; border-radius:.4rem; box-shadow:0 4px 18px #0008; font:12px ui-monospace,monospace; }
   header { display:flex; justify-content:space-between; gap:.6rem; align-items:flex-start; margin-bottom:.7rem; }
   header div { display:grid; gap:.25rem; } small,.shared-note { color:#cbd5e1; }
+  .property-actions { display:flex; flex-wrap:wrap; gap:.45rem; }
+  .property-actions button { flex:1 1 12rem; }
+  .property-actions .reset-reference { background:#4b3d30; border-color:#b08b65; }
   .save-panel { display:grid; gap:.55rem; margin:.2rem 0 .8rem; padding:.65rem; border:1px solid #52647f; border-radius:5px; background:linear-gradient(135deg,rgba(34,52,77,.95),rgba(17,28,45,.95)); }
   .save-heading { display:grid; gap:.2rem; }
   .save-heading small { color:#b9c9dc; }

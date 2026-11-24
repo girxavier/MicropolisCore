@@ -64,6 +64,13 @@ export function getScenarioTypeProperties(data: ScenarioData, typeId: string): C
   return { ...(data.constructionTypes[typeId] ?? {}) };
 }
 
+export function resetScenarioTypeProperties(data: ScenarioData, typeId: string): ScenarioData {
+  if (!typeId.trim()) throw new Error('A construction type is required');
+  const constructionTypes = { ...data.constructionTypes };
+  delete constructionTypes[typeId];
+  return { ...data, updatedAt: new Date().toISOString(), constructionTypes };
+}
+
 export function updateScenarioTypeProperty(
   data: ScenarioData,
   typeId: string,
