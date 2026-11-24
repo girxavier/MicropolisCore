@@ -3,6 +3,7 @@
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { editorModeState } from '$lib/EditorMode.svelte';
   import catalog from '../../../../content/micropolis/smcity/construction-types.json';
+  import { resolveConstructionTypeFromTileId } from '$lib/smcity/constructionCatalog';
   import {
     createEmptyScenarioData,
     exportScenarioSave,
@@ -58,11 +59,10 @@
   $effect(() => {
     const selection = queriedTile;
     if (!selection) return;
-    const tileId = selection.tileId & 0x03ff;
-    if (tileId >= 265 && tileId <= 404) {
-      const densityBand = Math.floor((tileId - 265) / 9) % 4;
-      selectedTypeId = densityBand <= 1 ? 'R.D1' : densityBand === 2 ? 'R.D2' : 'R.D3';
-      refreshValue();
+    const typeId = resolveConstructionTypeFromTileId(selection.tileId);
+    if (typeId) {
+      selectedTypeId = typeId;
+      propertyValue = String(scenarioData.constructionTypes[typeId]?.[propertyName] ?? typeOptions.find((row) => row.id === typeId)?.climateIndex ?? '');
     }
   });
 
