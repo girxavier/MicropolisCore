@@ -200,6 +200,7 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 /** Tile footprint per tool — mirrors `gToolSize[]` in micropolis-engine `tool.cpp`. */
 const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 	query: 1,
+	clear: 1,
 	bulldoze: 1,
 	wire: 1,
 	road: 1,
