@@ -471,6 +471,7 @@ export const micropolisReactive = {
 	},
 
 	syncFromEngine,
+	refreshCityClimateIndex,
 
 	/**
 	 * Embind module (`WORLD_W`, `MapTileBits`, `EditingTool`, `Tiles`, …).
