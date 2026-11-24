@@ -143,6 +143,7 @@
       micropolisReactive.syncFromEngine();
       scenarioData = { ...scenarioData, scenarioId: saved.id };
       saveScenarioData(scenarioData);
+      micropolisReactive.refreshCityClimateIndex();
       saveSlotsRevision += 1;
       status = `Carte enregistrée sous le scénario « ${saved.name} ».`;
     } catch (error) { status = error instanceof Error ? error.message : 'Échec de la sauvegarde.'; }
@@ -174,8 +175,10 @@
     try {
       const loaded = micropolisReactive.attachedSimulator?.loadBrowserCitySaveSlot(selectedExistingScenario);
       if (!loaded) throw new Error('Cette entrée est un scénario intégré ou aucune sauvegarde locale ne lui est associée.');
+      micropolisReactive.syncFromEngine();
       scenarioData = loadScenarioData(selectedExistingScenario);
       loadedScenarioId = selectedExistingScenario;
+      micropolisReactive.refreshCityClimateIndex();
       status = `Scénario « ${selectedExistingScenario} » chargé.`;
     } catch (error) { status = error instanceof Error ? error.message : 'Échec du chargement.'; }
   }
