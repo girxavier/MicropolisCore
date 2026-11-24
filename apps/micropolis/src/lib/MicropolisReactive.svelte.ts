@@ -66,6 +66,7 @@ export type MicropolisZoneStatus =
 			growthRate: number;
 			x: number;
 			y: number;
+			tileId: number;
 	  };
 
 let zoneStatus = $state<MicropolisZoneStatus>({ visible: false });
@@ -214,7 +215,8 @@ class MicropolisReactiveCallback {
 			pollution: pollutionIndex,
 			growthRate: growthRateIndex,
 			x,
-			y
+			y,
+			tileId: _micropolis?.getTile(x, y) ?? 0
 		};
 	}
 
