@@ -45,7 +45,7 @@ export interface BrowserCitySaveSlot { id: string; name: string; path: string; s
 const CITY_SAVE_PREFIX = 'smcity:city-file:v1:';
 
 type BrowserFileSystemModule = MainModule & {
-  FS_readFile?: (path: string) => Uint8Array;
+  FS?: { readFile: (path: string) => Uint8Array };
   FS_unlink?: (path: string) => void;
   FS_createDataFile?: (parent: string, name: string, data: Uint8Array, canRead: boolean, canWrite: boolean, canOwn: boolean) => void;
 };
@@ -317,8 +317,8 @@ export class MicropolisSimulator {
 
     private persistCityFile(path: string, name: string, id: string): BrowserCitySaveSlot {
         const module = this.micropolisengine as BrowserFileSystemModule | null;
-        if (!module?.FS_readFile) throw new Error('Le moteur WASM doit être recompilé avec FS_readFile pour sauvegarder les cartes.');
-        const bytes = module.FS_readFile(path);
+        if (!module?.FS?.readFile) throw new Error('Le moteur WASM doit être recompilé avec l’API FS pour sauvegarder les cartes.');
+        const bytes = module.FS.readFile(path);
         const slot: BrowserCitySaveSlot = { id, name, path, savedAt: new Date().toISOString() };
         localStorage.setItem(CITY_SAVE_PREFIX + id, JSON.stringify({ ...slot, bytes: encodeCityBytes(bytes) }));
         this.cityFileName = path;
