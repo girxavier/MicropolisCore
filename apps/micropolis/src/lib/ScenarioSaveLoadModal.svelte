@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
-  import type { BrowserCitySaveSlot } from '$lib/MicropolisSimulator';
 
   let { onClose }: { onClose: () => void } = $props();
   let scenarioName = $state('');
@@ -14,7 +13,6 @@
     return micropolisReactive.attachedSimulator?.listBrowserCitySaveSlots() ?? [];
   });
   const builtInCities = $derived(micropolisReactive.attachedSimulator?.cityFileNames ?? []);
-  const selectedSlot = $derived(slots.find((slot) => slot.id === selectedScenario));
 
   onMount(() => {
     const sim = micropolisReactive.attachedSimulator;
@@ -50,14 +48,20 @@
     const name = scenarioName.trim();
     if (!name) { status = 'Saisissez un nom de scénario.'; return; }
     try {
-      const existing = slots.find((slot) => slot.id === name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-'));
-      if (existing && !confirm('Remplacer le scénario « ' + existing.name + ' » ?')) return;
-      const slot = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(name, Boolean(existing));
-      if (!slot) throw new Error('Aucune ville active à sauvegarder.');
+      const sim = micropolisReactive.attachedSimulator;
+      if (!sim) throw new Error('Aucune ville active à sauvegarder.');
+      let slot;
+      try {
+        slot = sim.saveCityAsBrowserSlot(name, false);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (!message.includes('existe déjà') || !confirm('Remplacer le scénario « ' + name + ' » ?')) return;
+        slot = sim.saveCityAsBrowserSlot(name, true);
+      }
       selectedScenario = slot.id;
       micropolisReactive.syncFromEngine();
       refresh();
-      status = 'Nouveau scénario « ' + slot.name + ' » enregistré.';
+      status = 'Scénario « ' + slot.name + ' » enregistré.';
     } catch (error) {
       status = error instanceof Error ? error.message : 'Échec de la sauvegarde.';
     }
@@ -74,7 +78,6 @@
         : builtIn ? sim.loadCity(builtIn) : false;
       if (!loaded) throw new Error('Impossible de charger ce scénario.');
       micropolisReactive.syncFromEngine();
-      micropolisReactive.refreshCityClimateIndex();
       status = 'Scénario chargé.';
     } catch (error) {
       status = error instanceof Error ? error.message : 'Échec du chargement.';
