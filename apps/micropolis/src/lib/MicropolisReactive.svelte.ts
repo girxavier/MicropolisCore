@@ -109,7 +109,7 @@ function syncFromEngine(): void {
 /** Recompute and persist the current month's map-derived urban climate index. */
 function refreshCityClimateIndex(): void {
 	const simulator = attachedSimulator;
-	if (!simulator?.mapData || simulator.mapData.length !== 12000) return;
+	if (!cityFileName || !simulator?.mapData || simulator.mapData.length !== 12000) return;
 	try {
 		const index = computeMapCityClimateIndex(simulator.mapData);
 		cityClimateIndex = index;
