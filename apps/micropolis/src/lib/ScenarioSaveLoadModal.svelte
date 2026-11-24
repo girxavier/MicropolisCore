@@ -23,7 +23,8 @@
     const sim = micropolisReactive.attachedSimulator;
     const current = sim?.cityFileName ?? '';
     const saved = slots.find((slot) => slot.path === current);
-    selectedScenario = saved?.id ?? current;
+    const savedGame = gameSaves.find((slot) => slot.path === current);
+    selectedScenario = savedGame ? 'game:' + savedGame.id : saved?.id ?? current;
     const onKeydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
