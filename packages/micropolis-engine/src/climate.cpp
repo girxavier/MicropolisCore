@@ -385,11 +385,11 @@ double SmCityClimate::tileClimateWeight(int tile) const
 
 void Micropolis::initializeClimate(long long savedEpoch)
 {
-    climateIndex = computeCityClimateIndex();
     climateReady = climateModel.initialize(
         cityName, cityTime, savedEpoch, climateCurrentYearWarming);
     if (!climateReady) {
         climateEpochCityTime = cityTime;
+        climateIndex = 127.5;
         temperatureMin = 0.0;
         temperatureMax = 0.0;
         temperatureMean = 0.0;
@@ -397,6 +397,9 @@ void Micropolis::initializeClimate(long long savedEpoch)
     }
 
     climateEpochCityTime = static_cast<Quad>(climateModel.epochCityTime());
+    // The tile table is loaded by climateModel.initialize(), so only now can
+    // the live map be classified and its current index calculated.
+    climateIndex = computeCityClimateIndex();
     updateClimateForTime();
 }
 
