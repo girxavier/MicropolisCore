@@ -46,7 +46,7 @@
     const builtIn = micropolisReactive.cityFileNames.map((path) => ({ id: path.split('/').pop()?.replace(/\.cty$/i, '') ?? path, name: path.split('/').pop()?.replace(/\\.cty$/i, '') ?? path, path, savedAt: '' }));
     return Array.from(new Map([...builtIn, ...saved].map((slot) => [slot.id.toLowerCase(), slot])).values());
   });
-  let scenarioId = $derived(micropolisReactive.cityFileName || 'default');
+  let scenarioId = $derived(micropolisReactive.cityFileName || micropolisReactive.cityName || 'default');
   let queriedTile = $derived(micropolisReactive.zoneStatus.visible ? micropolisReactive.zoneStatus : null);
   let selectedType = $derived(typeOptions.find((row) => row.id === selectedTypeId));
   let currentProperties = $derived(scenarioData.constructionTypes[selectedTypeId] ?? {});

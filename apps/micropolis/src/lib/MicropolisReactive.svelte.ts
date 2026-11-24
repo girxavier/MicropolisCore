@@ -128,12 +128,22 @@ function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
 
 function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void {
 	const engine = attachedSimulator?.micropolis;
-	if (!engine) return;
+	const module = attachedSimulator?.micropolisengine;
+	const map = attachedSimulator?.mapData;
+	if (!engine || !module || !map) return;
 	engine.clearZoneLocks();
+	const validLocks: Record<string, boolean> = {};
+	const zoneBit = module.MapTileBits.ZONEBIT.value;
 	for (const [key, locked] of Object.entries(data.lockedZones ?? {})) {
 		if (!locked) continue;
 		const [x, y] = key.split(',').map(Number);
-		if (Number.isInteger(x) && Number.isInteger(y)) engine.setZoneLocked(x, y, true);
+		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= module.WORLD_W || y >= module.WORLD_H) continue;
+		if ((map[x * module.WORLD_H + y] & zoneBit) === 0) continue;
+		validLocks[key] = true;
+		engine.setZoneLocked(x, y, true);
+	}
+	if (Object.keys(validLocks).length !== Object.keys(data.lockedZones ?? {}).length) {
+		saveScenarioData({ ...data, lockedZones: validLocks, updatedAt: new Date().toISOString() });
 	}
 }
 
@@ -148,7 +158,7 @@ function refreshCityClimateIndex(): void {
 	const simulator = attachedSimulator;
 	if (!cityFileName || !simulator?.mapData || simulator.mapData.length !== 12000) return;
 	try {
-		const scenarioId = cityFileName || simulator.cityFileName || 'default';
+		const scenarioId = cityFileName || simulator.cityFileName || simulator.micropolis?.cityName || 'default';
 		const scenario = loadScenarioData(scenarioId);
 		const index = computeMapCityClimateIndex(simulator.mapData, scenario);
 		cityClimateIndex = index;
@@ -535,11 +545,11 @@ export const micropolisReactive = {
 	isZoneLockedAt(x: number, y: number): boolean {
 		void zoneLockRevision;
 		const center = findZoneLockCenter(x, y);
-		return getScenarioZoneLock(loadScenarioData(cityFileName || 'default'), center.x, center.y);
+		return getScenarioZoneLock(loadScenarioData(cityFileName || attachedSimulator?.micropolis?.cityName || 'default'), center.x, center.y);
 	},
 	setZoneLockedAt(x: number, y: number, locked: boolean): void {
 		const center = findZoneLockCenter(x, y);
-		const scenarioId = cityFileName || attachedSimulator?.cityFileName || 'default';
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
 		const next = updateScenarioZoneLock(loadScenarioData(scenarioId), center.x, center.y, locked);
 		saveScenarioData(next);
 		attachedSimulator?.micropolis?.setZoneLocked(center.x, center.y, locked);
@@ -569,6 +579,8 @@ export const micropolisReactive = {
 	loadScenario(scenario: number): void {
 		commandBus.clearHistory();
 		attachedSimulator?.loadScenario(scenario);
+		attachedSimulator?.micropolis?.clearZoneLocks();
+		zoneLockRevision++;
 		syncFromEngine();
 		mapRevision++;
 	},
