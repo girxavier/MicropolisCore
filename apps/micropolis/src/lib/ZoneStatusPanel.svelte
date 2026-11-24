@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { toolState } from '$lib/ToolState.svelte';
+	import { editorModeState } from '$lib/EditorMode.svelte';
 
 	const zs = $derived(micropolisReactive.zoneStatus);
+
+	const zoneLocked = $derived(zs.visible ? micropolisReactive.isZoneLockedAt(zs.x, zs.y) : false);
+
+	function setLocalLock(event: Event): void {
+		if (!zs.visible) return;
+		micropolisReactive.setZoneLockedAt(zs.x, zs.y, (event.currentTarget as HTMLInputElement).checked);
+	}
 
 	function close(): void {
 		micropolisReactive.clearZoneStatus();
@@ -42,6 +50,9 @@
 				<dd>{zs.growthRate}</dd>
 			</div>
 		</dl>
+		{#if editorModeState.active}
+			<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Geler l'évolution automatique de cette zone (activité maintenue)</label>
+		{/if}
 	</div>
 {/if}
 
@@ -64,6 +75,9 @@
 		font-size: 0.72rem;
 		pointer-events: auto;
 	}
+
+	.zone-lock { display:flex; align-items:center; gap:.45rem; color:#c9f3d5; font-weight:600; }
+	.zone-lock input { accent-color:#42a77e; }
 
 	.zone-header {
 		display: grid;

@@ -13,7 +13,7 @@ import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCityClimateIndex } from './smcity/urbanClimate';
-import { getAnnualClimateIndices, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData } from './smcity/scenarioData';
+import { getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -82,6 +82,7 @@ let temperatureMax = $state(0);
 let temperatureMean = $state(0);
 let climateReady = $state(false);
 let cityClimateIndex = $state<number | null>(null);
+let zoneLockRevision = $state(0);
 
 function syncFromEngine(): void {
 	const m = attachedSimulator?.micropolis;
@@ -107,6 +108,34 @@ function syncFromEngine(): void {
 }
 
 /** Recompute and persist the current month's map-derived urban climate index. */
+function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
+	const map = attachedSimulator?.mapData;
+	const engine = attachedSimulator?.micropolisengine;
+	if (!map || !engine) return { x, y };
+	const zoneBit = engine.MapTileBits.ZONEBIT.value;
+	for (let radius = 0; radius <= 4; radius += 1) {
+		for (let dx = -radius; dx <= radius; dx += 1) for (let dy = -radius; dy <= radius; dy += 1) {
+			if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+			const cx = x + dx, cy = y + dy;
+			if (cx < 0 || cy < 0 || cx >= engine.WORLD_W || cy >= engine.WORLD_H) continue;
+			const tile = map[cx * engine.WORLD_H + cy];
+			if (tile !== undefined && (tile & zoneBit) !== 0) return { x: cx, y: cy };
+		}
+	}
+	return { x, y };
+}
+
+function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void {
+	const engine = attachedSimulator?.micropolis;
+	if (!engine) return;
+	engine.clearZoneLocks();
+	for (const [key, locked] of Object.entries(data.lockedZones ?? {})) {
+		if (!locked) continue;
+		const [x, y] = key.split(',').map(Number);
+		if (Number.isInteger(x) && Number.isInteger(y)) engine.setZoneLocked(x, y, true);
+	}
+}
+
 function refreshCityClimateIndex(): void {
 	const simulator = attachedSimulator;
 	if (!cityFileName || !simulator?.mapData || simulator.mapData.length !== 12000) return;
@@ -116,6 +145,7 @@ function refreshCityClimateIndex(): void {
 		const scenarioId = cityFileName || simulator.cityFileName || 'default';
 		const data = recordMonthlyClimateIndex(loadScenarioData(scenarioId), cityYear, cityMonth, index);
 		saveScenarioData(data);
+		applyScenarioZoneLocks(data);
 		const engine = simulator.micropolis;
 		if (engine && typeof engine.setAnnualCityClimateIndex === 'function') {
 			const yearIndex = Math.max(0, Math.floor((engine.cityTime - engine.climateEpochCityTime) / 48));
@@ -482,6 +512,26 @@ export const micropolisReactive = {
 
 	syncFromEngine,
 	refreshCityClimateIndex,
+	isZoneLockedAt(x: number, y: number): boolean {
+		void zoneLockRevision;
+		const center = findZoneLockCenter(x, y);
+		return getScenarioZoneLock(loadScenarioData(cityFileName || 'default'), center.x, center.y);
+	},
+	setZoneLockedAt(x: number, y: number, locked: boolean): void {
+		const center = findZoneLockCenter(x, y);
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || 'default';
+		const next = updateScenarioZoneLock(loadScenarioData(scenarioId), center.x, center.y, locked);
+		saveScenarioData(next);
+		attachedSimulator?.micropolis?.setZoneLocked(center.x, center.y, locked);
+		zoneLockRevision++;
+	},
+	clearScenarioZoneLocks(): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || 'default';
+		const data = loadScenarioData(scenarioId);
+		saveScenarioData({ ...data, lockedZones: {}, updatedAt: new Date().toISOString() });
+		attachedSimulator?.micropolis?.clearZoneLocks();
+		zoneLockRevision++;
+	},
 
 	/**
 	 * Embind module (`WORLD_W`, `MapTileBits`, `EditingTool`, `Tiles`, …).

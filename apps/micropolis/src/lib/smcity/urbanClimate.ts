@@ -90,10 +90,10 @@ export function diffuseClimateIndexField(rawField: ArrayLike<number>, width = SM
 				const nx = x + dx, ny = y + dy;
 				if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
 				const weight = weights[(dy + 1) * 3 + dx + 1];
-				weighted += source[ny * width + nx] * weight;
+				weighted += source[nx * height + ny] * weight;
 				weightTotal += weight;
 			}
-			target[y * width + x] = weightTotal ? weighted / weightTotal : 0;
+			target[x * height + y] = weightTotal ? weighted / weightTotal : 0;
 		}
 		source = target;
 	}
