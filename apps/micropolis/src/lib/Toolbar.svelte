@@ -31,7 +31,6 @@
 		const seed = Math.floor(Math.random() * 0x7fffffff);
 		micropolisReactive.poke.generateMap(seed);
 		micropolisReactive.syncFromEngine();
-		micropolisReactive.refreshCityClimateIndex();
 		editorNotice = 'Terrain généré · graine ' + seed + '.';
 	}
 
