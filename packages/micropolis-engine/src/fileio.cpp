@@ -379,11 +379,19 @@ bool Micropolis::loadFile(const std::string &filename)
         climateMonthlySamples = 0;
         climateCurrentYearWarming = 0.0;
         climateLastSampleMonth = -1;
+        climateSavedWarmingHistory.clear();
         if (miscHist[67] >= 2) {
             climateAnnualIndexSum = static_cast<double>(miscHist[70]) / 10.0;
             climateMonthlySamples = max(0, min(12, (int)miscHist[71]));
             climateCurrentYearWarming = static_cast<double>(miscHist[72]) / 1000.0;
             climateLastSampleMonth = miscHist[73];
+        }
+        if (miscHist[67] >= 3) {
+            const int historyCount = max(0, min(165, (int)miscHist[74]));
+            for (int i = 0; i < historyCount; ++i) {
+                climateSavedWarmingHistory.push_back(
+                    static_cast<double>(miscHist[75 + i]) / 1000.0);
+            }
         }
     } else {
         climateEpochCityTime = cityTime;
@@ -391,6 +399,7 @@ bool Micropolis::loadFile(const std::string &filename)
         climateMonthlySamples = 0;
         climateCurrentYearWarming = 0.0;
         climateLastSampleMonth = -1;
+        climateSavedWarmingHistory.clear();
     }
 
 
@@ -469,7 +478,7 @@ bool Micropolis::saveFile(const std::string &filename)
     (*(Quad *)(miscHist + 62)) = n;
 
     miscHist[66] = 0x534D; // SmCity climate metadata marker
-    miscHist[67] = 2;      // Climate metadata version
+    miscHist[67] = 3;      // Climate metadata version
     n = (climateEpochCityTime >= 0) ? climateEpochCityTime : cityTime;
     HALF_SWAP_LONGS(&n, 1);
     (*(Quad *)(miscHist + 68)) = n;
@@ -477,6 +486,17 @@ bool Micropolis::saveFile(const std::string &filename)
     miscHist[71] = static_cast<short>(climateMonthlySamples);
     miscHist[72] = static_cast<short>(climateCurrentYearWarming * 1000.0);
     miscHist[73] = static_cast<short>(climateLastSampleMonth);
+
+    // Preserve the annual city-warming contributions needed to reconstruct
+    // the climate reference sequence after loading a saved city.
+    const std::vector<double> warmingHistory = climateModel.cityWarmingHistory();
+    const int savedHistoryCount = max(0, min(165, (int)warmingHistory.size()));
+    miscHist[74] = static_cast<short>(savedHistoryCount);
+    for (int i = 0; i < 165; ++i) {
+        miscHist[75 + i] = (i < savedHistoryCount)
+            ? static_cast<short>(warmingHistory[i] * 1000.0)
+            : 0;
+    }
 
     bool result =
         save_short(resHist, HISTORY_LENGTH / 2, f) &&
