@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
+  import { editorModeState } from '$lib/EditorMode.svelte';
 
   let { onClose }: { onClose: () => void } = $props();
   let scenarioName = $state('');
@@ -13,6 +14,10 @@
     return micropolisReactive.attachedSimulator?.listBrowserCitySaveSlots() ?? [];
   });
   const builtInCities = $derived(micropolisReactive.attachedSimulator?.cityFileNames ?? []);
+  const gameSaves = $derived.by(() => {
+    void revision;
+    return micropolisReactive.attachedSimulator?.listBrowserGameSaveSlots() ?? [];
+  });
 
   onMount(() => {
     const sim = micropolisReactive.attachedSimulator;
@@ -32,13 +37,20 @@
 
   function saveCurrent(): void {
     try {
-      const slot = micropolisReactive.attachedSimulator?.saveCurrentCityToBrowserSlot();
-      if (!slot) throw new Error('Aucune ville active à sauvegarder.');
-      selectedScenario = slot.id;
-      scenarioName = slot.name;
+      const sim = micropolisReactive.attachedSimulator;
+      if (!sim) throw new Error('Aucune ville active à sauvegarder.');
+      if (editorModeState.active) {
+        const slot = sim.saveCurrentCityToBrowserSlot();
+        selectedScenario = slot.id;
+        scenarioName = slot.name;
+        status = 'Scénario source « ' + slot.name + ' » enregistré. Il ne sera pas écrasé.';
+      } else {
+        const slot = sim.saveGameToBrowserSlot();
+        selectedScenario = 'game:' + slot.id;
+        status = 'Partie sauvegardée le ' + new Date(slot.savedAt).toLocaleString('fr-FR') + '.';
+      }
       micropolisReactive.syncFromEngine();
       refresh();
-      status = 'Carte « ' + slot.name + ' » sauvegardée dans ce navigateur.';
     } catch (error) {
       status = error instanceof Error ? error.message : 'Échec de la sauvegarde.';
     }
@@ -50,15 +62,7 @@
     try {
       const sim = micropolisReactive.attachedSimulator;
       if (!sim) throw new Error('Aucune ville active à sauvegarder.');
-      let slot;
-      try {
-        slot = sim.saveCityAsBrowserSlot(name, false);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '';
-        if (!message.includes('existe déjà')) throw error;
-        if (!confirm('Remplacer le scénario « ' + name + ' » ?')) return;
-        slot = sim.saveCityAsBrowserSlot(name, true);
-      }
+      const slot = sim.saveCityAsBrowserSlot(name);
       selectedScenario = slot.id;
       micropolisReactive.syncFromEngine();
       refresh();
@@ -72,14 +76,23 @@
     const sim = micropolisReactive.attachedSimulator;
     if (!sim || !selectedScenario) return;
     try {
+      const gameSaveId = selectedScenario.startsWith('game:') ? selectedScenario.slice(5) : '';
+      const gameSave = gameSaveId ? gameSaves.find((item) => item.id === gameSaveId) : undefined;
       const slot = slots.find((item) => item.id === selectedScenario);
       const builtIn = builtInCities.find((path) => path === selectedScenario);
-      const loaded = slot
-        ? sim.loadBrowserCitySaveSlot(slot.id)
+      const loaded = gameSave
+        ? sim.loadBrowserGameSaveSlot(gameSave.id)
+        : slot ? sim.loadBrowserCitySaveSlot(slot.id)
         : builtIn ? sim.loadCity(builtIn) : false;
       if (!loaded) throw new Error('Impossible de charger ce scénario.');
       micropolisReactive.syncFromEngine();
-      status = 'Scénario chargé.';
+      if (!editorModeState.active) {
+        const session = sim.startGameSession();
+        status = 'Partie démarrée · sauvegarde datée ' + new Date(session.savedAt).toLocaleString('fr-FR') + '.';
+      } else {
+        status = 'Scénario chargé en mode édition.';
+      }
+      refresh();
     } catch (error) {
       status = error instanceof Error ? error.message : 'Échec du chargement.';
     }
@@ -91,19 +104,21 @@
     <header>
       <div>
         <h2 id="scenario-modal-title">Scénarios · sauvegarder / charger</h2>
-        <p>Les sauvegardes sont conservées localement dans ce navigateur.</p>
+        <p>{editorModeState.active ? 'Les scénarios sources sont conservés séparément des parties.' : 'Chargez un scénario ou une partie ; chaque lancement crée une nouvelle sauvegarde datée.'} Les données restent dans ce navigateur.</p>
       </div>
       <button class="close" type="button" aria-label="Fermer" onclick={onClose}>×</button>
     </header>
 
     <section class="save-section">
       <h3>Sauvegarder la carte actuelle</h3>
-      <button type="button" class="primary" onclick={saveCurrent}>Enregistrer la ville en cours</button>
+      <button type="button" class="primary" onclick={saveCurrent}>{editorModeState.active ? 'Enregistrer comme scénario source' : 'Enregistrer une nouvelle sauvegarde datée'}</button>
+      {#if editorModeState.active}
       <div class="save-as">
         <label for="scenario-name">Enregistrer sous un nouveau nom</label>
         <input id="scenario-name" bind:value={scenarioName} placeholder="Nom du scénario" />
-        <button type="button" onclick={saveAs} disabled={!scenarioName.trim()}>Enregistrer sous</button>
+        <button type="button" onclick={saveAs} disabled={!scenarioName.trim()}>Créer le scénario</button>
       </div>
+      {/if}
     </section>
 
     <section class="load-section">
@@ -115,7 +130,14 @@
             <option value={slot.id}>{slot.name} · {new Date(slot.savedAt).toLocaleString('fr-FR')}</option>
           {/each}
         </optgroup>
-        <optgroup label="Villes fournies avec le jeu">
+        {#if !editorModeState.active}
+        <optgroup label="Parties sauvegardées">
+          {#each gameSaves as save (save.id)}
+            <option value={'game:' + save.id}>{save.name} · {new Date(save.savedAt).toLocaleString('fr-FR')}</option>
+          {/each}
+        </optgroup>
+      {/if}
+      <optgroup label="Villes fournies avec le jeu">
           {#each builtInCities as path (path)}
             <option value={path}>{path.split('/').pop()?.replace(/\.cty$/i, '') ?? path}</option>
           {/each}
