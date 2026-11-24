@@ -357,8 +357,9 @@ export class MicropolisSimulator {
         const bytes = decodeCityBytes(record.bytes);
         const filename = record.path.split('/').pop() ?? `${id}.cty`;
         try { module.FS_unlink?.(record.path); } catch { /* file did not exist */ }
+        if (typeof module.FS_createDataFile !== 'function') throw new Error('Recompilez le moteur WASM pour recharger les sauvegardes locales.');
         module.FS_createDataFile('/cities', filename, bytes, true, true, true);
-        engine.clearZoneLocks();
+        if (typeof engine.clearZoneLocks === 'function') engine.clearZoneLocks();
         const loaded = engine.loadCity(record.path);
         if (loaded) {
             engine.setCityName(record.name);
@@ -380,7 +381,7 @@ export class MicropolisSimulator {
 
     loadCity(fileName: string): boolean {
         if (!this.micropolis) return false;
-        this.micropolis.clearZoneLocks();
+        if (typeof this.micropolis.clearZoneLocks === 'function') this.micropolis.clearZoneLocks();
         const loaded = this.micropolis.loadCity(fileName);
         if (loaded) {
             this.cityFileName = fileName;
@@ -414,7 +415,7 @@ export class MicropolisSimulator {
         const scenarioValue = scenarios[scenario];
         if (scenarioValue === undefined) return;
 
-        this.micropolis.clearZoneLocks();
+        if (typeof this.micropolis.clearZoneLocks === 'function') this.micropolis.clearZoneLocks();
         this.micropolis.loadScenario(scenarioValue);
         this.cityFileName = '';
         this.hasLoadedCity = true;

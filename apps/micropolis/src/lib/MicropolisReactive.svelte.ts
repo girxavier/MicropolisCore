@@ -130,7 +130,7 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 	const engine = attachedSimulator?.micropolis;
 	const module = attachedSimulator?.micropolisengine;
 	const map = attachedSimulator?.mapData;
-	if (!engine || !module || !map) return;
+	if (!engine || !module || !map || typeof engine.clearZoneLocks !== 'function' || typeof engine.setZoneLocked !== 'function') return;
 	engine.clearZoneLocks();
 	const validLocks: Record<string, boolean> = {};
 	const zoneBit = module.MapTileBits.ZONEBIT.value;
@@ -538,7 +538,7 @@ export const micropolisReactive = {
 		const center = findZoneLockCenter(x, y);
 		const map = attachedSimulator?.mapData;
 		const engine = attachedSimulator?.micropolisengine;
-		if (!map || !engine) return false;
+		if (!map || !engine || typeof attachedSimulator?.micropolis?.setZoneLocked !== 'function') return false;
 		const tile = map[center.x * engine.WORLD_H + center.y] ?? 0;
 		return (tile & engine.MapTileBits.ZONEBIT.value) !== 0;
 	},
@@ -552,14 +552,14 @@ export const micropolisReactive = {
 		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
 		const next = updateScenarioZoneLock(loadScenarioData(scenarioId), center.x, center.y, locked);
 		saveScenarioData(next);
-		attachedSimulator?.micropolis?.setZoneLocked(center.x, center.y, locked);
+		if (typeof attachedSimulator?.micropolis?.setZoneLocked === 'function') attachedSimulator.micropolis.setZoneLocked(center.x, center.y, locked);
 		zoneLockRevision++;
 	},
 	clearScenarioZoneLocks(): void {
 		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
 		const data = loadScenarioData(scenarioId);
 		saveScenarioData({ ...data, lockedZones: {}, updatedAt: new Date().toISOString() });
-		attachedSimulator?.micropolis?.clearZoneLocks();
+		if (typeof attachedSimulator?.micropolis?.clearZoneLocks === 'function') attachedSimulator.micropolis.clearZoneLocks();
 		zoneLockRevision++;
 	},
 
@@ -578,7 +578,7 @@ export const micropolisReactive = {
 
 	loadScenario(scenario: number): void {
 		commandBus.clearHistory();
-		attachedSimulator?.micropolis?.clearZoneLocks();
+		if (typeof attachedSimulator?.micropolis?.clearZoneLocks === 'function') attachedSimulator.micropolis.clearZoneLocks();
 		attachedSimulator?.loadScenario(scenario);
 		zoneLockRevision++;
 		syncFromEngine();
