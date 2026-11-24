@@ -14,6 +14,7 @@ import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
 import { getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
+import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -109,6 +110,10 @@ function syncFromEngine(): void {
 }
 
 /** Recompute and persist the current month's map-derived urban climate index. */
+function isLockableZoneType(typeId: string | null): boolean {
+	return !!typeId && (typeId.startsWith('R.') || typeId.startsWith('C.') || typeId.startsWith('I.'));
+}
+
 function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
 	const map = attachedSimulator?.mapData;
 	const engine = attachedSimulator?.micropolisengine;
@@ -138,7 +143,8 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 		if (!locked) continue;
 		const [x, y] = key.split(',').map(Number);
 		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= module.WORLD_W || y >= module.WORLD_H) continue;
-		if ((map[x * module.WORLD_H + y] & zoneBit) === 0) continue;
+		const tile = map[x * module.WORLD_H + y];
+		if ((tile & zoneBit) === 0 || !isLockableZoneType(resolveConstructionTypeFromTileId(tile))) continue;
 		validLocks[key] = true;
 		engine.setZoneLocked(x, y, true);
 	}
@@ -540,7 +546,7 @@ export const micropolisReactive = {
 		const engine = attachedSimulator?.micropolisengine;
 		if (!map || !engine || typeof attachedSimulator?.micropolis?.setZoneLocked !== 'function') return false;
 		const tile = map[center.x * engine.WORLD_H + center.y] ?? 0;
-		return (tile & engine.MapTileBits.ZONEBIT.value) !== 0;
+		return (tile & engine.MapTileBits.ZONEBIT.value) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
 	},
 	isZoneLockedAt(x: number, y: number): boolean {
 		void zoneLockRevision;
@@ -549,6 +555,7 @@ export const micropolisReactive = {
 	},
 	setZoneLockedAt(x: number, y: number, locked: boolean): void {
 		const center = findZoneLockCenter(x, y);
+		if (!isZoneLockableAt(center.x, center.y)) return;
 		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
 		const next = updateScenarioZoneLock(loadScenarioData(scenarioId), center.x, center.y, locked);
 		saveScenarioData(next);
