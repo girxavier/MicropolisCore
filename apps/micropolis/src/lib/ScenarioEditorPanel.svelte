@@ -126,6 +126,7 @@
       micropolisReactive.syncFromEngine();
       scenarioData = { ...scenarioData, scenarioId: slot.id };
       saveScenarioData(scenarioData);
+      micropolisReactive.refreshCityClimateIndex();
       saveSlotsRevision += 1;
       status = `Carte « ${slot.name} » sauvegardée dans ce navigateur.`;
     } catch (error) { status = error instanceof Error ? error.message : 'Échec de la sauvegarde.'; }
@@ -160,6 +161,7 @@
       scenarioData = createEmptyScenarioData(saved.id);
       saveScenarioData(scenarioData);
       micropolisReactive.attachedSimulator?.micropolis?.clearZoneLocks();
+      micropolisReactive.refreshCityClimateIndex();
       newScenarioName = '';
       selectedExistingScenario = saved.id;
       saveSlotsRevision += 1;
