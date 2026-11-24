@@ -423,6 +423,7 @@ export interface Micropolis extends ClassHandle {
   randomlySeedRandom(): void;
   seedRandom(_0: number): void;
   getTile(_0: number, _1: number): number;
+  getPowerGrid(_0: number, _1: number): number;
   setTile(_0: number, _1: number, _2: number): void;
   setFunds(_0: number): void;
   updateMaps(): void;
