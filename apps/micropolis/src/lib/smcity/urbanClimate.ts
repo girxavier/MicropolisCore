@@ -66,7 +66,9 @@ export function computeMapCellClimateIndices(mapTiles: ArrayLike<number>, scenar
 		const typeId = resolveConstructionTypeFromTileId(mapTiles[index]);
 		if (!typeId) continue;
 		const rule = getConstructionClimateRule(typeId, scenario);
-		field[index] = rule.kind === 'fixed' ? rule.value : (rule.min + rule.max) / 2;
+		if (rule.kind === 'fixed') field[index] = rule.value;
+		else if (rule.kind === 'range') field[index] = (rule.min + rule.max) / 2;
+		// Unassigned construction types deliberately contribute a neutral index of 0.
 	}
 	return field;
 }
