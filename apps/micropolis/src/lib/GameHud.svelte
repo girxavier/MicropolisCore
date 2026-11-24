@@ -43,7 +43,7 @@
 
 <div class="game-hud" aria-live="polite">
     <div class="hud-row hud-city">
-        <select class="hud-city-select" value={micropolisReactive.cityFileName}
+        <select class="hud-city-select" value={micropolisReactive.cityFileNames.includes(micropolisReactive.cityFileName) ? micropolisReactive.cityFileName : ''}
                 onchange={selectCity} aria-label="Ville">
             <option value="" disabled>Scénario en cours</option>
             {#each micropolisReactive.cityFileNames as city}
