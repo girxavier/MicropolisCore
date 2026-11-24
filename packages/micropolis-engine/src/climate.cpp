@@ -329,6 +329,26 @@ const SmCityClimateReading &SmCityClimate::current() const
 }
 
 
+bool Micropolis::setZoneLocked(int x, int y, bool locked)
+{
+    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
+    const unsigned int key = static_cast<unsigned int>(x * WORLD_H + y);
+    if (locked) lockedZoneCenters.insert(key);
+    else lockedZoneCenters.erase(key);
+    return true;
+}
+
+bool Micropolis::isZoneLocked(int x, int y) const
+{
+    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return false;
+    return lockedZoneCenters.find(static_cast<unsigned int>(x * WORLD_H + y)) != lockedZoneCenters.end();
+}
+
+void Micropolis::clearZoneLocks()
+{
+    lockedZoneCenters.clear();
+}
+
 bool Micropolis::setAnnualCityClimateIndex(int yearIndex, double index)
 {
     if (!climateReady || yearIndex < 0) return false;
