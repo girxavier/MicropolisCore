@@ -92,6 +92,7 @@
     try {
       scenarioData = updateScenarioTypeProperty(scenarioData, selectedTypeId, propertyName, parsed);
       saveScenarioData(scenarioData);
+      micropolisReactive.refreshCityClimateIndex();
       status = `Valeur enregistrée pour toutes les constructions de type ${selectedTypeId}.`;
     } catch (error) {
       status = error instanceof Error ? error.message : 'Impossible d’enregistrer cette valeur.';
