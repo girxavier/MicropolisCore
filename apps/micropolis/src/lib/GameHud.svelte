@@ -72,7 +72,7 @@
 			<span class="rci-item"><span class="rci-letter">I</span> {micropolisReactive.demandI}</span>
 		</span>
 		<span class="hud-tax">{taxLabel}</span>
-		<span class="hud-speed" class:paused={micropolisReactive.simPaused}>{simLabel}</span>
+		<span class="hud-speed" class:paused={micropolisReactive.simPaused} title={editorModeState.active ? "La vitesse se règle hors mode édition" : "Y : ralentir · I : accélérer"}>{simLabel}</span>
 	</div>
 	{#if toolState.speedFeedback}
 		<div class="hud-feedback">{toolState.speedFeedback}</div>
