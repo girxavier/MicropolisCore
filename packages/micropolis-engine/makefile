@@ -81,7 +81,7 @@ EMLDFLAGS = \
     -s EXPORT_ES6=1 \
     -s 'ENVIRONMENT=web,worker,node' \
     -s ALLOW_MEMORY_GROWTH=1 \
-    -s 'INCOMING_MODULE_JS_API=["wasmBinary"]' \
+    -s 'INCOMING_MODULE_JS_API=["print","printErr","setStatus","locateFile","wasmBinary","getPreloadedPackage"]' \
     -s 'EXPORTED_RUNTIME_METHODS=["HEAPU16","wasmMemory","FS","FS_unlink","FS_createDataFile"]' \
 	-lembind \
 	--emit-tsd=micropolisengine.d.ts \
