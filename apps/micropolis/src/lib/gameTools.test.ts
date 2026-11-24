@@ -51,4 +51,17 @@ describe('direct building variants', () => {
 		expect(resolveDirectBuildingCenterTile(module, 'ind-building-1')).toBe(661);
 		expect(resolveDirectBuildingCenterTile(module, 'ind-building-4')).toBe(688);
 	});
+
+	it('exposes every engine land-value band and density subgroup', () => {
+		expect(resolveDirectBuildingCenterTile(module, 'res-lv1-building-1')).toBe(265);
+		expect(resolveDirectBuildingCenterTile(module, 'res-lv4-building-4')).toBe(400);
+		expect(resolveDirectBuildingCenterTile(module, 'com-lv1-building-1')).toBe(436);
+		expect(resolveDirectBuildingCenterTile(module, 'com-lv4-building-5')).toBe(607);
+		expect(resolveDirectBuildingCenterTile(module, 'ind-lv1-building-1')).toBe(625);
+		expect(resolveDirectBuildingCenterTile(module, 'ind-lv2-building-4')).toBe(688);
+
+		expect(GAME_TOOL_GROUPS.find((group) => group.id === 'residential-buildings')?.tools).toHaveLength(17);
+		expect(GAME_TOOL_GROUPS.find((group) => group.id === 'commercial-buildings')?.tools).toHaveLength(20);
+		expect(GAME_TOOL_GROUPS.find((group) => group.id === 'industrial-buildings')?.tools).toHaveLength(8);
+	});
 });
