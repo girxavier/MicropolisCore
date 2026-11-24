@@ -57,6 +57,10 @@ function fixedOrUnassigned(value: number | null | undefined): ClimateIndexRule {
 export function getConstructionClimateRule(constructionId: string, scenario?: ScenarioData): ClimateIndexRule {
 	const scenarioValue = scenario?.constructionTypes[constructionId]?.climateIndex;
 	if (typeof scenarioValue === 'number') return fixedOrUnassigned(scenarioValue);
+	const agriculturalMatch = /^A\\.([A-Z]+)\\.(D[1-5])\\.(BIO|CONV)$/.exec(constructionId);
+	if (agriculturalMatch) {
+		return getAgriculturalClimateRule(agriculturalMatch[1], agriculturalMatch[2], agriculturalMatch[3], scenario);
+	}
 	for (const category of smCityConstructionCatalog.categories) {
 		const construction = category.types?.find((item) => item.id === constructionId);
 		if (construction) return fixedOrUnassigned(construction.climateIndex);
