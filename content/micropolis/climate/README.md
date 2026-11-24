@@ -20,7 +20,7 @@ The climate data used by the Micropolis engine live in this directory. The C++ i
 5. Add the previous year's city climate contribution, derived from the mean of its twelve monthly map indices. The conversion is linear: `2 * index / 255 - 1` °C (0 → -1°C; 127.5 → 0°C; 255 → +1°C). This contribution affects the year ahead, not the year used to measure it.
 6. Apply both inclusive thresholds independently, in every month: Tmin >= 13°C adds 1°C to Tmin; Tmax >= 25.1°C adds 1°C to Tmax.
 7. For a resulting temperature above 38°C, apply the validated asymptotic limiter:
-   `L(T) = 38 + 12 * (1 - exp(-(T - 38) / 12)`.
+   `L(T) = 38 + 12 * (1 - exp(-(T - 38) / 12))`.
 8. Calculate Tmoy as the arithmetic mean of the final Tmin and Tmax.
 
 The random sequence is deterministic for a given city and climate-year index, so a saved city can reconstruct its previous climate years exactly.
