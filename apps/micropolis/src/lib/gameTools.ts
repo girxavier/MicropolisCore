@@ -1,5 +1,10 @@
 import type { EditingTool, MainModule } from '../types/micropolisengine.d.js';
 
+type RciBuildingToolId =
+	| `res-lv${1 | 2 | 3 | 4}-building-${1 | 2 | 3 | 4}`
+	| `com-lv${1 | 2 | 3 | 4}-building-${1 | 2 | 3 | 4 | 5}`
+	| `ind-lv${1 | 2}-building-${1 | 2 | 3 | 4}`;
+
 export type ToolId =
 	| 'query'
 	| 'bulldoze'
@@ -23,7 +28,8 @@ export type ToolId =
 	| 'forest'
 	| 'res-houses' | 'res-building-1' | 'res-building-2' | 'res-building-3' | 'res-building-4'
 	| 'com-building-1' | 'com-building-2' | 'com-building-3' | 'com-building-4' | 'com-building-5'
-	| 'ind-building-1' | 'ind-building-2' | 'ind-building-3' | 'ind-building-4';
+	| 'ind-building-1' | 'ind-building-2' | 'ind-building-3' | 'ind-building-4'
+	| RciBuildingToolId;
 
 export interface ToolDef {
 	id: ToolId;
@@ -39,6 +45,21 @@ export interface ToolGroup {
 	/** Optional muted group heading in the palette. */
 	label?: string;
 	tools: ToolDef[];
+}
+
+function rciVariantTools(family: 'res' | 'com' | 'ind', bands: number, densities: number): ToolDef[] {
+	const tools: ToolDef[] = [];
+	for (let band = 1; band <= bands; band += 1) {
+		for (let density = 1; density <= densities; density += 1) {
+			tools.push({
+				id: `${family}-lv${band}-building-${density}` as ToolId,
+				label: `VF ${band} · densité ${density}`,
+				shortcut: '—',
+				cost: 0
+			});
+		}
+	}
+	return tools;
 }
 
 /** Cheapest → most expensive; similar tools grouped. */
@@ -101,32 +122,18 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 		label: 'Bâtiments résidentiels',
 		tools: [
 			{ id: 'res-houses', label: 'Maisons individuelles', shortcut: '—', cost: 0 },
-			{ id: 'res-building-1', label: 'Faible densité', shortcut: '—', cost: 0 },
-			{ id: 'res-building-2', label: 'Densité moyenne-faible', shortcut: '—', cost: 0 },
-			{ id: 'res-building-3', label: 'Densité moyenne-forte', shortcut: '—', cost: 0 },
-			{ id: 'res-building-4', label: 'Forte densité', shortcut: '—', cost: 0 },
+			...rciVariantTools('res', 4, 4),
 		],
 	},
 	{
 		id: 'commercial-buildings',
 		label: 'Bâtiments commerciaux',
-		tools: [
-			{ id: 'com-building-1', label: 'Commerce · densité 1', shortcut: '—', cost: 0 },
-			{ id: 'com-building-2', label: 'Commerce · densité 2', shortcut: '—', cost: 0 },
-			{ id: 'com-building-3', label: 'Commerce · densité 3', shortcut: '—', cost: 0 },
-			{ id: 'com-building-4', label: 'Commerce · densité 4', shortcut: '—', cost: 0 },
-			{ id: 'com-building-5', label: 'Commerce · densité 5', shortcut: '—', cost: 0 },
-		],
+		tools: rciVariantTools('com', 4, 5),
 	},
 	{
 		id: 'industrial-buildings',
 		label: 'Bâtiments industriels',
-		tools: [
-			{ id: 'ind-building-1', label: 'Industrie · densité 1', shortcut: '—', cost: 0 },
-			{ id: 'ind-building-2', label: 'Industrie · densité 2', shortcut: '—', cost: 0 },
-			{ id: 'ind-building-3', label: 'Industrie · densité 3', shortcut: '—', cost: 0 },
-			{ id: 'ind-building-4', label: 'Industrie · densité 4', shortcut: '—', cost: 0 },
-		],
+		tools: rciVariantTools('ind', 2, 4),
 	},
 	{
 		id: 'terrain',
@@ -204,7 +211,7 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 }
 
 /** Tile footprint per tool — mirrors `gToolSize[]` in micropolis-engine `tool.cpp`. */
-const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
+const TOOL_FOOTPRINT_SIZE: Partial<Record<ToolId, number>> = {
 	query: 1,
 	bulldoze: 1,
 	wire: 1,
@@ -237,18 +244,30 @@ export function resolveDirectBuildingCenterTile(module: MainModule, id: ToolId):
 	const tiles = module.Tiles;
 	const suffix = Number(id.slice(-1));
 	if (id === 'res-houses') return tiles.FREEZ.value;
-	if (id.startsWith('res-building-') && suffix >= 1 && suffix <= 4) {
-		// The engine's residential plop uses 4 land-value bands × 4 density levels.
-		return tiles.RZB.value + ((2 * 4 + (suffix - 1)) * 9);
+
+	const residential = id.match(/^res-lv([1-4])-building-([1-4])$/);
+	if (residential) {
+		const band = Number(residential[1]) - 1;
+		const density = Number(residential[2]) - 1;
+		return tiles.RZB.value + ((band * 4 + density) * 9);
 	}
-	if (id.startsWith('com-building-') && suffix >= 1 && suffix <= 5) {
-		// Commercial variants use 4 land-value bands × 5 density levels.
-		return tiles.CZB.value + ((2 * 5 + (suffix - 1)) * 9);
+	const commercial = id.match(/^com-lv([1-4])-building-([1-5])$/);
+	if (commercial) {
+		const band = Number(commercial[1]) - 1;
+		const density = Number(commercial[2]) - 1;
+		return tiles.CZB.value + ((band * 5 + density) * 9);
 	}
-	if (id.startsWith('ind-building-') && suffix >= 1 && suffix <= 4) {
-		// Industrial variants use 2 land-value bands × 4 density levels.
-		return tiles.IND1.value + ((1 * 4 + (suffix - 1)) * 9) + 4;
+	const industrial = id.match(/^ind-lv([1-2])-building-([1-4])$/);
+	if (industrial) {
+		const band = Number(industrial[1]) - 1;
+		const density = Number(industrial[2]) - 1;
+		return tiles.IND1.value + ((band * 4 + density) * 9) + 4;
 	}
+
+	// Backward-compatible aliases from the first editor palette.
+	if (id.startsWith('res-building-') && suffix >= 1 && suffix <= 4) return tiles.RZB.value + ((2 * 4 + (suffix - 1)) * 9);
+	if (id.startsWith('com-building-') && suffix >= 1 && suffix <= 5) return tiles.CZB.value + ((2 * 5 + (suffix - 1)) * 9);
+	if (id.startsWith('ind-building-') && suffix >= 1 && suffix <= 4) return tiles.IND1.value + ((1 * 4 + (suffix - 1)) * 9) + 4;
 	return null;
 }
 
@@ -264,7 +283,8 @@ export interface ToolFootprint {
  * Multi-tile buildings use engine `buildBuilding` anchor: top-left = center − (1, 1).
  */
 export function toolFootprintAtCenter(centerX: number, centerY: number, id: ToolId): ToolFootprint {
-	const size = TOOL_FOOTPRINT_SIZE[id];
+	const isRciVariant = id.startsWith('res-lv') || id.startsWith('com-lv') || id.startsWith('ind-lv');
+	const size = TOOL_FOOTPRINT_SIZE[id] ?? (isRciVariant ? 3 : 1);
 	if (size <= 1) {
 		return { x: centerX, y: centerY, w: 1, h: 1 };
 	}
