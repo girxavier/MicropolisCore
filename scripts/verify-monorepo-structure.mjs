@@ -129,13 +129,30 @@ check('pnpm-workspace.yaml declares packages/* glob', () => {
 	if (!/['"]?packages\/\*['"]?/.test(workspace)) throw new Error("packages/* glob missing");
 });
 
-const workspaceDirs = ['apps', 'packages']
-	.flatMap((root) =>
+const workspaceDirs = [
+	...['apps', 'packages'].flatMap((root) =>
 		readdirSync(join(repoRoot, root), { withFileTypes: true })
 			.filter((entry) => entry.isDirectory())
 			.map((entry) => `${root}/${entry.name}`),
-	)
-	.filter((dir) => existsSync(join(repoRoot, dir, 'package.json')));
+	),
+	...['apps/screen-angel/modules'].flatMap((root) =>
+		existsSync(join(repoRoot, root))
+			? readdirSync(join(repoRoot, root), { withFileTypes: true })
+				.filter((entry) => entry.isDirectory())
+				.map((entry) => `${root}/${entry.name}`)
+			: [],
+	),
+	...readdirSync(join(repoRoot, 'apps/screen-angel/modules'), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.flatMap((module) => {
+			const root = `apps/screen-angel/modules/${module.name}/bridges`;
+			return existsSync(join(repoRoot, root))
+				? readdirSync(join(repoRoot, root), { withFileTypes: true })
+					.filter((entry) => entry.isDirectory())
+					.map((entry) => `${root}/${entry.name}`)
+				: [];
+		}),
+].filter((dir) => existsSync(join(repoRoot, dir, 'package.json')));
 
 const workspacePackages = new Map();
 for (const dir of workspaceDirs) {
