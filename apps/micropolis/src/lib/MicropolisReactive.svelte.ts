@@ -131,6 +131,14 @@ function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
 	return { x, y };
 }
 
+function isLockableZoneCenter(x: number, y: number): boolean {
+	const map = attachedSimulator?.mapData;
+	const engine = attachedSimulator?.micropolisengine;
+	if (!map || !engine || x < 0 || y < 0 || x >= engine.WORLD_W || y >= engine.WORLD_H) return false;
+	const tile = map[x * engine.WORLD_H + y] ?? 0;
+	return (tile & engine.MapTileBits.ZONEBIT.value) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
+}
+
 function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void {
 	const engine = attachedSimulator?.micropolis;
 	const module = attachedSimulator?.micropolisengine;
@@ -542,11 +550,7 @@ export const micropolisReactive = {
 	refreshCityClimateIndex,
 	isZoneLockableAt(x: number, y: number): boolean {
 		const center = findZoneLockCenter(x, y);
-		const map = attachedSimulator?.mapData;
-		const engine = attachedSimulator?.micropolisengine;
-		if (!map || !engine || typeof attachedSimulator?.micropolis?.setZoneLocked !== 'function') return false;
-		const tile = map[center.x * engine.WORLD_H + center.y] ?? 0;
-		return (tile & engine.MapTileBits.ZONEBIT.value) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
+		return typeof attachedSimulator?.micropolis?.setZoneLocked === 'function' && isLockableZoneCenter(center.x, center.y);
 	},
 	isZoneLockedAt(x: number, y: number): boolean {
 		void zoneLockRevision;
@@ -555,7 +559,7 @@ export const micropolisReactive = {
 	},
 	setZoneLockedAt(x: number, y: number, locked: boolean): void {
 		const center = findZoneLockCenter(x, y);
-		if (!isZoneLockableAt(center.x, center.y)) return;
+		if (!isLockableZoneCenter(center.x, center.y)) return;
 		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
 		const next = updateScenarioZoneLock(loadScenarioData(scenarioId), center.x, center.y, locked);
 		saveScenarioData(next);
