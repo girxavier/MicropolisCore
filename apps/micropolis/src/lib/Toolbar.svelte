@@ -2,20 +2,12 @@
 	import { GAME_TOOL_GROUPS, toolMenuLabel, type ToolId } from '$lib/gameTools';
 	import { toolState } from '$lib/ToolState.svelte';
 	import { editorModeState, scenarioDialogState } from '$lib/EditorMode.svelte';
-	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { commandBus } from '$lib/CommandBus';
 	let mobileOpen = $state(false);
 	let editorNotice = $state('');
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
-		mobileOpen = false;
-	}
-
-	function selectSpeed(index: number) {
-		const sim = micropolisReactive.attachedSimulator;
-		sim?.setGameSpeed(index);
-		sim?.setPaused(false);
 		mobileOpen = false;
 	}
 
@@ -75,12 +67,6 @@
 			</details>
 		{/each}
 	{:else}
-		<div class="tool-group-label">Vitesse du jeu</div>
-		{#each [{ index: 0, label: 'Lente · 58 s/mois' }, { index: 1, label: 'Normale · 29 s/mois' }, { index: 2, label: 'Rapide · 10 s/mois' }] as speed}
-			<button type="button" class="tool-item" class:active={micropolisReactive.gameSpeedIndex === speed.index} onclick={() => selectSpeed(speed.index)}>
-				<span class="tool-key">{speed.index + 1}:</span><span class="tool-name">{speed.label}</span>
-			</button>
-		{/each}
 		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain' && group.id !== 'special' && !group.id.endsWith('-buildings')) as group (group.id)}
 			{#if group.label}<div class="tool-group-label">{group.label}</div>{/if}
 			{#each group.tools as tool (tool.id)}
