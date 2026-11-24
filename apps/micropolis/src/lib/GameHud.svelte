@@ -6,7 +6,7 @@
 	const funds = $derived(micropolisReactive.totalFunds);
 	const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 	const dateLabel = $derived(
-		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
+		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${micropolisReactive.cityName || cityLabel(micropolisReactive.cityFileName) || 'Micropolis'}`
 	);
 
 	const simLabel = $derived(
@@ -32,7 +32,11 @@
 
     function selectCity(event: Event) {
         const select = event.currentTarget as HTMLSelectElement;
-        micropolisReactive.loadCity(select.value);
+        const loaded = micropolisReactive.loadCity(select.value);
+        if (loaded && !editorModeState.active) {
+            try { micropolisReactive.attachedSimulator?.startGameSession(); }
+            catch (error) { micropolisReactive.attachedSimulator?.resumeSimulation(); toolState.setSpeedFeedback(error instanceof Error ? 'Partie lancée ; sauvegarde impossible : ' + error.message : 'Partie lancée ; sauvegarde impossible.'); }
+        }
     }
 
 </script>
