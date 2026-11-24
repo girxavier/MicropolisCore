@@ -74,7 +74,9 @@
 		<span class="hud-tax">{taxLabel}</span>
 		<span class="hud-speed" class:paused={micropolisReactive.simPaused}>{simLabel}</span>
 	</div>
-	{#if toolState.lastToolFeedback}
+	{#if toolState.speedFeedback}
+		<div class="hud-feedback">{toolState.speedFeedback}</div>
+	{:else if toolState.lastToolFeedback}
 		<div class="hud-feedback">{toolState.lastToolFeedback}</div>
 	{/if}
 </div>
