@@ -18,12 +18,12 @@ tile_start,tile_end,indice_climat,poids,objet
 405,413,135,0.1111111111,hopital
 414,422,80,0.1111111111,eglise
 423,431,0,0,zone commerciale vide
-436,478,170,0.1111111111,commercial faible densite
+436,478,127.5,0.1111111111,commercial faible densite
 479,522,190,0.1111111111,commercial densite moyenne
 523,566,210,0.1111111111,commercial forte densite
 567,609,230,0.1111111111,commercial tres forte densite
 612,620,0,0,zone industrielle vide
-621,638,205,0.1111111111,industrie faible densite
+621,638,127.5,0.1111111111,industrie faible densite
 639,656,220,0.1111111111,industrie densite moyenne
 657,674,235,0.1111111111,industrie forte densite
 675,692,245,0.1111111111,industrie tres forte densite
