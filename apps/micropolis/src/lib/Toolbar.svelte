@@ -38,7 +38,10 @@
 		const next = !editorModeState.active;
 		editorModeState.set(next);
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
-		else micropolisReactive.attachedSimulator?.exitEditorMode();
+		else {
+			micropolisReactive.refreshCityClimateIndex();
+			micropolisReactive.attachedSimulator?.exitEditorMode();
+		}
 	}
 </script>
 
