@@ -1113,6 +1113,11 @@ public:
     double temperatureMin;
     double temperatureMax;
     double temperatureMean;
+    double climateIndex;
+    double climateAnnualIndexSum;
+    int climateMonthlySamples;
+    double climateCurrentYearWarming;
+    long long climateLastSampleMonth;
     bool climateReady;
     Quad climateEpochCityTime;
     SmCityClimate climateModel;
@@ -1925,6 +1930,7 @@ public:
 
     void initializeClimate(long long savedEpoch = -1);
     void updateClimateForTime();
+    double computeCityClimateIndex();
 
     void simulateRobots();
 
