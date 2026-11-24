@@ -58,7 +58,7 @@
 	</button>
 	{#if editorModeState.active}
 		<div class="tool-group-label">Carte et terrain</div>
-		<button type="button" class="tool-item" onclick={() => selectTool('bulldoze')}>Gomme locale (bulldozer)</button>
+		<button type="button" class="tool-item clear-tool" onclick={() => selectTool('clear')}>CLEAR · Terre nue</button>
 		<button type="button" class="tool-item" onclick={generateTerrain}>Générer un terrain</button>
 		<button type="button" class="tool-item" onclick={resetMap}>RESET · Carte vierge</button>
 		{#if editorNotice}<div class="tool-group-label" role="status">{editorNotice}</div>{/if}
