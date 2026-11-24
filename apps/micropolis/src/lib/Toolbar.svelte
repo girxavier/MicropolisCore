@@ -43,6 +43,7 @@
 		editorModeState.set(next);
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
 		else {
+			if (toolState.activeToolId === 'clear') toolState.setActiveTool('road');
 			micropolisReactive.refreshCityClimateIndex();
 			micropolisReactive.attachedSimulator?.exitEditorMode();
 		}

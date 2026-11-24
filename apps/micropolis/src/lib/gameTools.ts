@@ -151,6 +151,7 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 		case 'query':
 			return t.TOOL_QUERY;
 		case 'bulldoze':
+		case 'clear':
 			return t.TOOL_BULLDOZER;
 		case 'wire':
 			return t.TOOL_WIRE;
