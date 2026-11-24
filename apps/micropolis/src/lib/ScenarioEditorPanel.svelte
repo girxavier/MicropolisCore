@@ -3,7 +3,7 @@
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { editorModeState } from '$lib/EditorMode.svelte';
   import catalog from '../../../../content/micropolis/smcity/construction-types.json';
-  import { resolveConstructionTypeFromTileId } from '$lib/smcity/constructionCatalog';
+  import { getAgriculturalClimateRule, getConstructionClimateRule, resolveConstructionTypeFromTileId } from '$lib/smcity/constructionCatalog';
   import {
     createEmptyScenarioData,
     exportScenarioSave,
@@ -18,15 +18,17 @@
   type CatalogCategory = { id: string; label: string; types?: CatalogRow[]; specializations?: CatalogRow[]; scales?: { id: string; label: string }[]; productionModes?: string[] };
   const categories = (catalog as { categories: CatalogCategory[]; commonProperties: string[] }).categories;
   const commonProperties = (catalog as { commonProperties: string[] }).commonProperties;
+  function defaultClimateIndex(rule: ReturnType<typeof getConstructionClimateRule>): number | null {
+    return rule.kind === 'fixed' ? rule.value : rule.kind === 'range' ? (rule.min + rule.max) / 2 : null;
+  }
   const typeOptions = $derived(categories.flatMap((category) => {
-    const regular = (category.types ?? []).map((row) => ({ id: row.id, label: row.label, climateIndex: row.climateIndex ?? null }));
+    const regular = (category.types ?? []).map((row) => ({ id: row.id, label: row.label, climateIndex: defaultClimateIndex(getConstructionClimateRule(row.id)) }));
     if (category.id !== 'A') return regular;
     const agricultural = (category.specializations ?? []).flatMap((specialization) =>
-      (category.scales ?? []).flatMap((scale) => (category.productionModes ?? []).map((mode) => ({
-        id: `A.${specialization.id}.${scale.id}.${mode}`,
-        label: `${specialization.label} · ${scale.id} · ${mode}`,
-        climateIndex: specialization.climateIndexByScale?.[scale.id]?.[mode] ?? specialization.climateIndex ?? null
-      })))
+      (category.scales ?? []).flatMap((scale) => (category.productionModes ?? []).map((mode) => {
+        const id = `A.${specialization.id}.${scale.id}.${mode}`;
+        return { id, label: `${specialization.label} · ${scale.id} · ${mode}`, climateIndex: defaultClimateIndex(getAgriculturalClimateRule(specialization.id, scale.id, mode)) };
+      }))
     );
     return [...regular, ...agricultural];
   }));

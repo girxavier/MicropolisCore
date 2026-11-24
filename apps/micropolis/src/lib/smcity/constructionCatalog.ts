@@ -1,4 +1,5 @@
 import rawCatalog from '../../../../../content/micropolis/smcity/construction-types.json';
+import rawClimateCoefficients from '../../../../../content/micropolis/smcity/climate-coefficients.json';
 import type { ScenarioData } from './scenarioData';
 
 type CatalogType = {
@@ -24,6 +25,8 @@ type ConstructionCatalog = {
 };
 
 export const smCityConstructionCatalog = rawCatalog as ConstructionCatalog;
+
+const climateCoefficients = rawClimateCoefficients as { types: Record<string, number | null>; agriculture: Record<string, Record<string, Record<string, number>>> };
 
 /** Best-effort mapping for legacy Micropolis tile IDs that have an unambiguous SmCity type. */
 export function resolveConstructionTypeFromTileId(rawTileId: number): string | null {
@@ -84,14 +87,8 @@ export function getConstructionClimateRule(constructionId: string, scenario?: Sc
 	const scenarioValue = scenario?.constructionTypes[constructionId]?.climateIndex;
 	if (typeof scenarioValue === 'number') return fixedOrUnassigned(scenarioValue);
 	const agriculturalMatch = /^A\.([A-Z]+)\.(D[1-5])\.(BIO|CONV)$/.exec(constructionId);
-	if (agriculturalMatch) {
-		return getAgriculturalClimateRule(agriculturalMatch[1], agriculturalMatch[2], agriculturalMatch[3], scenario);
-	}
-	for (const category of smCityConstructionCatalog.categories) {
-		const construction = category.types?.find((item) => item.id === constructionId);
-		if (construction) return fixedOrUnassigned(construction.climateIndex);
-	}
-	return { kind: 'unassigned' };
+	if (agriculturalMatch) return getAgriculturalClimateRule(agriculturalMatch[1], agriculturalMatch[2], agriculturalMatch[3], scenario);
+	return fixedOrUnassigned(climateCoefficients.types[constructionId]);
 }
 
 /** Resolve an agricultural specialization / scale / production-mode combination. */
@@ -104,17 +101,7 @@ export function getAgriculturalClimateRule(
 	const agriculture = smCityConstructionCatalog.categories.find((item) => item.id === 'A');
 	const specialization = agriculture?.specializations?.find((item) => item.id === specializationId);
 	if (!specialization) return { kind: 'unassigned' };
-
 	const scenarioValue = scenario?.constructionTypes[`A.${specializationId}.${scaleId}.${productionMode}`]?.climateIndex;
 	if (typeof scenarioValue === 'number') return fixedOrUnassigned(scenarioValue);
-
-	if (specialization.climateIndexRange) {
-		const [min, max] = specialization.climateIndexRange;
-		return { kind: 'range', min, max };
-	}
-
-	const byScale = specialization.climateIndexByScale?.[scaleId];
-	if (byScale) return fixedOrUnassigned(byScale[productionMode]);
-
-	return fixedOrUnassigned(specialization.climateIndex);
+	return fixedOrUnassigned(climateCoefficients.agriculture[specializationId]?.[scaleId]?.[productionMode]);
 }
