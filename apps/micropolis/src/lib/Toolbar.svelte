@@ -63,7 +63,7 @@
 		<button type="button" class="tool-item" onclick={() => commandBus.undo()}>↶ Annuler (Ctrl+Z)</button>
 		<button type="button" class="tool-item" onclick={() => commandBus.redo()}>↷ Rétablir (Ctrl+Y)</button>
 		{#each GAME_TOOL_GROUPS as group (group.id)}
-			<details class="tool-category" open={group.id === 'terrain'}>
+			<details class="tool-category" open>
 				<summary>{group.label ?? group.id}</summary>
 				{#each group.tools as tool (tool.id)}
 					<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
