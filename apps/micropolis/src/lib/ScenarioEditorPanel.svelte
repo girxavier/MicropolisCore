@@ -45,7 +45,7 @@
     void saveSlotsRevision;
     const sim = micropolisReactive.attachedSimulator;
     const saved = sim?.listBrowserCitySaveSlots() ?? [];
-    const builtIn = micropolisReactive.cityFileNames.map((path) => ({ id: path.split('/').pop()?.replace(/\.cty$/i, '') ?? path, name: path.split('/').pop()?.replace(/\\.cty$/i, '') ?? path, path, savedAt: '' }));
+    const builtIn = micropolisReactive.cityFileNames.map((path) => ({ id: path.split('/').pop()?.replace(/\.cty$/i, '') ?? path, name: path.split('/').pop()?.replace(/\.cty$/i, '') ?? path, path, savedAt: '' }));
     return Array.from(new Map([...builtIn, ...saved].map((slot) => [slot.id.toLowerCase(), slot])).values());
   });
   let scenarioId = $derived(micropolisReactive.cityFileName || micropolisReactive.cityName || 'default');

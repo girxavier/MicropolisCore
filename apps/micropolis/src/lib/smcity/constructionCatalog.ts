@@ -4,12 +4,10 @@ import type { ScenarioData } from './scenarioData';
 
 type CatalogType = {
 	id: string;
-	climateIndex?: number | null;
 };
 
 type AgricultureSpecialization = {
 	id: string;
-	climateIndexByScale?: Record<string, Record<string, number>>;
 };
 
 type CatalogCategory = {
