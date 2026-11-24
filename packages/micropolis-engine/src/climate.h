@@ -18,14 +18,25 @@ struct SmCityClimateReading {
     int unit;
 };
 
+struct SmCityTileClimateIndex {
+    int firstTile;
+    int lastTile;
+    double index;
+    double weight;
+};
+
 class SmCityClimate {
 public:
     SmCityClimate();
 
     // savedEpoch < 0 starts the climate clock at cityTime.
     bool initialize(const std::string &cityName, long long cityTime,
-                    long long savedEpoch = -1);
+                    long long savedEpoch = -1,
+                    double savedCurrentYearWarming = 0.0);
     bool update(long long cityTime);
+    void setCityWarmingForYear(std::size_t yearIndex, double contribution);
+    double tileClimateIndex(int tile) const;
+    double tileClimateWeight(int tile) const;
 
     bool isReady() const;
     long long epochCityTime() const;
@@ -45,6 +56,8 @@ private:
 
     std::map<std::string, std::array<MonthlyReference, 12> > references;
     std::map<std::string, double> cityWarmingCoefficient;
+    std::vector<SmCityTileClimateIndex> tileClimateIndices;
+    std::map<std::size_t, double> cityWarmingByYear;
     double baseWarming;
     std::vector<ClimateYear> generatedYears;
 
