@@ -83,6 +83,7 @@
     else micropolisSimulator.exitEditorMode(false);
     micropolisSimulator.syncMapViews();
     await tileView!.initialize(micropolisSimulator);
+    micropolisReactive.refreshCityClimateIndex();
     if (!startInEditor) micropolisSimulator.setPaused(false);
 
     console.log("MicropolisView: onMount:", "micropolisSimulator:", micropolisSimulator);
