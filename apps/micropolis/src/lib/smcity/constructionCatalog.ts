@@ -1,4 +1,5 @@
 import rawCatalog from '../../../../../content/micropolis/smcity/construction-types.json';
+import type { ScenarioData } from './scenarioData';
 
 type CatalogType = {
 	id: string;
@@ -36,7 +37,9 @@ function fixedOrUnassigned(value: number | null | undefined): ClimateIndexRule {
 }
 
 /** Return the climate rule for a non-agricultural construction ID. */
-export function getConstructionClimateRule(constructionId: string): ClimateIndexRule {
+export function getConstructionClimateRule(constructionId: string, scenario?: ScenarioData): ClimateIndexRule {
+	const scenarioValue = scenario?.constructionTypes[constructionId]?.climateIndex;
+	if (typeof scenarioValue === 'number') return fixedOrUnassigned(scenarioValue);
 	for (const category of smCityConstructionCatalog.categories) {
 		const construction = category.types?.find((item) => item.id === constructionId);
 		if (construction) return fixedOrUnassigned(construction.climateIndex);
@@ -48,11 +51,15 @@ export function getConstructionClimateRule(constructionId: string): ClimateIndex
 export function getAgriculturalClimateRule(
 	specializationId: string,
 	scaleId: string,
-	productionMode: string
+	productionMode: string,
+	scenario?: ScenarioData
 ): ClimateIndexRule {
 	const agriculture = smCityConstructionCatalog.categories.find((item) => item.id === 'A');
 	const specialization = agriculture?.specializations?.find((item) => item.id === specializationId);
 	if (!specialization) return { kind: 'unassigned' };
+
+	const scenarioValue = scenario?.constructionTypes[`A.${specializationId}.${scaleId}.${productionMode}`]?.climateIndex;
+	if (typeof scenarioValue === 'number') return fixedOrUnassigned(scenarioValue);
 
 	if (specialization.climateIndexRange) {
 		const [min, max] = specialization.climateIndexRange;
