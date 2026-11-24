@@ -93,6 +93,7 @@ bool SmCityClimate::loadTables()
 {
     references.clear();
     cityWarmingCoefficient.clear();
+    tileClimateIndices.clear();
     std::map<std::string, double> expectedAnnualWarming;
     std::map<std::string, int> referenceRows;
 
@@ -176,6 +177,29 @@ bool SmCityClimate::loadTables()
         }
     }
 
+    {
+        std::ifstream file("climate/climat_indices_objets_smcity.csv");
+        if (!file.is_open()) return false;
+        std::string line;
+        std::getline(file, line); // header
+        while (std::getline(file, line)) {
+            const std::vector<std::string> f = splitCsv(line);
+            if (f.size() < 4) continue;
+            SmCityTileClimateIndex entry;
+            entry.firstTile = static_cast<int>(parseNumber(f[0], -1.0));
+            entry.lastTile = static_cast<int>(parseNumber(f[1], -1.0));
+            entry.index = parseNumber(f[2], -1.0);
+            entry.weight = parseNumber(f[3], -1.0);
+            if (entry.firstTile < 0 || entry.lastTile < entry.firstTile ||
+                entry.lastTile > 1023 || entry.index < 0.0 || entry.index > 255.0 ||
+                entry.weight < 0.0) {
+                return false;
+            }
+            tileClimateIndices.push_back(entry);
+        }
+        if (tileClimateIndices.empty()) return false;
+    }
+
     for (std::map<std::string, std::array<MonthlyReference, 12> >::const_iterator it = references.begin();
          it != references.end(); ++it) {
         if (referenceRows[it->first] != 12) return false;
@@ -195,10 +219,12 @@ bool SmCityClimate::loadTables()
 }
 
 bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
-                               long long savedEpoch)
+                               long long savedEpoch,
+                               double savedCurrentYearWarming)
 {
     ready = false;
     generatedYears.clear();
+    cityWarmingByYear.clear();
     activeCity = normalizeCity(cityName);
     if (!loadTables()) return false;
     if (references.find(activeCity) == references.end()) return false;
@@ -208,6 +234,9 @@ bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
     if (tminIncrement < 0.0 || tmaxIncrement < 0.0 || limiterAmplitude <= 0.0) return false;
 
     climateEpoch = (savedEpoch >= 0) ? savedEpoch : cityTime;
+    long long elapsed = cityTime - climateEpoch;
+    if (elapsed < 0) elapsed = 0;
+    cityWarmingByYear[static_cast<std::size_t>(elapsed / 48)] = savedCurrentYearWarming;
     ready = true;
     return update(cityTime);
 }
@@ -216,7 +245,12 @@ void SmCityClimate::generateYear(std::size_t yearIndex)
 {
     ClimateYear year;
     const std::array<MonthlyReference, 12> &historical = references[activeCity];
-    const double warming = cityWarmingCoefficient[activeCity] * baseWarming;
+    double warming = cityWarmingCoefficient[activeCity] * baseWarming;
+    std::map<std::size_t, double>::const_iterator cityShift =
+        cityWarmingByYear.find(yearIndex);
+    if (cityShift != cityWarmingByYear.end()) {
+        warming += cityShift->second;
+    }
     const double denominator = 5.0 + static_cast<double>(yearIndex);
 
     std::uint32_t seed = stableHash(activeCity);
@@ -318,10 +352,42 @@ const SmCityClimateReading &SmCityClimate::current() const
     return currentReading;
 }
 
+void SmCityClimate::setCityWarmingForYear(std::size_t yearIndex,
+                                               double contribution)
+{
+    if (contribution < -1.0) contribution = -1.0;
+    if (contribution > 1.0) contribution = 1.0;
+    cityWarmingByYear[yearIndex] = contribution;
+}
+
+double SmCityClimate::tileClimateIndex(int tile) const
+{
+    for (std::size_t i = 0; i < tileClimateIndices.size(); ++i) {
+        const SmCityTileClimateIndex &entry = tileClimateIndices[i];
+        if (tile >= entry.firstTile && tile <= entry.lastTile) {
+            return entry.index;
+        }
+    }
+    return -1.0;
+}
+
+double SmCityClimate::tileClimateWeight(int tile) const
+{
+    for (std::size_t i = 0; i < tileClimateIndices.size(); ++i) {
+        const SmCityTileClimateIndex &entry = tileClimateIndices[i];
+        if (tile >= entry.firstTile && tile <= entry.lastTile) {
+            return entry.weight;
+        }
+    }
+    return 0.0;
+}
+
 
 void Micropolis::initializeClimate(long long savedEpoch)
 {
-    climateReady = climateModel.initialize(cityName, cityTime, savedEpoch);
+    climateIndex = computeCityClimateIndex();
+    climateReady = climateModel.initialize(
+        cityName, cityTime, savedEpoch, climateCurrentYearWarming);
     if (!climateReady) {
         climateEpochCityTime = cityTime;
         temperatureMin = 0.0;
@@ -334,11 +400,58 @@ void Micropolis::initializeClimate(long long savedEpoch)
     updateClimateForTime();
 }
 
+double Micropolis::computeCityClimateIndex()
+{
+    double weightedTotal = 0.0;
+    double totalWeight = 0.0;
+
+    for (int x = 0; x < WORLD_W; ++x) {
+        for (int y = 0; y < WORLD_H; ++y) {
+            const int tile = map[x][y] & LOMASK;
+            const double weight = climateModel.tileClimateWeight(tile);
+            if (weight <= 0.0) continue;
+            const double index = climateModel.tileClimateIndex(tile);
+            if (index < 0.0) continue;
+            weightedTotal += index * weight;
+            totalWeight += weight;
+        }
+    }
+
+    // A map with no classified objects is neutral: it has no warming effect.
+    return totalWeight > 0.0 ? weightedTotal / totalWeight : 127.5;
+}
+
 void Micropolis::updateClimateForTime()
 {
-    if (!climateReady || !climateModel.update(cityTime)) {
-        return;
+    if (!climateReady) return;
+
+    long long elapsed = cityTime - climateEpochCityTime;
+    if (elapsed < 0) elapsed = 0;
+    const long long monthIndex = elapsed / 4;
+
+    if (monthIndex != climateLastSampleMonth) {
+        // At the start of a new year, convert the previous twelve monthly
+        // map averages into the warming contribution for the year ahead.
+        if (monthIndex > 0 && (monthIndex % 12) == 0) {
+            if (climateMonthlySamples > 0) {
+                const double annualIndex =
+                    climateAnnualIndexSum / static_cast<double>(climateMonthlySamples);
+                climateCurrentYearWarming = (2.0 * annualIndex / 255.0) - 1.0;
+                climateModel.setCityWarmingForYear(
+                    static_cast<std::size_t>(monthIndex / 12),
+                    climateCurrentYearWarming);
+            }
+            climateAnnualIndexSum = 0.0;
+            climateMonthlySamples = 0;
+        }
+
+        climateIndex = computeCityClimateIndex();
+        climateAnnualIndexSum += climateIndex;
+        ++climateMonthlySamples;
+        climateLastSampleMonth = monthIndex;
     }
+
+    if (!climateModel.update(cityTime)) return;
 
     const SmCityClimateReading &reading = climateModel.current();
     temperatureMin = reading.tmin;
