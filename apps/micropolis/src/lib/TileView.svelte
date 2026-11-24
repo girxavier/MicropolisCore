@@ -651,17 +651,18 @@
       if (speedKey === 'y' || speedKey === 'i') {
         event.preventDefault();
         const current = micropolisSimulator.gameSpeed;
-        const next = Math.max(0, Math.min(2, current + (speedKey === 'i' ? 1 : -1)));
+        const next = Math.max(0, Math.min(3, current + (speedKey === 'i' ? 1 : -1)));
         const labels = [
           'Lente · 58 s/mois',
           'Normale · 29 s/mois',
-          'Rapide · 10 s/mois'
+          'Rapide · 10 s/mois',
+          'Très rapide · 5 s/mois'
         ];
         if (next === current) {
           toolState.setSpeedFeedback(speedKey === 'y' ? 'Vitesse minimale déjà active.' : 'Vitesse maximale déjà active.');
         } else {
           micropolisSimulator.setGameSpeed(next);
-          micropolisSimulator.setPaused(false);
+          micropolisSimulator.resumeSimulation();
           toolState.setSpeedFeedback('Vitesse : ' + labels[next] + '.');
         }
         return;
