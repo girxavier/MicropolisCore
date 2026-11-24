@@ -16,6 +16,15 @@ describe('Micropolis WASM loader', () => {
 		expect(engine.WORLD_W).toBeGreaterThan(0);
 		expect(engine.WORLD_H).toBeGreaterThan(0);
 		expect(engine.WORLD_W * engine.WORLD_H).toBeGreaterThan(0);
+
+		const fs = engine as unknown as {
+			FS?: { readFile?: unknown };
+			FS_unlink?: unknown;
+			FS_createDataFile?: unknown;
+		};
+		expect(typeof fs.FS?.readFile).toBe('function');
+		expect(typeof fs.FS_unlink).toBe('function');
+		expect(typeof fs.FS_createDataFile).toBe('function');
 	});
 
 	it('creates Micropolis with noop callback; map size matches world × tile bytes', async () => {
