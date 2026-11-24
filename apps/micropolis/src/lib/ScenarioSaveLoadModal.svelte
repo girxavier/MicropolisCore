@@ -87,7 +87,7 @@
 </script>
 
 <div class="modal-backdrop">
-  <section class="scenario-modal" role="dialog" aria-modal="true" aria-labelledby="scenario-modal-title">
+  <dialog open class="scenario-modal" aria-modal="true" aria-labelledby="scenario-modal-title">
     <header>
       <div>
         <h2 id="scenario-modal-title">Scénarios · sauvegarder / charger</h2>
@@ -126,7 +126,7 @@
 
     {#if status}<p class="status" role="status">{status}</p>{/if}
     <footer><button type="button" onclick={onClose}>Fermer</button></footer>
-  </section>
+  </dialog>
 </div>
 
 <style>
