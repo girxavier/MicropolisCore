@@ -9,31 +9,43 @@ function Invoke-Step {
     param([string]$Label, [scriptblock]$Command)
     Write-Host "`n==> $Label" -ForegroundColor Cyan
     & $Command
-    if ($LASTEXITCODE -ne 0) { throw "Échec de l’étape '$Label' (code $LASTEXITCODE)." }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Step '$Label' failed with exit code $LASTEXITCODE."
+    }
 }
 
 Set-Location $RepoRoot
-Write-Host "SmCity — vérification et compilation locale" -ForegroundColor Green
-Write-Host "Dépôt : $RepoRoot"
+Write-Host "SmCity local build and checks" -ForegroundColor Green
+Write-Host "Repository: $RepoRoot"
 
 if (-not $SkipGitSync) {
     $currentBranch = (& git branch --show-current).Trim()
-    if ($LASTEXITCODE -ne 0) { throw "Impossible de lire la branche Git." }
-    if ($currentBranch -ne $Branch) { throw "Branche active '$currentBranch'. Bascule d’abord sur '$Branch' ; aucun changement de branche automatique." }
+    if ($LASTEXITCODE -ne 0) { throw "Could not read the current Git branch." }
+    if ($currentBranch -ne $Branch) {
+        throw "Current branch is '$currentBranch'. Switch to '$Branch' first; no branch is changed automatically."
+    }
+
     $dirty = & git status --porcelain
-    if ($LASTEXITCODE -ne 0) { throw "Impossible de vérifier l’état Git." }
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect Git status." }
     if ($dirty) {
         Write-Host ($dirty -join "`n") -ForegroundColor Yellow
-        throw "Le dépôt contient des modifications locales. Rien n’a été écrasé ; sauvegarde ou committe-les avant de relancer."
+        throw "The working tree contains local changes. Nothing was overwritten; save or commit them before retrying."
     }
-    Invoke-Step "Synchronisation GitHub (avance rapide uniquement)" {
-        git fetch origin $Branch
+
+    $remotes = @(& git remote)
+    if ($remotes -contains "smcity") { $Remote = "smcity" }
+    elseif ($remotes -contains "origin") { $Remote = "origin" }
+    else { throw "No usable Git remote was found." }
+
+    Invoke-Step "Fast-forward sync from GitHub ($Remote)" {
+        git fetch $Remote $Branch
         if ($LASTEXITCODE -ne 0) { return }
-        git pull --ff-only origin $Branch
+        git pull --ff-only $Remote $Branch
     }
-    Write-Host "`nHistorique récent de la branche :" -ForegroundColor Cyan
+
+    Write-Host "`nRecent branch history:" -ForegroundColor Cyan
     git log -8 --oneline --decorate
-    if ($LASTEXITCODE -ne 0) { throw "Impossible de lire l’historique Git." }
+    if ($LASTEXITCODE -ne 0) { throw "Could not read Git history." }
 }
 
 $emsdkScript = $null
@@ -42,27 +54,34 @@ if ($env:EMSDK -and (Test-Path (Join-Path $env:EMSDK "emsdk_env.ps1"))) {
 } elseif (Test-Path "C:\Devtools\emsdk\emsdk_env.ps1") {
     $emsdkScript = "C:\Devtools\emsdk\emsdk_env.ps1"
 }
-if (-not $emsdkScript) { throw "Emscripten introuvable. Installe-le dans C:\Devtools\emsdk ou définis la variable EMSDK." }
+if (-not $emsdkScript) {
+    throw "Emscripten was not found. Install it in C:\Devtools\emsdk or define EMSDK."
+}
 
-# Bypass limité au processus courant : aucune modification de la politique système.
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 . $emsdkScript
-if ($LASTEXITCODE -ne 0) { throw "Échec de l’activation Emscripten." }
-if (-not (Get-Command em++ -ErrorAction SilentlyContinue)) { throw "em++ reste introuvable après activation d’Emscripten." }
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw "Node.js est introuvable." }
-if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) { throw "pnpm est introuvable." }
+if (-not (Get-Command em++ -ErrorAction SilentlyContinue)) {
+    throw "em++ is not available after activating Emscripten."
+}
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw "Node.js was not found." }
+if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) { throw "pnpm was not found." }
+
 $nodeMajor = [int]((& node -p "process.versions.node.split('.')[0]").Trim())
-if ($nodeMajor -lt 20) { throw "Node.js 20 ou supérieur est requis (version détectée : $nodeMajor)." }
+if ($nodeMajor -lt 20) { throw "Node.js 20 or later is required (found $nodeMajor)." }
 
-if (-not $SkipInstall) { Invoke-Step "Installation reproductible des dépendances" { pnpm install --frozen-lockfile --ignore-scripts --prod=false } }
-Invoke-Step "Compilation du moteur C++ / WASM et installation des assets" { pnpm --filter @micropolis/engine-wasm run build }
-Invoke-Step "Contrôle Svelte / TypeScript" { pnpm --filter micropolis run check }
-Invoke-Step "Tests Micropolis" { pnpm --filter micropolis exec vitest run --exclude cli/entry.smoke.test.ts --exclude src/lib/monorepo.integration.test.ts }
-Invoke-Step "Build de production Vite" { pnpm --filter micropolis exec vite build }
+if (-not $SkipInstall) {
+    Invoke-Step "Install locked dependencies" { pnpm install --frozen-lockfile --ignore-scripts --prod=false }
+}
+Invoke-Step "Build C++ engine and WebAssembly assets" { pnpm --filter @micropolis/engine-wasm run build }
+Invoke-Step "Svelte and TypeScript checks" { pnpm --filter micropolis run check }
+Invoke-Step "Micropolis tests" {
+    pnpm --filter micropolis exec vitest run --exclude cli/entry.smoke.test.ts --exclude src/lib/monorepo.integration.test.ts
+}
+Invoke-Step "Vite production build" { pnpm --filter micropolis exec vite build }
 
-Write-Host "`nVérifications terminées : moteur WASM, TypeScript, tests et build." -ForegroundColor Green
+Write-Host "`nAll checks passed: WASM, TypeScript, tests, and production build." -ForegroundColor Green
 if ($Dev) {
-    Write-Host "`nDémarrage du serveur de développement (Ctrl+C pour arrêter)." -ForegroundColor Green
+    Write-Host "`nStarting the development server (Ctrl+C to stop)." -ForegroundColor Green
     pnpm --filter micropolis run dev
-    if ($LASTEXITCODE -ne 0) { throw "Le serveur de développement s’est arrêté avec le code $LASTEXITCODE." }
+    if ($LASTEXITCODE -ne 0) { throw "The development server exited with code $LASTEXITCODE." }
 }
