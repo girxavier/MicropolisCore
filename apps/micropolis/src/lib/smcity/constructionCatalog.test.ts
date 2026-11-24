@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	getAgriculturalClimateRule,
 	getConstructionClimateRule,
+	resolveConstructionTypeFromTileId,
 	smCityConstructionCatalog
 } from './constructionCatalog';
 
@@ -44,6 +45,14 @@ describe('SmCity construction catalog', () => {
 		expect(getConstructionClimateRule('LAND.FLEUVE')).toEqual({ kind: 'fixed', value: -50 });
 		expect(getConstructionClimateRule('LAND.SEA')).toEqual({ kind: 'fixed', value: -75 });
 		expect(getConstructionClimateRule('LAND.FOREST')).toEqual({ kind: 'fixed', value: -75 });
+	});
+
+	it('maps queried legacy tiles to unambiguous shared construction types', () => {
+		expect(resolveConstructionTypeFromTileId(750)).toBe('INF.POWER.COAL');
+		expect(resolveConstructionTypeFromTileId(765)).toBe('CIV.FIRE');
+		expect(resolveConstructionTypeFromTileId(774)).toBe('CIV.POLICE');
+		expect(resolveConstructionTypeFromTileId(816)).toBe('INF.POWER.NUCLEAR');
+		expect(resolveConstructionTypeFromTileId(500)).toBeNull();
 	});
 
 	it('does not invent climate coefficients for candidate crop specializations', () => {
