@@ -77,6 +77,7 @@ let cityTime = $state(0);
 let temperatureMin = $state(0);
 let temperatureMax = $state(0);
 let temperatureMean = $state(0);
+let climateIndex = $state(127.5);
 let climateReady = $state(false);
 
 function syncFromEngine(): void {
@@ -99,6 +100,7 @@ function syncFromEngine(): void {
 	temperatureMin = m.temperatureMin;
 	temperatureMax = m.temperatureMax;
 	temperatureMean = m.temperatureMean;
+	climateIndex = m.climateIndex;
 	climateReady = m.climateReady;
 }
 
@@ -265,6 +267,7 @@ class MicropolisReactiveCallback {
 		temperatureMin = tmin;
 		temperatureMax = tmax;
 		temperatureMean = tmoy;
+		climateIndex = _micropolis?.climateIndex ?? climateIndex;
 		climateReady = true;
 	}
 
@@ -380,6 +383,7 @@ export interface MicropolisReactiveSnapshot {
 	temperatureMin: number;
 	temperatureMax: number;
 	temperatureMean: number;
+	climateIndex: number;
 	climateReady: boolean;
 	worldWidth: number;
 	worldHeight: number;
@@ -721,6 +725,9 @@ export const micropolisReactive = {
 	get temperatureMean() {
 		return temperatureMean;
 	},
+	get climateIndex() {
+		return climateIndex;
+	},
 	get climateReady() {
 		return climateReady;
 	},
@@ -764,6 +771,7 @@ export const micropolisReactive = {
 			temperatureMin,
 			temperatureMax,
 			temperatureMean,
+			climateIndex,
 			climateReady,
 			worldWidth: attachedSimulator?.micropolisengine?.WORLD_W ?? 0,
 			worldHeight: attachedSimulator?.micropolisengine?.WORLD_H ?? 0
