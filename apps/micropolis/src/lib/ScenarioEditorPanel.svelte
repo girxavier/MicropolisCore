@@ -123,6 +123,7 @@
     try {
       const slot = micropolisReactive.attachedSimulator?.saveCurrentCityToBrowserSlot();
       if (!slot) throw new Error('Aucune ville active à sauvegarder.');
+      micropolisReactive.syncFromEngine();
       scenarioData = { ...scenarioData, scenarioId: slot.id };
       saveScenarioData(scenarioData);
       saveSlotsRevision += 1;
@@ -138,6 +139,7 @@
     try {
       const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(label, true);
       if (!saved) throw new Error('Aucun simulateur disponible.');
+      micropolisReactive.syncFromEngine();
       scenarioData = { ...scenarioData, scenarioId: saved.id };
       saveScenarioData(scenarioData);
       saveSlotsRevision += 1;
@@ -154,6 +156,7 @@
     try {
       const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(name, exists);
       if (!saved) throw new Error('Aucun simulateur disponible.');
+      micropolisReactive.syncFromEngine();
       scenarioData = createEmptyScenarioData(saved.id);
       saveScenarioData(scenarioData);
       micropolisReactive.attachedSimulator?.micropolis?.clearZoneLocks();

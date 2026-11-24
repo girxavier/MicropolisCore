@@ -324,10 +324,9 @@ export class MicropolisSimulator {
         if (!path || !path.endsWith('.cty')) {
             const id = citySaveId(this.micropolis.cityName || 'scenario');
             path = `/cities/${id}.cty`;
-            this.micropolis.saveCityAs(path);
-        } else {
-            this.micropolis.saveCity();
         }
+        // saveCity() only asks the frontend to choose a path; saveCityAs() writes synchronously to WASM FS.
+        this.micropolis.saveCityAs(path);
         const id = citySaveId(path);
         return this.persistCityFile(path, this.micropolis.cityName || id, id);
     }
