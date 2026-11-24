@@ -44,7 +44,7 @@ export interface BrowserCitySaveSlot { id: string; name: string; path: string; s
 const CITY_SAVE_PREFIX = 'smcity:city-file:v1:';
 function citySaveId(value: string): string {
     const leaf = value.trim().replace(/\\/g, '/').split('/').pop() ?? '';
-    return leaf.replace(/\\.cty$/i, '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
+    return leaf.replace(/\.cty$/i, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
 }
 function encodeCityBytes(bytes: Uint8Array): string {
     let binary = '';

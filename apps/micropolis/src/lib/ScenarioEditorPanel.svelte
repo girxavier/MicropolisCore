@@ -43,7 +43,7 @@
     void saveSlotsRevision;
     const sim = micropolisReactive.attachedSimulator;
     const saved = sim?.listBrowserCitySaveSlots() ?? [];
-    const builtIn = micropolisReactive.cityFileNames.map((path) => ({ id: path.split('/').pop()?.replace(/\\.cty$/i, '') ?? path, name: path.split('/').pop()?.replace(/\\.cty$/i, '') ?? path, path, savedAt: '' }));
+    const builtIn = micropolisReactive.cityFileNames.map((path) => ({ id: path.split('/').pop()?.replace(/\.cty$/i, '') ?? path, name: path.split('/').pop()?.replace(/\\.cty$/i, '') ?? path, path, savedAt: '' }));
     return Array.from(new Map([...builtIn, ...saved].map((slot) => [slot.id.toLowerCase(), slot])).values());
   });
   let scenarioId = $derived(micropolisReactive.cityFileName || 'default');
@@ -150,7 +150,7 @@
   function createScenario(): void {
     const name = newScenarioName.trim();
     if (!name) { status = 'Donnez un nom au nouveau scénario.'; return; }
-    const id = name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
+    const id = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
     const exists = saveSlots.some((slot) => slot.id.toLowerCase() === id);
     if (exists && !confirm(`Le scénario « ${name} » existe déjà. Le remplacer ?`)) return;
     try {

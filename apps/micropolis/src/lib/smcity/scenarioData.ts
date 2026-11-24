@@ -31,7 +31,7 @@ export function createEmptyScenarioData(scenarioId: string): ScenarioData {
 
 export function normalizeScenarioId(value: string): string {
   const normalized = value.trim().replace(/\\/g, '/').split('/').pop() ?? '';
-  return normalized.replace(/\\.(cty|mop|json)$/i, '').toLowerCase() || 'default';
+  return normalized.replace(/\.(cty|mop|json)$/i, '').toLowerCase() || 'default';
 }
 
 export function recordMonthlyClimateIndex(data: ScenarioData, year: number, month: number, index: number): ScenarioData {
