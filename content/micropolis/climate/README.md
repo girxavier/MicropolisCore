@@ -27,9 +27,9 @@ The random sequence is deterministic for a given city and climate-year index, so
 
 ## Game clock and persistence
 
-Micropolis has 16 simulation phases per city-time unit, 4 units per month and 48 units per year. The climate advances in phase 0, immediately after Micropolis increments `cityTime`. The climate epoch is saved in reserved `miscHist` words 66–69. Version 2 also saves the partial annual index, the current year's city contribution and the last sampled month in words 70–73. Older city files without the SmCity marker start their climate epoch when first loaded.
+Micropolis has 16 simulation phases per city-time unit, 4 units per month and 48 units per year. The climate advances in phase 0, immediately after Micropolis increments `cityTime`. The climate epoch is saved in reserved `miscHist` words 66–69. Version 2 stores the partial annual index, the current year's city contribution and the last sampled month in words 70–73. Version 3 also stores the annual contribution history (count in word 74, values in words 75–239), allowing saved cities to reconstruct their climate sequence. Older city files without the SmCity marker start their climate epoch when first loaded.
 
-The first climate year generated after a city is loaded is N1 (2026); each subsequent group of 48 units advances to the next climate year.
+The climate year index is derived from the saved epoch; N1 corresponds to the 2026 reference year. Each group of 48 city-time units advances one climate year.
 
 ## City climate index
 
