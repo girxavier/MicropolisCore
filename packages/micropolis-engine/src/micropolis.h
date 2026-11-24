@@ -1118,6 +1118,7 @@ public:
     int climateMonthlySamples;
     double climateCurrentYearWarming;
     long long climateLastSampleMonth;
+    std::vector<double> climateSavedWarmingHistory;
     bool climateReady;
     Quad climateEpochCityTime;
     SmCityClimate climateModel;
