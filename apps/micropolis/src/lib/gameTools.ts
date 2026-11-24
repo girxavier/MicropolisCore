@@ -3,6 +3,7 @@ import type { EditingTool, MainModule } from '../types/micropolisengine.d.js';
 export type ToolId =
 	| 'query'
 	| 'bulldoze'
+	| 'clear'
 	| 'wire'
 	| 'road'
 	| 'rail'
@@ -48,7 +49,10 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 	},
 	{
 		id: 'clear',
-		tools: [{ id: 'bulldoze', label: 'Bulldoze', shortcut: 'B', cost: 1 }],
+		tools: [
+			{ id: 'clear', label: 'CLEAR · Terre nue', shortcut: 'X', cost: 0 },
+			{ id: 'bulldoze', label: 'Bulldozer', shortcut: 'B', cost: 1 }
+		],
 	},
 	{
 		id: 'transport',

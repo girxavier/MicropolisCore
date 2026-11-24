@@ -3,6 +3,9 @@ import {
 	computeAnnualCityClimateIndex,
 	computeCityClimateIndex,
 	computeMapCityClimateIndex,
+	computeMapCellClimateIndices,
+	diffuseClimateIndexField,
+	computeMapCellTemperatures,
 	computeLocalTemperature,
 	cityClimateTemperatureShift,
 	shiftMonthlyClimateReference
@@ -39,6 +42,26 @@ describe('map-derived city climate index', () => {
 
 	it('rejects map buffers with the wrong dimensions', () => {
 		expect(() => computeMapCityClimateIndex([750])).toThrow(RangeError);
+	});
+});
+
+describe('local signed climate field', () => {
+	it('keeps the source sign while diffusing to neighbours', () => {
+		const source = new Float32Array(9);
+		source[4] = -100;
+		const spread = diffuseClimateIndexField(source, 3, 3, 1);
+		expect(spread[4]).toBeLessThan(0);
+		expect(spread[1]).toBeLessThan(0);
+		expect(spread[1]).toBeGreaterThan(-100);
+	});
+
+	it('projects the diffused index into local temperature without feeding the annual engine', () => {
+		const tiles = new Uint16Array(12000);
+		tiles[0] = 750;
+		const raw = computeMapCellClimateIndices(tiles);
+		expect(raw[0]).toBe(100);
+		const temperatures = computeMapCellTemperatures(tiles, 20, undefined, 0);
+		expect(temperatures[0]).toBe(24);
 	});
 });
 

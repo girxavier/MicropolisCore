@@ -36,6 +36,16 @@
   let propertyName = $state('climateIndex');
   let propertyValue = $state('');
   let status = $state('');
+  let newScenarioName = $state('');
+  let selectedExistingScenario = $state('');
+  let saveSlotsRevision = $state(0);
+  let saveSlots = $derived.by(() => {
+    void saveSlotsRevision;
+    const sim = micropolisReactive.attachedSimulator;
+    const saved = sim?.listBrowserCitySaveSlots() ?? [];
+    const builtIn = micropolisReactive.cityFileNames.map((path) => ({ id: path.split('/').pop()?.replace(/\\.cty$/i, '') ?? path, name: path.split('/').pop()?.replace(/\\.cty$/i, '') ?? path, path, savedAt: '' }));
+    return Array.from(new Map([...builtIn, ...saved].map((slot) => [slot.id.toLowerCase(), slot])).values());
+  });
   let scenarioId = $derived(micropolisReactive.cityFileName || 'default');
   let queriedTile = $derived(micropolisReactive.zoneStatus.visible ? micropolisReactive.zoneStatus : null);
   let selectedType = $derived(typeOptions.find((row) => row.id === selectedTypeId));
@@ -108,6 +118,61 @@
   function refreshValue(): void {
     propertyValue = String(currentValue ?? '');
   }
+
+  function saveCurrentMap(): void {
+    try {
+      const slot = micropolisReactive.attachedSimulator?.saveCurrentCityToBrowserSlot();
+      if (!slot) throw new Error('Aucune ville active à sauvegarder.');
+      scenarioData = { ...scenarioData, scenarioId: slot.id };
+      saveScenarioData(scenarioData);
+      saveSlotsRevision += 1;
+      status = `Carte « ${slot.name} » sauvegardée dans ce navigateur.`;
+    } catch (error) { status = error instanceof Error ? error.message : 'Échec de la sauvegarde.'; }
+  }
+
+  function saveAsExistingScenario(): void {
+    if (!selectedExistingScenario) return;
+    const slot = saveSlots.find((item) => item.id === selectedExistingScenario);
+    const label = slot?.name ?? selectedExistingScenario;
+    if (!confirm(`Remplacer la carte du scénario « ${label} » ?`)) return;
+    try {
+      const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(label, true);
+      if (!saved) throw new Error('Aucun simulateur disponible.');
+      scenarioData = { ...scenarioData, scenarioId: saved.id };
+      saveScenarioData(scenarioData);
+      saveSlotsRevision += 1;
+      status = `Carte enregistrée sous le scénario « ${saved.name} ».`;
+    } catch (error) { status = error instanceof Error ? error.message : 'Échec de la sauvegarde.'; }
+  }
+
+  function createScenario(): void {
+    const name = newScenarioName.trim();
+    if (!name) { status = 'Donnez un nom au nouveau scénario.'; return; }
+    const id = name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
+    const exists = saveSlots.some((slot) => slot.id.toLowerCase() === id);
+    if (exists && !confirm(`Le scénario « ${name} » existe déjà. Le remplacer ?`)) return;
+    try {
+      const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(name, exists);
+      if (!saved) throw new Error('Aucun simulateur disponible.');
+      scenarioData = createEmptyScenarioData(saved.id);
+      saveScenarioData(scenarioData);
+      newScenarioName = '';
+      selectedExistingScenario = saved.id;
+      saveSlotsRevision += 1;
+      status = `Nouveau scénario « ${saved.name} » créé avec la carte actuelle.`;
+    } catch (error) { status = error instanceof Error ? error.message : 'Échec de la création du scénario.'; }
+  }
+
+  function loadSelectedScenario(): void {
+    if (!selectedExistingScenario) return;
+    try {
+      const loaded = micropolisReactive.attachedSimulator?.loadBrowserCitySaveSlot(selectedExistingScenario);
+      if (!loaded) throw new Error('Cette entrée est un scénario intégré ou aucune sauvegarde locale ne lui est associée.');
+      scenarioData = loadScenarioData(selectedExistingScenario);
+      loadedScenarioId = selectedExistingScenario;
+      status = `Scénario « ${selectedExistingScenario} » chargé.`;
+    } catch (error) { status = error instanceof Error ? error.message : 'Échec du chargement.'; }
+  }
 </script>
 
 {#if editorModeState.active}
@@ -120,6 +185,25 @@
       </div>
       <button type="button" onclick={exportSave}>Exporter les tables</button>
     </header>
+    <section class="save-panel" aria-label="Sauvegarde des scénarios">
+      <div class="save-heading"><strong>SAUVEGARDER LA CARTE</strong><small>La carte .cty et les tables du scénario sont conservées dans ce navigateur.</small></div>
+      <button class="save-primary" type="button" onclick={saveCurrentMap}>Sauvegarder la map en cours</button>
+      <div class="save-row">
+        <label>Scénario existant
+          <select bind:value={selectedExistingScenario}>
+            <option value="">Choisir un scénario…</option>
+            {#each saveSlots as slot}<option value={slot.id}>{slot.name}</option>{/each}
+          </select>
+        </label>
+        <div class="save-actions"><button type="button" onclick={saveAsExistingScenario} disabled={!selectedExistingScenario}>Enregistrer sous…</button><button type="button" onclick={loadSelectedScenario} disabled={!selectedExistingScenario}>Charger</button></div>
+      </div>
+      <div class="save-row">
+        <label>Créer un scénario ex nihilo
+          <input bind:value={newScenarioName} placeholder="Nom du nouveau scénario" />
+        </label>
+        <button type="button" onclick={createScenario} disabled={!newScenarioName.trim()}>Créer</button>
+      </div>
+    </section>
     <div class="editor-fields">
       <label>
         Scénario / ville
@@ -169,6 +253,15 @@
   .scenario-editor { position:absolute; z-index:28; top:0.65rem; right:0.65rem; width:min(32rem,calc(100% - 1.3rem)); max-height:55%; overflow:auto; padding:0.75rem; color:#f1f5f9; background:rgba(10,16,28,.96); border:1px solid #64748b; border-radius:.4rem; box-shadow:0 4px 18px #0008; font:12px ui-monospace,monospace; }
   header { display:flex; justify-content:space-between; gap:.6rem; align-items:flex-start; margin-bottom:.7rem; }
   header div { display:grid; gap:.25rem; } small,.shared-note { color:#cbd5e1; }
+  .save-panel { display:grid; gap:.55rem; margin:.2rem 0 .8rem; padding:.65rem; border:1px solid #52647f; border-radius:5px; background:linear-gradient(135deg,rgba(34,52,77,.95),rgba(17,28,45,.95)); }
+  .save-heading { display:grid; gap:.2rem; }
+  .save-heading small { color:#b9c9dc; }
+  .save-primary { background:#17634f; border-color:#4ab89a; font-weight:800; padding:.55rem; }
+  .save-row { display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:end; }
+  .save-row label { display:grid; gap:.2rem; color:#cbd5e1; }
+  .save-actions { display:flex; gap:.25rem; }
+  .save-row button { min-height:2rem; background:#334b6c; border-color:#8aa5c8; }
+  .save-row button:disabled { opacity:.45; cursor:not-allowed; }
   .editor-fields { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; }
   label { display:grid; gap:.2rem; min-width:0; color:#cbd5e1; }
   input,select,button { min-width:0; box-sizing:border-box; padding:.4rem; color:#f8fafc; background:#1e293b; border:1px solid #64748b; border-radius:3px; font:inherit; }

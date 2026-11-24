@@ -499,7 +499,13 @@
       ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
       : null;
     let result: { value: number } | number;
-    if (directBuildingCenter !== null) {
+    if (editorModeState.active && toolState.activeToolId === 'clear') {
+      // CLEAR removes a whole structure through the engine, then restores the selected cell to bare dirt.
+      micropolisReactive.poke.doTool(eng.EditingTool.TOOL_BULLDOZER, tileX, tileY);
+      micropolisReactive.poke.setTile(tileX, tileY, eng.Tiles.DIRT.value);
+      micropolisReactive.poke.updateMaps();
+      result = eng.ToolResult.TOOLRESULT_OK;
+    } else if (directBuildingCenter !== null) {
       const left = tileX - 1;
       const top = tileY - 1;
       if (left < 0 || top < 0 || left + 3 > eng.WORLD_W || top + 3 > eng.WORLD_H) {

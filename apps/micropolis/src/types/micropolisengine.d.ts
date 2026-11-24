@@ -14,6 +14,7 @@ declare namespace RuntimeExports {
 interface WasmModule {
   FS_readFile?: (_path: string) => Uint8Array;
   FS_unlink?: (_path: string) => void;
+  FS_createDataFile(parent: string, name: string, data: Uint8Array, canRead?: boolean, canWrite?: boolean, canOwn?: boolean): any;
 }
 
 type EmbindString = ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string;
