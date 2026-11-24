@@ -368,9 +368,9 @@ bool Micropolis::loadFile(const std::string &filename)
 
     cityTime = max((Quad)0, cityTime);
 
-    // SmCity climate metadata occupies reserved miscHist words 66..73.
-    // Version 1 stored the climate epoch; version 2 also stores the annual
-    // city-index accumulator and the current year's warming contribution.
+    // SmCity climate metadata uses reserved miscHist words 66..239.
+    // Version 1 stored the epoch; version 2 added the annual index accumulator
+    // and current-year contribution; version 3 stores the annual contribution history.
     if (miscHist[66] == 0x534D && miscHist[67] >= 1) {
         n = *(Quad *)(miscHist + 68);
         HALF_SWAP_LONGS(&n, 1);
