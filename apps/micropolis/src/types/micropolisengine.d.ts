@@ -378,6 +378,9 @@ export interface Micropolis extends ClassHandle {
   setCallback(_0: Callback | null, _1: any): void;
   init(): void;
   setAnnualCityClimateIndex(_0: number, _1: number): boolean;
+  setZoneLocked(_0: number, _1: number, _2: boolean): boolean;
+  isZoneLocked(_0: number, _1: number): boolean;
+  clearZoneLocks(): void;
   loadCity(_0: EmbindString): boolean;
   saveCity(): void;
   saveCityAs(_0: EmbindString): void;

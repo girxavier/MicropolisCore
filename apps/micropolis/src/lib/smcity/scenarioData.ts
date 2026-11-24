@@ -8,6 +8,7 @@ export interface ScenarioData {
   updatedAt: string;
   constructionTypes: Record<string, ConstructionProperties>;
   monthlyClimateIndices: Record<string, number>;
+  lockedZones: Record<string, boolean>;
 }
 export interface ScenarioSaveBundle {
   format: 'smcity-scenario-save';
@@ -25,7 +26,7 @@ const STORAGE_PREFIX = 'smcity:scenario-data:v1:';
 const commonProperties = (referenceCatalog as { commonProperties: string[] }).commonProperties;
 
 export function createEmptyScenarioData(scenarioId: string): ScenarioData {
-  return { schemaVersion: 1, scenarioId, updatedAt: new Date(0).toISOString(), constructionTypes: {}, monthlyClimateIndices: {} };
+  return { schemaVersion: 1, scenarioId, updatedAt: new Date(0).toISOString(), constructionTypes: {}, monthlyClimateIndices: {}, lockedZones: {} };
 }
 
 export function normalizeScenarioId(value: string): string {
@@ -44,6 +45,19 @@ export function recordMonthlyClimateIndex(data: ScenarioData, year: number, mont
 export function getAnnualClimateIndices(data: ScenarioData, year: number): number[] | null {
   const values = Array.from({ length: 12 }, (_, month) => data.monthlyClimateIndices?.[`${year}-${String(month + 1).padStart(2, '0')}`]);
   return values.every((value): value is number => typeof value === 'number') ? values : null;
+}
+
+export function updateScenarioZoneLock(data: ScenarioData, x: number, y: number, locked: boolean): ScenarioData {
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) throw new RangeError('Invalid zone coordinates');
+  const key = `${x},${y}`;
+  const lockedZones = { ...(data.lockedZones ?? {}) };
+  if (locked) lockedZones[key] = true;
+  else delete lockedZones[key];
+  return { ...data, updatedAt: new Date().toISOString(), lockedZones };
+}
+
+export function getScenarioZoneLock(data: ScenarioData, x: number, y: number): boolean {
+  return data.lockedZones?.[`${x},${y}`] === true;
 }
 
 export function getScenarioTypeProperties(data: ScenarioData, typeId: string): ConstructionProperties {
@@ -96,7 +110,7 @@ export function loadScenarioData(scenarioId: string): ScenarioData {
     if (parsed.schemaVersion !== 1 || !parsed.constructionTypes || typeof parsed.constructionTypes !== 'object') {
       return createEmptyScenarioData(scenarioId);
     }
-    return { ...parsed, scenarioId, monthlyClimateIndices: parsed.monthlyClimateIndices ?? {} };
+    return { ...parsed, scenarioId, monthlyClimateIndices: parsed.monthlyClimateIndices ?? {}, lockedZones: parsed.lockedZones ?? {} };
   } catch {
     return createEmptyScenarioData(scenarioId);
   }
