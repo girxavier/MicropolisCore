@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveDirectBuildingCenterTile, toolFootprintAtCenter } from './gameTools';
+import { GAME_TOOL_GROUPS, resolveDirectBuildingCenterTile, resolveEditingTool, toolFootprintAtCenter } from './gameTools';
 
 describe('toolFootprintAtCenter', () => {
 	it('1×1 tools sit on the hovered tile', () => {
@@ -16,6 +16,13 @@ describe('toolFootprintAtCenter', () => {
 
 	it('6×6 airport anchors top-left at center − (1, 1)', () => {
 		expect(toolFootprintAtCenter(10, 20, 'airport')).toEqual({ x: 9, y: 19, w: 6, h: 6 });
+	});
+
+	it('exposes the engine network/telebase tool as a 1×1 editor tool', () => {
+		const module = { EditingTool: { TOOL_NETWORK: 16 } } as never;
+		expect(resolveEditingTool(module, 'network')).toBe(16);
+		expect(toolFootprintAtCenter(10, 20, 'network')).toEqual({ x: 10, y: 20, w: 1, h: 1 });
+		expect(GAME_TOOL_GROUPS.find((group) => group.id === 'special')?.tools.map((tool) => tool.id)).toContain('network');
 	});
 });
 
