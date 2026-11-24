@@ -224,6 +224,7 @@ void Micropolis::init()
     climateMonthlySamples = 0;
     climateCurrentYearWarming = 0.0;
     climateLastSampleMonth = -1;
+    climateSavedWarmingHistory.clear();
     climateReady = false;
     climateEpochCityTime = -1;
 
