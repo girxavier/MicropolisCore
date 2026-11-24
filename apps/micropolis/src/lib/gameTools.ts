@@ -60,6 +60,13 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 		],
 	},
 	{
+		id: 'special',
+		label: 'Réseaux spéciaux',
+		tools: [
+			{ id: 'network', label: 'Télébase (réseau)', shortcut: '—', cost: 100 },
+		],
+	},
+	{
 		id: 'zones',
 		label: 'Zones',
 		tools: [
@@ -176,6 +183,8 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 			return t.TOOL_NUCLEARPOWER;
 		case 'airport':
 			return t.TOOL_AIRPORT;
+		case 'network':
+			return t.TOOL_NETWORK;
 		case 'water':
 			return t.TOOL_WATER;
 		case 'land':
@@ -211,6 +220,7 @@ const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 	stadium: 4,
 	nuclear: 4,
 	airport: 6,
+	network: 1,
 	water: 1,
 	land: 1,
 	forest: 1,
