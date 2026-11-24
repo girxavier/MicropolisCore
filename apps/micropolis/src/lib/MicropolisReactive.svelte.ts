@@ -12,6 +12,8 @@ import type { EditingTool, GameLevel, Micropolis, JSCallback, ToolResult } from 
 import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
+import { computeMapCityClimateIndex } from './smcity/urbanClimate';
+import { loadScenarioData, recordMonthlyClimateIndex, saveScenarioData } from './smcity/scenarioData';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -79,6 +81,7 @@ let temperatureMin = $state(0);
 let temperatureMax = $state(0);
 let temperatureMean = $state(0);
 let climateReady = $state(false);
+let cityClimateIndex = $state<number | null>(null);
 
 function syncFromEngine(): void {
 	const m = attachedSimulator?.micropolis;
@@ -103,6 +106,21 @@ function syncFromEngine(): void {
 	climateReady = m.climateReady;
 }
 
+/** Recompute and persist the current month's map-derived urban climate index. */
+function refreshCityClimateIndex(): void {
+	const simulator = attachedSimulator;
+	if (!simulator?.mapData || simulator.mapData.length !== 12000) return;
+	try {
+		const index = computeMapCityClimateIndex(simulator.mapData);
+		cityClimateIndex = index;
+		const scenarioId = cityFileName || simulator.cityFileName || 'default';
+		const data = recordMonthlyClimateIndex(loadScenarioData(scenarioId), cityYear, cityMonth, index);
+		saveScenarioData(data);
+	} catch (error) {
+		console.warn('SmCity urban climate index could not be refreshed:', error);
+	}
+}
+
 /**
  * Embind callback object — pass to `new micropolisengine.JSCallback(...)`.
  * Singleton so the simulator always feeds the same reactive store.
@@ -117,11 +135,15 @@ class MicropolisReactiveCallback {
 
 	didGenerateMap(_micropolis: Micropolis | null, _callbackVal: unknown, _seed: number): void {
 		syncFromEngine();
+		attachedSimulator?.syncMapViews();
+		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadCity(_micropolis: Micropolis | null, _callbackVal: unknown, _filename: string): void {
 		syncFromEngine();
+		attachedSimulator?.syncMapViews();
+		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
@@ -253,6 +275,7 @@ class MicropolisReactiveCallback {
 	updateDate(_micropolis: Micropolis | null, _callbackVal: unknown, year: number, month: number): void {
 		cityYear = year;
 		cityMonth = month;
+		refreshCityClimateIndex();
 	}
 
 	updateClimate(
@@ -440,6 +463,7 @@ export const micropolisReactive = {
 	attach(sim: MicropolisSimulator): void {
 		attachedSimulator = sim;
 		syncFromEngine();
+		refreshCityClimateIndex();
 	},
 
 	detach(): void {
@@ -725,6 +749,9 @@ export const micropolisReactive = {
 	},
 	get climateReady() {
 		return climateReady;
+	},
+	get cityClimateIndex() {
+		return cityClimateIndex;
 	},
 	get worldWidth() {
 		return attachedSimulator?.micropolisengine?.WORLD_W ?? 0;
