@@ -1,10 +1,10 @@
 parametre,valeur,unite,description
-anomalie_A_min,-3,degC,passe_1_decalage_general_min
-anomalie_A_max,3,degC,passe_1_decalage_general_max
+anomalie_A_min,-5,degC,passe_1_decalage_general_min
+anomalie_A_max,5,degC,passe_1_decalage_general_max
 anomalie_A_persistance_min,2,unites,persistance_minimale_du_decalage_A
 anomalie_A_persistance_max,3,unites,persistance_maximale_du_decalage_A
-anomalie_B_min,-1,degC,passe_2_variation_amplitude_min
-anomalie_B_max,1,degC,passe_2_variation_amplitude_max
+anomalie_B_min,-3,degC,passe_2_variation_amplitude_min
+anomalie_B_max,3,degC,passe_2_variation_amplitude_max
 rechauffement_base,0.108,degC_par_an,rechauffement_national
 limiteur_debut,38,degC,seuil_debut_limiteur
 limiteur_amplitude,12,degC,parametre_asymptote_50_degres
