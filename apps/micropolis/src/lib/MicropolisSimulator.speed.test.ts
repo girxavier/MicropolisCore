@@ -18,6 +18,22 @@ describe('MicropolisSimulator speed and resume controls', () => {
     simulator.dispose();
   });
 
+  it('does not restore a stale paused speed after a running speed change', () => {
+    vi.useFakeTimers();
+    const simulator = new MicropolisSimulator();
+    const engine = { setSpeed: vi.fn(), setPasses: vi.fn(), resume: vi.fn() } as unknown as Micropolis;
+    simulator.micropolis = engine;
+    simulator.gameSpeed = 3;
+    simulator.paused = false;
+    simulator.framesPerSecond = 12.8;
+    simulator.pausedFramesPerSecond = 2.2;
+
+    simulator.resumeSimulation();
+
+    expect(simulator.framesPerSecond).toBe(12.8);
+    simulator.dispose();
+  });
+
   it('forces the engine and JS clock to resume after an editor transition', () => {
     vi.useFakeTimers();
     const simulator = new MicropolisSimulator();
