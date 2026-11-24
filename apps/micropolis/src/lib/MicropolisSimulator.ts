@@ -331,12 +331,16 @@ export class MicropolisSimulator {
     saveCurrentCityToBrowserSlot(): BrowserCitySaveSlot {
         if (!this.micropolis || !this.micropolisengine || typeof localStorage === 'undefined') throw new Error('Sauvegarde locale indisponible.');
         let path = String(this.micropolis.cityFileName || this.cityFileName || '');
-        if (!path || !path.endsWith('.cty')) path = '/cities/' + citySaveId(this.micropolis.cityName || 'scenario') + '.cty';
-        const name = this.micropolis.cityName || citySaveId(path);
+        const name = this.micropolis.cityName || citySaveId(path || 'scenario');
+        const id = citySaveId(name);
+        // Never overwrite a bundled starter city in the virtual filesystem.
+        if (!path || !path.endsWith('.cty') || this.cityFileNames.includes(path)) {
+            path = '/cities/user-' + id + '.cty';
+        }
         this.micropolis.setCityName(name);
         this.micropolis.saveCityAs(path);
         this.micropolis.setCityName(name);
-        return this.persistCityFile(path, name, citySaveId(path));
+        return this.persistCityFile(path, name, id);
     }
 
     saveCityAsBrowserSlot(name: string, overwrite = false): BrowserCitySaveSlot {
@@ -345,7 +349,7 @@ export class MicropolisSimulator {
         if (!cleanName) throw new Error('Donnez un nom au scénario.');
         const id = citySaveId(cleanName);
         if (localStorage.getItem(CITY_SAVE_PREFIX + id) && !overwrite) throw new Error('Ce scénario existe déjà.');
-        const path = '/cities/' + id + '.cty';
+        const path = '/cities/user-' + id + '.cty';
         this.micropolis.setCityName(cleanName);
         this.micropolis.saveCityAs(path);
         this.micropolis.setCityName(cleanName);
