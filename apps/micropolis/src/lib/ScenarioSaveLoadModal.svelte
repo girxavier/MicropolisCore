@@ -131,7 +131,7 @@
 
 <style>
   .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem; background: rgba(0,0,0,.68); }
-  .scenario-modal { width: min(34rem, 100%); max-height: min(85vh, 46rem); overflow: auto; padding: 1rem; color: #edf2ff; background: #111a2a; border: 1px solid #72809b; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.55); }
+  .scenario-modal { position: relative; margin: 0; width: min(34rem, 100%); max-height: min(85vh, 46rem); overflow: auto; padding: 1rem; color: #edf2ff; background: #111a2a; border: 1px solid #72809b; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.55); }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #46536b; padding-bottom: .75rem; }
   h2 { margin: 0; font-size: 1.1rem; }
   header p { margin: .35rem 0 0; color: #aebbd2; font-size: .82rem; }
