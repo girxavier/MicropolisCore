@@ -569,6 +569,7 @@
     }
     const feedback = toolResultMessage(result as { value: number });
     toolState.setLastToolFeedback(feedback);
+    if (editorModeState.active) micropolisReactive.refreshCityClimateIndex();
     micropolisSimulator.render();
   }
 

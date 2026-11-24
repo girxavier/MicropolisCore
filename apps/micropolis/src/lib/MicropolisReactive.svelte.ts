@@ -12,7 +12,7 @@ import type { EditingTool, GameLevel, Micropolis, JSCallback, ToolResult } from 
 import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
-import { computeAnnualCityClimateIndex, computeMapCityClimateIndex } from './smcity/urbanClimate';
+import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
 import { getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
@@ -82,6 +82,7 @@ let temperatureMax = $state(0);
 let temperatureMean = $state(0);
 let climateReady = $state(false);
 let cityClimateIndex = $state<number | null>(null);
+let localClimateTemperatures: Float32Array | null = null;
 let zoneLockRevision = $state(0);
 
 function syncFromEngine(): void {
@@ -140,10 +141,13 @@ function refreshCityClimateIndex(): void {
 	const simulator = attachedSimulator;
 	if (!cityFileName || !simulator?.mapData || simulator.mapData.length !== 12000) return;
 	try {
-		const index = computeMapCityClimateIndex(simulator.mapData);
-		cityClimateIndex = index;
 		const scenarioId = cityFileName || simulator.cityFileName || 'default';
-		const data = recordMonthlyClimateIndex(loadScenarioData(scenarioId), cityYear, cityMonth, index);
+		const scenario = loadScenarioData(scenarioId);
+		const index = computeMapCityClimateIndex(simulator.mapData, scenario);
+		cityClimateIndex = index;
+		const data = recordMonthlyClimateIndex(scenario, cityYear, cityMonth, index);
+		// Cartographic field only: never fed back into the annual climate engine.
+		localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, data, 1);
 		saveScenarioData(data);
 		applyScenarioZoneLocks(data);
 		const engine = simulator.micropolis;
@@ -551,6 +555,10 @@ export const micropolisReactive = {
 		attachedSimulator?.loadScenario(scenario);
 		syncFromEngine();
 		mapRevision++;
+	},
+
+	get localClimateTemperatures(): Float32Array | null {
+		return localClimateTemperatures;
 	},
 
 	get wasmModule(): MicropolisSimulator['micropolisengine'] | null {

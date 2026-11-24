@@ -156,6 +156,7 @@
       if (!saved) throw new Error('Aucun simulateur disponible.');
       scenarioData = createEmptyScenarioData(saved.id);
       saveScenarioData(scenarioData);
+      micropolisReactive.attachedSimulator?.micropolis?.clearZoneLocks();
       newScenarioName = '';
       selectedExistingScenario = saved.id;
       saveSlotsRevision += 1;
@@ -195,7 +196,7 @@
             {#each saveSlots as slot}<option value={slot.id}>{slot.name}</option>{/each}
           </select>
         </label>
-        <div class="save-actions"><button type="button" onclick={saveAsExistingScenario} disabled={!selectedExistingScenario}>Enregistrer sous…</button><button type="button" onclick={loadSelectedScenario} disabled={!selectedExistingScenario}>Charger</button></div>
+        <div class="save-actions"><button type="button" onclick={saveAsExistingScenario} disabled={!selectedExistingScenario}>Enregistrer sous…</button><button type="button" onclick={loadSelectedScenario} disabled={!selectedExistingScenario || !saveSlots.find((slot) => slot.id === selectedExistingScenario)?.savedAt}>Charger</button></div>
       </div>
       <div class="save-row">
         <label>Créer un scénario ex nihilo
