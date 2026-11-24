@@ -129,11 +129,13 @@ class MicropolisReactiveCallback {
 
 	didLoadCity(_micropolis: Micropolis | null, _callbackVal: unknown, _filename: string): void {
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadScenario(_micropolis: Micropolis | null, _callbackVal: unknown, _name: string, _fname: string): void {
 		syncFromEngine();
+		refreshClimateIndex();
 	}
 
 	didLoseGame(_micropolis: Micropolis | null, _callbackVal: unknown): void {
@@ -468,13 +470,16 @@ export const micropolisReactive = {
 
 	loadCity(fileName: string): boolean {
 		commandBus.clearHistory();
-		return attachedSimulator?.loadCity(fileName) ?? false;
+		const loaded = attachedSimulator?.loadCity(fileName) ?? false;
+		if (loaded) refreshClimateIndex();
+		return loaded;
 	},
 
 	loadScenario(scenario: number): void {
 		commandBus.clearHistory();
 		attachedSimulator?.loadScenario(scenario);
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	},
 
@@ -572,6 +577,7 @@ export const micropolisReactive = {
 		loadCity(path: string): boolean {
 			const ok = requireMicropolis().loadCity(path);
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 			return ok;
 		},
