@@ -7,6 +7,7 @@ export interface ScenarioData {
   scenarioId: string;
   updatedAt: string;
   constructionTypes: Record<string, ConstructionProperties>;
+  monthlyClimateIndices: Record<string, number>;
 }
 export interface ScenarioSaveBundle {
   format: 'smcity-scenario-save';
@@ -24,12 +25,25 @@ const STORAGE_PREFIX = 'smcity:scenario-data:v1:';
 const commonProperties = (referenceCatalog as { commonProperties: string[] }).commonProperties;
 
 export function createEmptyScenarioData(scenarioId: string): ScenarioData {
-  return { schemaVersion: 1, scenarioId, updatedAt: new Date(0).toISOString(), constructionTypes: {} };
+  return { schemaVersion: 1, scenarioId, updatedAt: new Date(0).toISOString(), constructionTypes: {}, monthlyClimateIndices: {} };
 }
 
 export function normalizeScenarioId(value: string): string {
   const normalized = value.trim().replace(/\\/g, '/').split('/').pop() ?? '';
   return normalized.replace(/\\.(cty|mop|json)$/i, '').toLowerCase() || 'default';
+}
+
+export function recordMonthlyClimateIndex(data: ScenarioData, year: number, month: number, index: number): ScenarioData {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 0 || month > 11 || !Number.isFinite(index) || index < -100 || index > 100) {
+    throw new RangeError('Invalid monthly climate record');
+  }
+  const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+  return { ...data, updatedAt: new Date().toISOString(), monthlyClimateIndices: { ...data.monthlyClimateIndices, [key]: index } };
+}
+
+export function getAnnualClimateIndices(data: ScenarioData, year: number): number[] | null {
+  const values = Array.from({ length: 12 }, (_, month) => data.monthlyClimateIndices?.[`${year}-${String(month + 1).padStart(2, '0')}`]);
+  return values.every((value): value is number => typeof value === 'number') ? values : null;
 }
 
 export function getScenarioTypeProperties(data: ScenarioData, typeId: string): ConstructionProperties {
@@ -82,7 +96,7 @@ export function loadScenarioData(scenarioId: string): ScenarioData {
     if (parsed.schemaVersion !== 1 || !parsed.constructionTypes || typeof parsed.constructionTypes !== 'object') {
       return createEmptyScenarioData(scenarioId);
     }
-    return { ...parsed, scenarioId };
+    return { ...parsed, scenarioId, monthlyClimateIndices: parsed.monthlyClimateIndices ?? {} };
   } catch {
     return createEmptyScenarioData(scenarioId);
   }
