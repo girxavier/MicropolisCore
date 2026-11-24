@@ -1,0 +1,61 @@
+name: SmCity build and checks
+
+on:
+  pull_request:
+    branches:
+      - SmCity-climate
+    paths:
+      - 'apps/micropolis/**'
+      - 'packages/micropolis-engine/**'
+      - 'content/micropolis/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/smcity-ci.yml'
+  push:
+    branches:
+      - smcity/editor-scenario-tools
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-check:
+    name: Emscripten + Svelte checks + app build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: ''
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 4.0.10
+          actions-cache-folder: emsdk-cache
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Compile engine and generate WASM assets
+        run: make -C packages/micropolis-engine SHELL=/bin/bash install
+
+      - name: Svelte and TypeScript checks
+        run: pnpm --filter micropolis run check
+
+      - name: Micropolis tests
+        run: pnpm --filter micropolis exec vitest run
+
+      - name: Production app bundle
+        run: pnpm --filter micropolis exec vite build
