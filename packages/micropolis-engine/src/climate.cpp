@@ -438,7 +438,8 @@ double Micropolis::computeCityClimateIndex()
     }
 
     // A map with no classified objects is neutral: it has no warming effect.
-    return totalWeight > 0.0 ? weightedTotal / totalWeight : 127.5;
+    climateIndex = totalWeight > 0.0 ? weightedTotal / totalWeight : 127.5;
+    return climateIndex;
 }
 
 void Micropolis::updateClimateForTime()
