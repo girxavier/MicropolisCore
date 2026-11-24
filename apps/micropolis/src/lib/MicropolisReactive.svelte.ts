@@ -104,6 +104,11 @@ function syncFromEngine(): void {
 	climateReady = m.climateReady;
 }
 
+function refreshClimateIndex(): void {
+	const m = attachedSimulator?.micropolis;
+	if (m) climateIndex = m.computeCityClimateIndex();
+}
+
 /**
  * Embind callback object — pass to `new micropolisengine.JSCallback(...)`.
  * Singleton so the simulator always feeds the same reactive store.
@@ -118,6 +123,7 @@ class MicropolisReactiveCallback {
 
 	didGenerateMap(_micropolis: Micropolis | null, _callbackVal: unknown, _seed: number): void {
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
@@ -139,6 +145,7 @@ class MicropolisReactiveCallback {
 	}
 
 	didTool(_micropolis: Micropolis | null, _callbackVal: unknown, _name: string, _x: number, _y: number): void {
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
@@ -167,6 +174,7 @@ class MicropolisReactiveCallback {
 
 	newGame(_micropolis: Micropolis | null, _callbackVal: unknown): void {
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
@@ -524,6 +532,7 @@ export const micropolisReactive = {
 			const m = requireMicropolis();
 			if (tileLinearIndex(x, y) === null) return;
 			m.setTile(x, y, value);
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		setFunds(amount: number): void {
@@ -556,6 +565,7 @@ export const micropolisReactive = {
 		},
 		doTool(tool: EditingTool, x: number, y: number): ToolResult {
 			const r = requireMicropolis().doTool(tool, x, y);
+			refreshClimateIndex();
 			mapRevision++;
 			return r;
 		},
@@ -569,18 +579,21 @@ export const micropolisReactive = {
 			commandBus.clearHistory();
 			requireMicropolis().generateSomeRandomCity();
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		clearMap(): void {
 			commandBus.clearHistory();
 			requireMicropolis().clearMap();
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		generateMap(seed: number): void {
 			commandBus.clearHistory();
 			requireMicropolis().generateMap(seed);
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		updateMaps(): void {
@@ -606,6 +619,7 @@ export const micropolisReactive = {
 		},
 		/** After raw writes into `memory.mapU16`, bump observers. */
 		bumpMap(): void {
+			refreshClimateIndex();
 			mapRevision++;
 		}
 	},
