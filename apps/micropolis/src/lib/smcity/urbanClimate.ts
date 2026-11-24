@@ -1,9 +1,8 @@
 /**
- * Pure calculations for the SmCity urban-climate layer.
+ * Pure calculations for the SmCity city-wide climate index.
  *
- * This module deliberately does not alter the baseline climate engine. It provides
- * the map aggregation and temperature-shift primitives that can be connected to
- * construction metadata and the existing climate model in a later integration step.
+ * The engine's external CSV table assigns an index in [0, 255] and a footprint
+ * weight to each tile family. These helpers mirror the annual conversion rule.
  */
 
 export const SM_CITY_MAP_WIDTH = 120;
@@ -13,29 +12,22 @@ export const SM_CITY_MAP_CELL_COUNT = SM_CITY_MAP_WIDTH * SM_CITY_MAP_HEIGHT;
 export type ClimateIndex = number;
 
 function assertClimateIndex(value: number, label: string): void {
-	if (!Number.isFinite(value) || value < -100 || value > 100) {
-		throw new RangeError(`${label} must be a finite number between -100 and +100; received ${value}`);
+	if (!Number.isFinite(value) || value < 0 || value > 255) {
+		throw new RangeError(`${label} must be a finite number between 0 and 255; received ${value}`);
 	}
 }
 
-/**
- * Calculates the arithmetic mean over every map cell.
- * Empty, cleared and otherwise neutral cells must be represented by 0 and remain
- * in the denominator. Multi-cell objects are represented by one value per cell.
- */
-export function computeCityClimateIndex(cellIndices: ArrayLike<number>): number {
-	if (cellIndices.length === 0) {
-		throw new RangeError('The climate-index map must contain at least one cell');
-	}
+/** Arithmetic mean of classified objects; an empty map is climate-neutral. */
+export function computeCityClimateIndex(objectIndices: ArrayLike<number>): number {
+	if (objectIndices.length === 0) return 127.5;
 
 	let total = 0;
-	for (let i = 0; i < cellIndices.length; i += 1) {
-		const value = cellIndices[i];
-		assertClimateIndex(value, `cellIndices[${i}]`);
+	for (let i = 0; i < objectIndices.length; i += 1) {
+		const value = objectIndices[i];
+		assertClimateIndex(value, `objectIndices[${i}]`);
 		total += value;
 	}
-
-	return total / cellIndices.length;
+	return total / objectIndices.length;
 }
 
 /** Average the twelve monthly city indices of one complete calendar year. */
@@ -52,13 +44,13 @@ export function computeAnnualCityClimateIndex(monthlyIndices: readonly number[])
 	return total / 12;
 }
 
-/** +100 gives +1°C; -100 gives -1°C. */
+/** Index 0 gives -1°C, 127.5 gives 0°C, and 255 gives +1°C. */
 export function cityClimateTemperatureShift(annualIndex: number): number {
 	assertClimateIndex(annualIndex, 'annualIndex');
-	return annualIndex / 100;
+	return (2 * annualIndex / 255) - 1;
 }
 
-/** Apply the city shift to both monthly reference temperatures, before anomalies. */
+/** Apply the city shift equally to both reference temperatures. */
 export function shiftMonthlyClimateReference(
 	tminReference: number,
 	tmaxReference: number,
@@ -74,14 +66,11 @@ export function shiftMonthlyClimateReference(
 	};
 }
 
-/**
- * Local temperature uses the diffused cell index, not the raw index used for
- * city-wide aggregation: T_cell = T_unit + 4 * (I_diffused / 100).
- */
-export function computeLocalTemperature(unitTemperature: number, diffusedCellIndex: number): number {
+/** Optional local effect, centered on the neutral index 127.5. */
+export function computeLocalTemperature(unitTemperature: number, localIndex: number): number {
 	if (!Number.isFinite(unitTemperature)) {
 		throw new RangeError('unitTemperature must be finite');
 	}
-	assertClimateIndex(diffusedCellIndex, 'diffusedCellIndex');
-	return unitTemperature + 4 * (diffusedCellIndex / 100);
+	assertClimateIndex(localIndex, 'localIndex');
+	return unitTemperature + 4 * ((localIndex - 127.5) / 127.5);
 }
