@@ -3,6 +3,8 @@ import {
   createEmptyScenarioData,
   getScenarioTypeProperties,
   normalizeScenarioId,
+  getAnnualClimateIndices,
+  recordMonthlyClimateIndex,
   parseScenarioSave,
   serializeScenarioSave,
   updateScenarioTypeProperty
@@ -23,6 +25,14 @@ describe('SmCity scenario data', () => {
 
   it('rejects climate values outside the signed index range', () => {
     expect(() => updateScenarioTypeProperty(createEmptyScenarioData('x'), 'R.D1', 'climateIndex', 101)).toThrow(RangeError);
+  });
+
+  it('records monthly indices and only returns complete annual records', () => {
+    let data = createEmptyScenarioData('orleans');
+    data = recordMonthlyClimateIndex(data, 2026, 0, -10);
+    expect(getAnnualClimateIndices(data, 2026)).toBeNull();
+    for (let month = 1; month < 12; month += 1) data = recordMonthlyClimateIndex(data, 2026, month, month);
+    expect(getAnnualClimateIndices(data, 2026)).toEqual([-10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   });
 
   it('round-trips a scenario-bound game save bundle', () => {
