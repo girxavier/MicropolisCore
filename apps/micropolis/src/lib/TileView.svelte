@@ -645,6 +645,29 @@
       return;
     }
 
+    // Y slows down; I speeds up. Keep editor mode frozen and reserve Ctrl+Y for redo.
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && !editorModeState.active) {
+      const speedKey = key.toLowerCase();
+      if (speedKey === 'y' || speedKey === 'i') {
+        event.preventDefault();
+        const current = micropolisSimulator.gameSpeed;
+        const next = Math.max(0, Math.min(2, current + (speedKey === 'i' ? 1 : -1)));
+        const labels = [
+          'Lente · 58 s/mois',
+          'Normale · 29 s/mois',
+          'Rapide · 10 s/mois'
+        ];
+        if (next === current) {
+          toolState.setSpeedFeedback(speedKey === 'y' ? 'Vitesse minimale déjà active.' : 'Vitesse maximale déjà active.');
+        } else {
+          micropolisSimulator.setGameSpeed(next);
+          micropolisSimulator.setPaused(false);
+          toolState.setSpeedFeedback('Vitesse : ' + labels[next] + '.');
+        }
+        return;
+      }
+    }
+
     if (key === 'Shift') {
       shiftPanHeld = true;
     }
