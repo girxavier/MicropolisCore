@@ -21,7 +21,7 @@
   import { editorModeState, scenarioDialogState } from '$lib/EditorMode.svelte';
   import ScenarioSaveLoadModal from '$lib/ScenarioSaveLoadModal.svelte';
 
-  let micropolisSimulator: MicropolisSimulator | null = null;
+  let micropolisSimulator = $state<MicropolisSimulator | null>(null);
   let tileView: TileView | null = null;
   let viewRenderRef: (() => void) | null = null;
 
