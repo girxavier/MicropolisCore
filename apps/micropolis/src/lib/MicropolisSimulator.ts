@@ -326,9 +326,12 @@ export class MicropolisSimulator {
             path = `/cities/${id}.cty`;
         }
         // saveCity() only asks the frontend to choose a path; saveCityAs() writes synchronously to WASM FS.
+        const displayName = this.micropolis.cityName || citySaveId(path);
+        this.micropolis.setCityName(displayName);
         this.micropolis.saveCityAs(path);
+        this.micropolis.setCityName(displayName);
         const id = citySaveId(path);
-        return this.persistCityFile(path, this.micropolis.cityName || id, id);
+        return this.persistCityFile(path, displayName, id);
     }
 
     saveCityAsBrowserSlot(name: string, overwrite = false): BrowserCitySaveSlot {
@@ -337,7 +340,9 @@ export class MicropolisSimulator {
         const key = CITY_SAVE_PREFIX + id;
         if (localStorage.getItem(key) && !overwrite) throw new Error(`Le scénario « ${name} » existe déjà.`);
         const path = `/cities/${id}.cty`;
+        this.micropolis.setCityName(name.trim());
         this.micropolis.saveCityAs(path);
+        this.micropolis.setCityName(name.trim());
         return this.persistCityFile(path, name.trim(), id);
     }
 
@@ -355,6 +360,7 @@ export class MicropolisSimulator {
         module.FS_createDataFile('/cities', filename, bytes, true, true, true);
         const loaded = engine.loadCity(record.path);
         if (loaded) {
+            engine.setCityName(record.name);
             this.cityFileName = record.path;
             this.hasLoadedCity = true;
             this.syncMapViews();
