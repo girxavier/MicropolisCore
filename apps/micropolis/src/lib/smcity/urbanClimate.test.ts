@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	computeAnnualCityClimateIndex,
 	computeCityClimateIndex,
+	computeMapCityClimateIndex,
 	computeLocalTemperature,
 	cityClimateTemperatureShift,
 	shiftMonthlyClimateReference
@@ -26,6 +27,18 @@ describe('urban climate aggregation', () => {
 
 	it('rejects an empty map', () => {
 		expect(() => computeCityClimateIndex([])).toThrow(RangeError);
+	});
+});
+
+describe('map-derived city climate index', () => {
+	it('includes every map cell and applies scenario-wide type overrides', () => {
+		const tiles = new Uint16Array(12000);
+		tiles[0] = 750; // coal plant tile, +100
+		expect(computeMapCityClimateIndex(tiles)).toBeCloseTo(100 / 12000);
+	});
+
+	it('rejects map buffers with the wrong dimensions', () => {
+		expect(() => computeMapCityClimateIndex([750])).toThrow(RangeError);
 	});
 });
 
