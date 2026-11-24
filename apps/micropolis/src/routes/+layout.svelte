@@ -248,14 +248,6 @@
 		overflow: hidden;
 	}
 
-	.content-area.no-scroll {
-		overflow-y: auto; /* Changed from hidden to auto to allow scrolling */
-		padding: 0;
-		background-color: transparent;
-		/* Allow the content to flow naturally */
-		display: flex;
-		flex-direction: column;
-	}
 
 	:global(body) {
 		margin: 0;
