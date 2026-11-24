@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { GAME_TOOL_GROUPS, toolMenuLabel, type ToolId } from '$lib/gameTools';
 	import { toolState } from '$lib/ToolState.svelte';
-	import { editorModeState } from '$lib/EditorMode.svelte';
+	import { editorModeState, scenarioDialogState } from '$lib/EditorMode.svelte';
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { commandBus } from '$lib/CommandBus';
 	let mobileOpen = $state(false);
+	let editorNotice = $state('');
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
@@ -18,12 +19,32 @@
 		mobileOpen = false;
 	}
 
+	function resetMap() {
+		if (!confirm('Réinitialiser entièrement la carte ? Cette action efface la ville en cours.')) return;
+		micropolisReactive.poke.clearMap();
+		micropolisReactive.syncFromEngine();
+		micropolisReactive.refreshCityClimateIndex();
+		editorNotice = 'Carte réinitialisée.';
+	}
+
+	function generateTerrain() {
+		if (!confirm('Générer un nouveau terrain ? La carte actuelle sera remplacée.')) return;
+		const seed = Math.floor(Math.random() * 0x7fffffff);
+		micropolisReactive.poke.generateMap(seed);
+		micropolisReactive.syncFromEngine();
+		micropolisReactive.refreshCityClimateIndex();
+		editorNotice = 'Terrain généré · graine ' + seed + '.';
+	}
+
 	function toggleEditorMode() {
 		mobileOpen = false;
 		const next = !editorModeState.active;
 		editorModeState.set(next);
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
-		else micropolisReactive.attachedSimulator?.exitEditorMode();
+		else {
+			scenarioDialogState.set(false);
+			micropolisReactive.attachedSimulator?.exitEditorMode();
+		}
 	}
 </script>
 
@@ -35,6 +56,11 @@
 		{editorModeState.active ? 'REPRENDRE LE JEU' : 'MODE MAQUETTISTE'}
 	</button>
 	{#if editorModeState.active}
+		<div class="tool-group-label">Carte et scénarios</div>
+		<button type="button" class="tool-item" onclick={() => scenarioDialogState.set(true)}>Sauvegarder / charger un scénario</button>
+		<button type="button" class="tool-item" onclick={generateTerrain}>Générer un terrain</button>
+		<button type="button" class="tool-item" onclick={resetMap}>RESET · Carte vierge</button>
+		{#if editorNotice}<div class="tool-group-label" role="status">{editorNotice}</div>{/if}
 		<div class="tool-group-label">Historique</div>
 		<button type="button" class="tool-item" onclick={() => commandBus.undo()}>↶ Annuler (Ctrl+Z)</button>
 		<button type="button" class="tool-item" onclick={() => commandBus.redo()}>↷ Rétablir (Ctrl+Y)</button>
