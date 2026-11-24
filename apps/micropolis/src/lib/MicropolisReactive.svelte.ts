@@ -150,15 +150,15 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 function refreshLocalClimateTemperatureField(): void {
 	const simulator = attachedSimulator;
 	if (!simulator?.mapData || simulator.mapData.length !== 12000) return;
-	const scenario = loadScenarioData(cityFileName || simulator.cityFileName || 'default');
+	const scenario = loadScenarioData(cityFileName || simulator.cityFileName || simulator.micropolis?.cityName || 'default');
 	localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, scenario, 1);
 }
 
 function refreshCityClimateIndex(): void {
 	const simulator = attachedSimulator;
-	if (!cityFileName || !simulator?.mapData || simulator.mapData.length !== 12000) return;
+	const scenarioId = cityFileName || simulator?.cityFileName || simulator?.micropolis?.cityName || '';
+	if (!scenarioId || !simulator?.mapData || simulator.mapData.length !== 12000) return;
 	try {
-		const scenarioId = cityFileName || simulator.cityFileName || simulator.micropolis?.cityName || 'default';
 		const scenario = loadScenarioData(scenarioId);
 		const index = computeMapCityClimateIndex(simulator.mapData, scenario);
 		cityClimateIndex = index;
@@ -556,7 +556,7 @@ export const micropolisReactive = {
 		zoneLockRevision++;
 	},
 	clearScenarioZoneLocks(): void {
-		const scenarioId = cityFileName || attachedSimulator?.cityFileName || 'default';
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
 		const data = loadScenarioData(scenarioId);
 		saveScenarioData({ ...data, lockedZones: {}, updatedAt: new Date().toISOString() });
 		attachedSimulator?.micropolis?.clearZoneLocks();
@@ -578,10 +578,11 @@ export const micropolisReactive = {
 
 	loadScenario(scenario: number): void {
 		commandBus.clearHistory();
-		attachedSimulator?.loadScenario(scenario);
 		attachedSimulator?.micropolis?.clearZoneLocks();
+		attachedSimulator?.loadScenario(scenario);
 		zoneLockRevision++;
 		syncFromEngine();
+		refreshCityClimateIndex();
 		mapRevision++;
 	},
 
