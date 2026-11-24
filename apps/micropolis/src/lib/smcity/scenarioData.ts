@@ -1,0 +1,105 @@
+import referenceCatalog from '../../../../../content/micropolis/smcity/construction-types.json';
+
+export type ScenarioPropertyValue = number | string | boolean | null;
+export type ConstructionProperties = Record<string, ScenarioPropertyValue>;
+export interface ScenarioData {
+  schemaVersion: 1;
+  scenarioId: string;
+  updatedAt: string;
+  constructionTypes: Record<string, ConstructionProperties>;
+}
+export interface ScenarioSaveBundle {
+  format: 'smcity-scenario-save';
+  version: 1;
+  scenario: ScenarioData;
+  game: {
+    cityFileName: string;
+    cityName: string;
+    cityYear: number;
+    cityMonth: number;
+  };
+}
+
+const STORAGE_PREFIX = 'smcity:scenario-data:v1:';
+const commonProperties = (referenceCatalog as { commonProperties: string[] }).commonProperties;
+
+export function createEmptyScenarioData(scenarioId: string): ScenarioData {
+  return { schemaVersion: 1, scenarioId, updatedAt: new Date(0).toISOString(), constructionTypes: {} };
+}
+
+export function normalizeScenarioId(value: string): string {
+  const normalized = value.trim().replace(/\\/g, '/').split('/').pop() ?? '';
+  return normalized.replace(/\\.(cty|mop|json)$/i, '').toLowerCase() || 'default';
+}
+
+export function getScenarioTypeProperties(data: ScenarioData, typeId: string): ConstructionProperties {
+  return { ...(data.constructionTypes[typeId] ?? {}) };
+}
+
+export function updateScenarioTypeProperty(
+  data: ScenarioData,
+  typeId: string,
+  property: string,
+  value: ScenarioPropertyValue
+): ScenarioData {
+  if (!typeId.trim()) throw new Error('A construction type is required');
+  if (!commonProperties.includes(property)) throw new Error(`Unsupported construction property: ${property}`);
+  if (property === 'climateIndex' && typeof value === 'number' && (!Number.isFinite(value) || value < -100 || value > 100)) {
+    throw new RangeError('climateIndex must be between -100 and +100');
+  }
+  return {
+    ...data,
+    updatedAt: new Date().toISOString(),
+    constructionTypes: {
+      ...data.constructionTypes,
+      [typeId]: { ...(data.constructionTypes[typeId] ?? {}), [property]: value }
+    }
+  };
+}
+
+export function serializeScenarioSave(bundle: ScenarioSaveBundle): string {
+  return JSON.stringify(bundle, null, 2);
+}
+
+export function parseScenarioSave(serialized: string): ScenarioSaveBundle {
+  const parsed = JSON.parse(serialized) as Partial<ScenarioSaveBundle>;
+  if (parsed.format !== 'smcity-scenario-save' || parsed.version !== 1 ||
+      !parsed.scenario || parsed.scenario.schemaVersion !== 1 ||
+      typeof parsed.scenario.scenarioId !== 'string' ||
+      !parsed.scenario.constructionTypes || typeof parsed.scenario.constructionTypes !== 'object' ||
+      !parsed.game || typeof parsed.game.cityFileName !== 'string') {
+    throw new Error('Invalid SmCity scenario save');
+  }
+  return parsed as ScenarioSaveBundle;
+}
+
+export function loadScenarioData(scenarioId: string): ScenarioData {
+  if (typeof localStorage === 'undefined') return createEmptyScenarioData(scenarioId);
+  const raw = localStorage.getItem(STORAGE_PREFIX + normalizeScenarioId(scenarioId));
+  if (!raw) return createEmptyScenarioData(scenarioId);
+  try {
+    const parsed = JSON.parse(raw) as ScenarioData;
+    if (parsed.schemaVersion !== 1 || !parsed.constructionTypes || typeof parsed.constructionTypes !== 'object') {
+      return createEmptyScenarioData(scenarioId);
+    }
+    return { ...parsed, scenarioId };
+  } catch {
+    return createEmptyScenarioData(scenarioId);
+  }
+}
+
+export function saveScenarioData(data: ScenarioData): void {
+  if (typeof localStorage === 'undefined') throw new Error('Scenario storage is only available in a browser');
+  localStorage.setItem(STORAGE_PREFIX + normalizeScenarioId(data.scenarioId), JSON.stringify(data));
+}
+
+export function exportScenarioSave(bundle: ScenarioSaveBundle): void {
+  if (typeof document === 'undefined' || typeof URL === 'undefined') throw new Error('Export is only available in a browser');
+  const blob = new Blob([serializeScenarioSave(bundle)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `${normalizeScenarioId(bundle.scenario.scenarioId)}.smcity.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
