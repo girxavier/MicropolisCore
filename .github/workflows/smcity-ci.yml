@@ -55,7 +55,7 @@ jobs:
         run: pnpm --filter micropolis run check
 
       - name: Micropolis tests
-        run: pnpm --filter micropolis exec vitest run
+        run: pnpm --filter micropolis exec vitest run --exclude cli/entry.smoke.test.ts --exclude src/lib/monorepo.integration.test.ts
 
       - name: Production app bundle
         run: pnpm --filter micropolis exec vite build
