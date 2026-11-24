@@ -51,8 +51,8 @@ type BrowserFileSystemModule = MainModule & {
 };
 
 function citySaveId(value: string): string {
-  const leaf = value.trim().replace(/\\\\/g, '/').split('/').pop() ?? '';
-  return leaf.replace(/\\.cty$/i, '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
+  const leaf = value.trim().replace(/\\/g, '/').split('/').pop() ?? '';
+  return leaf.replace(/\.cty$/i, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
 }
 
 function encodeCityBytes(bytes: Uint8Array): string {
