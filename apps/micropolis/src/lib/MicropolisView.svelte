@@ -83,7 +83,13 @@
     else micropolisSimulator.exitEditorMode(false);
     micropolisSimulator.syncMapViews();
     await tileView!.initialize(micropolisSimulator);
-    if (!startInEditor) micropolisSimulator.setPaused(false);
+    if (!startInEditor) {
+      try { micropolisSimulator.startGameSession(); }
+      catch (error) {
+        console.error('Could not create initial dated game save:', error);
+        micropolisSimulator.resumeSimulation();
+      }
+    }
 
     console.log("MicropolisView: onMount:", "micropolisSimulator:", micropolisSimulator);
 
@@ -119,7 +125,7 @@
       />
       <GameHud />
       <ZoneStatusPanel />
-      {#if scenarioDialogState.open && editorModeState.active}
+      {#if scenarioDialogState.open}
         <ScenarioSaveLoadModal onClose={() => scenarioDialogState.set(false)} />
       {/if}
       <BudgetModal />
