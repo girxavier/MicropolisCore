@@ -40,20 +40,17 @@
         {
           "id": "R.D1",
           "label": "Résidentiel faible densité",
-          "density": 1,
-          "climateIndex": 10
+          "density": 1
         },
         {
           "id": "R.D2",
           "label": "Résidentiel moyenne densité",
-          "density": 2,
-          "climateIndex": 35
+          "density": 2
         },
         {
           "id": "R.D3",
           "label": "Résidentiel forte densité",
-          "density": 3,
-          "climateIndex": 75
+          "density": 3
         }
       ]
     },
@@ -63,23 +60,19 @@
       "types": [
         {
           "id": "C.PROX",
-          "label": "Commerce de proximité",
-          "climateIndex": 20
+          "label": "Commerce de proximité"
         },
         {
           "id": "C.RETAIL",
-          "label": "Grande distribution",
-          "climateIndex": 55
+          "label": "Grande distribution"
         },
         {
           "id": "C.SERVICE",
-          "label": "Services",
-          "climateIndex": 25
+          "label": "Services"
         },
         {
           "id": "C.LOG",
-          "label": "Logistique commerciale",
-          "climateIndex": 65
+          "label": "Logistique commerciale"
         }
       ]
     },
@@ -89,23 +82,19 @@
       "types": [
         {
           "id": "I.LIGHT",
-          "label": "Industrie légère",
-          "climateIndex": 45
+          "label": "Industrie légère"
         },
         {
           "id": "I.HEAVY",
-          "label": "Industrie lourde",
-          "climateIndex": 90
+          "label": "Industrie lourde"
         },
         {
           "id": "I.TECH",
-          "label": "Industrie technologique",
-          "climateIndex": 55
+          "label": "Industrie technologique"
         },
         {
           "id": "I.DATA",
-          "label": "Centre de données",
-          "climateIndex": 100
+          "label": "Centre de données"
         }
       ]
     },
@@ -141,127 +130,36 @@
       "specializations": [
         {
           "id": "MAR",
-          "label": "Maraîchage",
-          "climateIndexByScale": {
-            "D1": {
-              "BIO": -25,
-              "CONV": -20
-            },
-            "D2": {
-              "BIO": -20,
-              "CONV": -15
-            },
-            "D3": {
-              "BIO": -15,
-              "CONV": -10
-            },
-            "D4": {
-              "BIO": -10,
-              "CONV": -5
-            },
-            "D5": {
-              "BIO": -5,
-              "CONV": 0
-            }
-          }
+          "label": "Maraîchage"
         },
         {
           "id": "CER",
-          "label": "Céréaliculture",
-          "climateIndexByScale": {
-            "D1": {
-              "BIO": 20,
-              "CONV": 20
-            },
-            "D2": {
-              "BIO": 45,
-              "CONV": 45
-            },
-            "D3": {
-              "BIO": 50,
-              "CONV": 50
-            },
-            "D4": {
-              "BIO": 100,
-              "CONV": 100
-            },
-            "D5": {
-              "BIO": 100,
-              "CONV": 100
-            }
-          }
+          "label": "Céréaliculture"
         },
         {
           "id": "ELE",
           "label": "Élevage",
-          "climateIndexByScale": {
-            "D1": {
-              "BIO": 45,
-              "CONV": 45
-            },
-            "D2": {
-              "BIO": 60,
-              "CONV": 60
-            },
-            "D3": {
-              "BIO": 75,
-              "CONV": 75
-            },
-            "D4": {
-              "BIO": 100,
-              "CONV": 100
-            },
-            "D5": {
-              "BIO": 100,
-              "CONV": 100
-            }
-          },
           "notes": [
             "Indice toujours positif"
           ]
         },
         {
           "id": "VIT",
-          "label": "Viticulture",
-          "climateIndexByScale": {
-            "D1": {
-              "BIO": -25,
-              "CONV": -20
-            },
-            "D2": {
-              "BIO": -15,
-              "CONV": -10
-            },
-            "D3": {
-              "BIO": -5,
-              "CONV": 0
-            },
-            "D4": {
-              "BIO": 5,
-              "CONV": 15
-            },
-            "D5": {
-              "BIO": 15,
-              "CONV": 25
-            }
-          }
+          "label": "Viticulture"
         },
         {
           "id": "ARB",
           "label": "Arboriculture",
-          "climateIndex": null,
           "status": "candidate_specialization"
         },
         {
           "id": "POL",
           "label": "Polyculture",
-          "climateIndex": null,
           "status": "candidate_specialization"
         },
         {
           "id": "HOR",
           "label": "Horticulture",
-          "climateIndex": null,
           "status": "candidate_specialization"
         }
       ],
@@ -276,103 +174,83 @@
       "types": [
         {
           "id": "CIV.ADMIN",
-          "label": "Administration",
-          "climateIndex": 20
+          "label": "Administration"
         },
         {
           "id": "CIV.POLICE",
-          "label": "Police / gendarmerie",
-          "climateIndex": 15
+          "label": "Police / gendarmerie"
         },
         {
           "id": "CIV.FIRE",
-          "label": "Caserne de pompiers",
-          "climateIndex": 15
+          "label": "Caserne de pompiers"
         },
         {
           "id": "CIV.CLINIC",
-          "label": "Clinique",
-          "climateIndex": 20
+          "label": "Clinique"
         },
         {
           "id": "CIV.HOSPITAL",
-          "label": "Hôpital",
-          "climateIndex": 40
+          "label": "Hôpital"
         },
         {
           "id": "CIV.SCHOOL",
-          "label": "École",
-          "climateIndex": 5
+          "label": "École"
         },
         {
           "id": "CIV.LYCEE",
-          "label": "Lycée",
-          "climateIndex": 15
+          "label": "Lycée"
         },
         {
           "id": "CIV.UNIVERSITY",
-          "label": "Université",
-          "climateIndex": 30
+          "label": "Université"
         },
         {
           "id": "CIV.LIBRARY",
-          "label": "Bibliothèque",
-          "climateIndex": 5
+          "label": "Bibliothèque"
         },
         {
           "id": "CIV.MUSEUM",
-          "label": "Musée",
-          "climateIndex": 10
+          "label": "Musée"
         },
         {
           "id": "CIV.THEATRE",
-          "label": "Théâtre",
-          "climateIndex": 10
+          "label": "Théâtre"
         },
         {
           "id": "CIV.GYM",
-          "label": "Gymnase",
-          "climateIndex": 20
+          "label": "Gymnase"
         },
         {
           "id": "CIV.POOL",
-          "label": "Piscine",
-          "climateIndex": 35
+          "label": "Piscine"
         },
         {
           "id": "CIV.STADIUM",
-          "label": "Stade",
-          "climateIndex": 25
+          "label": "Stade"
         },
         {
           "id": "CIV.WASTE_DROP",
-          "label": "Déchetterie",
-          "climateIndex": 10
+          "label": "Déchetterie"
         },
         {
           "id": "CIV.REUSE",
-          "label": "Ressourcerie",
-          "climateIndex": -15
+          "label": "Ressourcerie"
         },
         {
           "id": "CIV.SORTING",
-          "label": "Centre de tri",
-          "climateIndex": -10
+          "label": "Centre de tri"
         },
         {
           "id": "CIV.INCINERATOR",
-          "label": "Incinérateur",
-          "climateIndex": 75
+          "label": "Incinérateur"
         },
         {
           "id": "CIV.LANDFILL",
-          "label": "Décharge",
-          "climateIndex": 50
+          "label": "Décharge"
         },
         {
           "id": "CIV.CHURCH",
           "label": "Église / lieu de culte",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         }
       ]
@@ -383,75 +261,61 @@
       "types": [
         {
           "id": "INF.POWER.COAL",
-          "label": "Centrale à charbon",
-          "climateIndex": 100
+          "label": "Centrale à charbon"
         },
         {
           "id": "INF.POWER.OIL",
-          "label": "Centrale au fioul",
-          "climateIndex": 95
+          "label": "Centrale au fioul"
         },
         {
           "id": "INF.POWER.GAS",
-          "label": "Centrale au gaz",
-          "climateIndex": 75
+          "label": "Centrale au gaz"
         },
         {
           "id": "INF.POWER.NUCLEAR",
-          "label": "Centrale nucléaire",
-          "climateIndex": 15
+          "label": "Centrale nucléaire"
         },
         {
           "id": "INF.POWER.WIND",
-          "label": "Éolien",
-          "climateIndex": -75
+          "label": "Éolien"
         },
         {
           "id": "INF.POWER.SOLAR",
-          "label": "Solaire",
-          "climateIndex": -75
+          "label": "Solaire"
         },
         {
           "id": "INF.POWER.HYDRO",
-          "label": "Hydroélectricité",
-          "climateIndex": -75
+          "label": "Hydroélectricité"
         },
         {
           "id": "INF.GRID.ELECTRIC",
-          "label": "Réseau électrique",
-          "climateIndex": 0
+          "label": "Réseau électrique"
         },
         {
           "id": "INF.GRID.WATER",
-          "label": "Réseau d'eau",
-          "climateIndex": 0
+          "label": "Réseau d'eau"
         },
         {
           "id": "INF.TRANSPORT.ROAD",
-          "label": "Route",
-          "climateIndex": 35
+          "label": "Route"
         },
         {
           "id": "INF.TRANSPORT.RAIL",
-          "label": "Voie ferrée",
-          "climateIndex": -15
+          "label": "Voie ferrée"
         },
         {
           "id": "INF.TRANSPORT.SEAPORT",
           "label": "Port maritime",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         },
         {
           "id": "INF.TRANSPORT.AIRPORT",
           "label": "Aéroport",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         },
         {
           "id": "INF.TELECOM",
           "label": "Télécommunications",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         }
       ]
@@ -462,91 +326,74 @@
       "types": [
         {
           "id": "LAND.SEA",
-          "label": "Mer",
-          "climateIndex": -75
+          "label": "Mer"
         },
         {
           "id": "LAND.RIVER",
-          "label": "Rivière",
-          "climateIndex": -25
+          "label": "Rivière"
         },
         {
           "id": "LAND.FLEUVE",
-          "label": "Fleuve",
-          "climateIndex": -50
+          "label": "Fleuve"
         },
         {
           "id": "LAND.CANAL",
-          "label": "Canal",
-          "climateIndex": -15
+          "label": "Canal"
         },
         {
           "id": "LAND.TREE",
-          "label": "Arbre isolé",
-          "climateIndex": -10
+          "label": "Arbre isolé"
         },
         {
           "id": "LAND.GROVE",
-          "label": "Bosquet",
-          "climateIndex": -25
+          "label": "Bosquet"
         },
         {
           "id": "LAND.FOREST",
-          "label": "Forêt",
-          "climateIndex": -75
+          "label": "Forêt"
         },
         {
           "id": "LAND.HEATH",
-          "label": "Lande",
-          "climateIndex": -10
+          "label": "Lande"
         },
         {
           "id": "LAND.MEADOW",
-          "label": "Prairie",
-          "climateIndex": -15
+          "label": "Prairie"
         },
         {
           "id": "LAND.VEGETATED_WASTE",
-          "label": "Terrain vague végétalisé",
-          "climateIndex": -20
+          "label": "Terrain vague végétalisé"
         },
         {
           "id": "LAND.PARK",
-          "label": "Parc urbain",
-          "climateIndex": -25
+          "label": "Parc urbain"
         },
         {
           "id": "LAND.SQUARE",
-          "label": "Square / jardin public",
-          "climateIndex": -25
+          "label": "Square / jardin public"
         },
         {
           "id": "LAND.BARE",
-          "label": "Sol nu ou stabilisé",
-          "climateIndex": 0
+          "label": "Sol nu ou stabilisé"
         },
         {
           "id": "LAND.RUBBLE",
           "label": "Décombres",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         },
         {
           "id": "LAND.FLOOD",
           "label": "Inondation",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         },
         {
           "id": "LAND.RADIOACTIVE",
           "label": "Terrain radioactif",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         },
         {
           "id": "LAND.FIRE",
           "label": "Incendie",
-          "climateIndex": null,
           "status": "coefficient_to_define"
         }
       ],

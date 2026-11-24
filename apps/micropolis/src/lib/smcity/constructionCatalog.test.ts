@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { resolveConstructionTypeFromTileId } from './constructionCatalog';
 import { createEmptyScenarioData, updateScenarioTypeProperty } from './scenarioData';
 import {
 	getAgriculturalClimateRule,
@@ -64,7 +63,11 @@ describe('SmCity construction catalog', () => {
 		expect(resolveConstructionTypeFromTileId(765)).toBe('CIV.FIRE');
 		expect(resolveConstructionTypeFromTileId(774)).toBe('CIV.POLICE');
 		expect(resolveConstructionTypeFromTileId(816)).toBe('INF.POWER.NUCLEAR');
-		expect(resolveConstructionTypeFromTileId(500)).toBeNull();
+		expect(resolveConstructionTypeFromTileId(500)).toBe('C.RETAIL');
+		expect(resolveConstructionTypeFromTileId(2)).toBe('LAND.FLEUVE');
+		expect(resolveConstructionTypeFromTileId(40)).toBe('LAND.FOREST');
+		expect(resolveConstructionTypeFromTileId(700)).toBe('INF.TRANSPORT.SEAPORT');
+		expect(resolveConstructionTypeFromTileId(716)).toBe('INF.TRANSPORT.AIRPORT');
 	});
 
 	it('does not invent climate coefficients for candidate crop specializations', () => {

@@ -9,8 +9,6 @@ type CatalogType = {
 
 type AgricultureSpecialization = {
 	id: string;
-	climateIndex?: number | null;
-	climateIndexRange?: [number, number];
 	climateIndexByScale?: Record<string, Record<string, number>>;
 };
 
