@@ -34,6 +34,9 @@ jobs:
           node-version: 22
           cache: ''
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
