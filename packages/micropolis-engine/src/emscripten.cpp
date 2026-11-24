@@ -1260,6 +1260,7 @@ function createTypedArrayFromMap(mapInstance) {
     // Game State and Data Access
     .function("getTile", &Micropolis::getTile)
     .function("setTile", &Micropolis::setTile)
+    .function("computeCityClimateIndex", &Micropolis::computeCityClimateIndex)
     .function("setFunds", &Micropolis::setFunds)
     .function("updateMaps", &Micropolis::updateMaps)
     .function("updateGraphs", &Micropolis::updateGraphs)
