@@ -50,7 +50,7 @@
 				<dd>{zs.growthRate}</dd>
 			</div>
 		</dl>
-		{#if editorModeState.active}
+		{#if editorModeState.active && micropolisReactive.isZoneLockableAt(zs.x, zs.y)}
 			<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Geler l'évolution automatique de cette zone (activité maintenue)</label>
 		{/if}
 	</div>

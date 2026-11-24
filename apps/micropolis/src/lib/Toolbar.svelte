@@ -23,6 +23,7 @@
 		if (!confirm('Réinitialiser entièrement la carte ? Cette action efface la ville en cours.')) return;
 		micropolisReactive.poke.clearMap();
 		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.refreshCityClimateIndex();
 		micropolisReactive.syncFromEngine();
 		editorNotice = 'Carte réinitialisée.';
 	}
@@ -32,6 +33,7 @@
 		const seed = Math.floor(Math.random() * 0x7fffffff);
 		micropolisReactive.poke.generateMap(seed);
 		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.refreshCityClimateIndex();
 		editorNotice = `Terrain généré · graine ${seed}.`;
 	}
 

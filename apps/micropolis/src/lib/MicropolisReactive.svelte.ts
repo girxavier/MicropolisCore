@@ -137,6 +137,13 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 	}
 }
 
+function refreshLocalClimateTemperatureField(): void {
+	const simulator = attachedSimulator;
+	if (!simulator?.mapData || simulator.mapData.length !== 12000) return;
+	const scenario = loadScenarioData(cityFileName || simulator.cityFileName || 'default');
+	localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, scenario, 1);
+}
+
 function refreshCityClimateIndex(): void {
 	const simulator = attachedSimulator;
 	if (!cityFileName || !simulator?.mapData || simulator.mapData.length !== 12000) return;
@@ -335,6 +342,7 @@ class MicropolisReactiveCallback {
 		temperatureMax = tmax;
 		temperatureMean = tmoy;
 		climateReady = true;
+		refreshLocalClimateTemperatureField();
 	}
 
 	updateDemand(_micropolis: Micropolis | null, _callbackVal: unknown, r: number, c: number, i: number): void {
@@ -516,6 +524,14 @@ export const micropolisReactive = {
 
 	syncFromEngine,
 	refreshCityClimateIndex,
+	isZoneLockableAt(x: number, y: number): boolean {
+		const center = findZoneLockCenter(x, y);
+		const map = attachedSimulator?.mapData;
+		const engine = attachedSimulator?.micropolisengine;
+		if (!map || !engine) return false;
+		const tile = map[center.x * engine.WORLD_H + center.y] ?? 0;
+		return (tile & engine.MapTileBits.ZONEBIT.value) !== 0;
+	},
 	isZoneLockedAt(x: number, y: number): boolean {
 		void zoneLockRevision;
 		const center = findZoneLockCenter(x, y);

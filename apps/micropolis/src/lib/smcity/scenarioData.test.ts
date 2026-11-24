@@ -5,6 +5,8 @@ import {
   normalizeScenarioId,
   getAnnualClimateIndices,
   recordMonthlyClimateIndex,
+  updateScenarioZoneLock,
+  getScenarioZoneLock,
   parseScenarioSave,
   serializeScenarioSave,
   updateScenarioTypeProperty
@@ -33,6 +35,15 @@ describe('SmCity scenario data', () => {
     expect(getAnnualClimateIndices(data, 2026)).toBeNull();
     for (let month = 1; month < 12; month += 1) data = recordMonthlyClimateIndex(data, 2026, month, month);
     expect(getAnnualClimateIndices(data, 2026)).toEqual([-10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  });
+
+  it('persists local evolution locks independently of shared construction properties', () => {
+    const initial = createEmptyScenarioData('orleans');
+    const locked = updateScenarioZoneLock(initial, 12, 34, true);
+    expect(getScenarioZoneLock(locked, 12, 34)).toBe(true);
+    const unlocked = updateScenarioZoneLock(locked, 12, 34, false);
+    expect(getScenarioZoneLock(unlocked, 12, 34)).toBe(false);
+    expect(Object.keys(unlocked.constructionTypes)).toHaveLength(0);
   });
 
   it('round-trips a scenario-bound game save bundle', () => {
