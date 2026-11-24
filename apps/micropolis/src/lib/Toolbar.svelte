@@ -81,7 +81,7 @@
 				<span class="tool-key">{speed.index + 1}:</span><span class="tool-name">{speed.label}</span>
 			</button>
 		{/each}
-		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain' && !group.id.endsWith('-buildings')) as group (group.id)}
+		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain' && group.id !== 'special' && !group.id.endsWith('-buildings')) as group (group.id)}
 			{#if group.label}<div class="tool-group-label">{group.label}</div>{/if}
 			{#each group.tools as tool (tool.id)}
 				<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
