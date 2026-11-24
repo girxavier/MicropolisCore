@@ -434,6 +434,7 @@ export class MicropolisSimulator {
             if (this.editorSavedFunds !== null) {
                 this.editorSavedFunds = this.micropolis.totalFunds;
                 this.micropolis.setFunds(1_000_000_000);
+                this.micropolis.pause();
             }
             this.syncMapViews();
             this.render();
@@ -487,6 +488,7 @@ export class MicropolisSimulator {
             if (this.editorSavedFunds !== null) {
                 this.editorSavedFunds = this.micropolis.totalFunds;
                 this.micropolis.setFunds(1_000_000_000);
+                this.micropolis.pause();
             }
             this.syncMapViews();
             this.render();
@@ -516,6 +518,7 @@ export class MicropolisSimulator {
             if (this.editorSavedFunds !== null) {
                 this.editorSavedFunds = this.micropolis.totalFunds;
                 this.micropolis.setFunds(1_000_000_000);
+                this.micropolis.pause();
             }
             this.syncMapViews();
             this.render();
@@ -551,6 +554,7 @@ export class MicropolisSimulator {
         if (this.editorSavedFunds !== null) {
             this.editorSavedFunds = this.micropolis.totalFunds;
             this.micropolis.setFunds(1_000_000_000);
+            this.micropolis.pause();
         }
 
         this.syncMapViews();
