@@ -31,6 +31,9 @@ if (-not $SkipGitSync) {
         if ($LASTEXITCODE -ne 0) { return }
         git pull --ff-only origin $Branch
     }
+    Write-Host "`nHistorique récent de la branche :" -ForegroundColor Cyan
+    git log -8 --oneline --decorate
+    if ($LASTEXITCODE -ne 0) { throw "Impossible de lire l’historique Git." }
 }
 
 $emsdkScript = $null
