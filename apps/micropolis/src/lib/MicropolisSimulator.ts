@@ -234,7 +234,9 @@ export class MicropolisSimulator {
     /** Force a clean transition from editor/loading state into a running game. */
     resumeSimulation(): void {
         if (!this.micropolis || this.disposed) return;
-        const fps = this.pausedFramesPerSecond || this.framesPerSecond || this.keyFramesPerSecondValues[this.gameSpeed];
+        const fps = this.paused
+            ? (this.pausedFramesPerSecond || this.keyFramesPerSecondValues[this.gameSpeed])
+            : (this.framesPerSecond || this.keyFramesPerSecondValues[this.gameSpeed]);
         this.micropolis.setSpeed(3);
         this.micropolis.setPasses(this.keyPassesValues[this.gameSpeed]);
         this.micropolis.resume();
