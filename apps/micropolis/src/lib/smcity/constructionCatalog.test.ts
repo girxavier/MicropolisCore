@@ -12,16 +12,24 @@ describe('SmCity construction catalog', () => {
 		]);
 	});
 
-	it('keeps all market-gardening scales and modes within -25 to 0', () => {
-		expect(getAgriculturalClimateRule('MAR', 'D5', 'CONV')).toEqual({
-			kind: 'range', min: -25, max: 0
-		});
+	it('keeps every market-gardening scale and mode within -25 to 0', () => {
+		for (const scale of ['D1', 'D2', 'D3', 'D4', 'D5']) {
+			for (const mode of ['BIO', 'CONV']) {
+				expect(getAgriculturalClimateRule('MAR', scale, mode)).toEqual({
+					kind: 'range', min: -25, max: 0
+				});
+			}
+		}
 	});
 
-	it('keeps all viticulture scales and modes within -25 to +25', () => {
-		expect(getAgriculturalClimateRule('VIT', 'D1', 'BIO')).toEqual({
-			kind: 'range', min: -25, max: 25
-		});
+	it('keeps every viticulture scale and mode within -25 to +25', () => {
+		for (const scale of ['D1', 'D2', 'D3', 'D4', 'D5']) {
+			for (const mode of ['BIO', 'CONV']) {
+				expect(getAgriculturalClimateRule('VIT', scale, mode)).toEqual({
+					kind: 'range', min: -25, max: 25
+				});
+			}
+		}
 	});
 
 	it('retains the established scale-specific cereal and livestock values', () => {
