@@ -1262,6 +1262,7 @@ function createTypedArrayFromMap(mapInstance) {
 
     // Game State and Data Access
     .function("getTile", &Micropolis::getTile)
+    .function("getPowerGrid", &Micropolis::getPowerGrid)
     .function("setTile", &Micropolis::setTile)
     .function("setFunds", &Micropolis::setFunds)
     .function("updateMaps", &Micropolis::updateMaps)
