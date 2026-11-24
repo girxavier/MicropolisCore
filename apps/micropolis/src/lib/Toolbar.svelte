@@ -68,7 +68,7 @@
 		{#each GAME_TOOL_GROUPS as group (group.id)}
 			<details class="tool-category" open={group.id === 'terrain'}>
 				<summary>{group.label ?? group.id}</summary>
-				{#each group.tools as tool (tool.id)}
+				{#each group.tools.filter((tool) => tool.id !== 'clear') as tool (tool.id)}
 					<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
 						title={tool.label} onclick={() => selectTool(tool.id)}>
 						{#if tool.shortcut !== '—'}<span class="tool-key">{tool.shortcut}:</span>{/if}

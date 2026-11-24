@@ -277,6 +277,7 @@ export function toolCursor(id: ToolId, panning: boolean, shiftPanHeld = false): 
 		case 'query':
 			return 'crosshair';
 		case 'bulldoze':
+		case 'clear':
 			return 'cell';
 		default:
 			return 'default';
