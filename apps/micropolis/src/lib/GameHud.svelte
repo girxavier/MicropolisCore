@@ -65,6 +65,10 @@
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMax.toFixed(1)} °C` : '—'}</strong>
         </span>
     </div>
+    <div class="hud-row climate-index-row" aria-label="Indice climat">
+        <span class="climate-index-label">INDICE CLIMAT</span>
+        <strong>{micropolisReactive.climateReady ? micropolisReactive.climateIndex.toFixed(1) : '—'}</strong>
+    </div>
 	<div class="hud-row hud-meta">
 		<span class="hud-rci">
 			<span class="rci-item"><span class="rci-letter">R</span> {micropolisReactive.demandR}</span>
@@ -152,6 +156,23 @@
 
     .climate-max .climate-label {
         color: #f4b77b;
+    }
+
+    .climate-index-row {
+        margin-top: 0.18rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.12rem 0.35rem;
+        font-size: 0.74rem;
+        font-variant-numeric: tabular-nums;
+        color: #dce4f8;
+    }
+
+    .climate-index-label {
+        color: #a9c8ef;
+        font-size: 0.66rem;
+        font-weight: 700;
     }
 
 	.hud-meta {
