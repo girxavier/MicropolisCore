@@ -9,6 +9,7 @@
   import Toolbar from '$lib/Toolbar.svelte';
   import MessageOverlay from '$lib/MessageOverlay.svelte';
   import ZoneStatusPanel from '$lib/ZoneStatusPanel.svelte';
+  import ScenarioEditorPanel from '$lib/ScenarioEditorPanel.svelte';
   import BudgetModal from '$lib/BudgetModal.svelte';
   import SoftwareSpriteLayer from '$lib/sprites/SoftwareSpriteLayer.svelte';
   import { triggerSkywriting, toggleSkywritingPilot } from '$lib/sprites/plugins/skywriting/SkywritingPlugin.svelte';
@@ -118,6 +119,7 @@
       />
       <GameHud />
       <ZoneStatusPanel />
+      <ScenarioEditorPanel />
       <BudgetModal />
       <HelpModal />
     </div>
