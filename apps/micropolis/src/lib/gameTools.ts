@@ -17,6 +17,7 @@ export type ToolId =
 	| 'stadium'
 	| 'nuclear'
 	| 'airport'
+	| 'network'
 	| 'water'
 	| 'land'
 	| 'forest'
