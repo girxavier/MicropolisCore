@@ -375,6 +375,8 @@ export interface Micropolis extends ClassHandle {
   setCallback(_0: Callback | null, _1: any): void;
   init(): void;
   loadCity(_0: EmbindString): boolean;
+  saveCityAs(_0: EmbindString): void;
+  getPowerGrid(_0: number, _1: number): number;
   loadScenario(_0: Scenario): void;
   simTick(): void;
   simUpdate(): void;
