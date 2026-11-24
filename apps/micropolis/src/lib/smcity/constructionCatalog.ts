@@ -25,6 +25,23 @@ type ConstructionCatalog = {
 
 export const smCityConstructionCatalog = rawCatalog as ConstructionCatalog;
 
+/** Best-effort mapping for legacy Micropolis tile IDs that have an unambiguous SmCity type. */
+export function resolveConstructionTypeFromTileId(rawTileId: number): string | null {
+	const tileId = rawTileId & 0x03ff;
+	if (tileId >= 265 && tileId <= 404) {
+		const densityBand = Math.floor((tileId - 265) / 9) % 4;
+		return densityBand <= 1 ? 'R.D1' : densityBand === 2 ? 'R.D2' : 'R.D3';
+	}
+	if (tileId >= 745 && tileId <= 760) return 'INF.POWER.COAL';
+	if (tileId >= 761 && tileId <= 769) return 'CIV.FIRE';
+	if (tileId >= 770 && tileId <= 778) return 'CIV.POLICE';
+	if (tileId >= 779 && tileId <= 794) return 'CIV.STADIUM';
+	if (tileId >= 811 && tileId <= 826) return 'INF.POWER.NUCLEAR';
+	if (tileId >= 1 && tileId <= 20) return 'LAND.RIVER';
+	if (tileId >= 21 && tileId <= 43) return 'LAND.TREE';
+	return null;
+}
+
 export type ClimateIndexRule =
 	| { kind: 'fixed'; value: number }
 	| { kind: 'range'; min: number; max: number }
