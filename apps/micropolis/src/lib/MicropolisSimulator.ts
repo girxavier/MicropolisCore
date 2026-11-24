@@ -204,6 +204,9 @@ export class MicropolisSimulator {
         const fps = this.keyFramesPerSecondValues[safeSpeed];
         if (this.paused) this.pausedFramesPerSecond = fps;
         else this.setFramesPerSecond(fps);
+        // Keep the engine's internal simulation gate enabled. The JS timer controls
+        // real-time pacing; without this, pause()/resume() can restore simSpeed=0.
+        this.micropolis?.setSpeed(3);
         this.micropolis?.setPasses(this.keyPassesValues[safeSpeed]);
     }
 
