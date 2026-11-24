@@ -55,7 +55,8 @@
         slot = sim.saveCityAsBrowserSlot(name, false);
       } catch (error) {
         const message = error instanceof Error ? error.message : '';
-        if (!message.includes('existe déjà') || !confirm('Remplacer le scénario « ' + name + ' » ?')) return;
+        if (!message.includes('existe déjà')) throw error;
+        if (!confirm('Remplacer le scénario « ' + name + ' » ?')) return;
         slot = sim.saveCityAsBrowserSlot(name, true);
       }
       selectedScenario = slot.id;
