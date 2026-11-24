@@ -15,23 +15,47 @@
 
   type CatalogRow = { id: string; label: string; climateIndex?: number | null; climateIndexByScale?: Record<string, Record<string, number>> };
   type CatalogCategory = { id: string; label: string; types?: CatalogRow[]; specializations?: CatalogRow[] };
-  const categories = (catalog as { categories: CatalogCategory[] }).categories;
+  const categories = (catalog as { categories: CatalogCategory[]; commonProperties: string[] }).categories;
+  const commonProperties = (catalog as { commonProperties: string[] }).commonProperties;
   const rows = $derived(categories.flatMap((category) => [
     ...(category.types ?? []),
     ...(category.specializations ?? [])
   ]));
   let scenarioData = $state<ScenarioData>(createEmptyScenarioData('default'));
+  let loadedScenarioId = $state('');
   let selectedTypeId = $state('R.D1');
   let propertyName = $state('climateIndex');
   let propertyValue = $state('');
   let status = $state('');
   let scenarioId = $derived(micropolisReactive.cityFileName || 'default');
+  let queriedTile = $derived(micropolisReactive.zoneStatus.visible ? micropolisReactive.zoneStatus : null);
   let selectedType = $derived(rows.find((row) => row.id === selectedTypeId));
   let currentProperties = $derived(scenarioData.constructionTypes[selectedTypeId] ?? {});
   let currentValue = $derived(currentProperties[propertyName] ?? selectedType?.climateIndex ?? '');
 
   onMount(() => {
     scenarioData = loadScenarioData(scenarioId);
+    loadedScenarioId = scenarioId;
+  });
+
+  $effect(() => {
+    const nextScenarioId = scenarioId;
+    if (nextScenarioId && nextScenarioId !== loadedScenarioId) {
+      scenarioData = loadScenarioData(nextScenarioId);
+      loadedScenarioId = nextScenarioId;
+      status = `Tables du scénario « ${scenarioData.scenarioId} » chargées.`;
+    }
+  });
+
+  $effect(() => {
+    const selection = queriedTile;
+    if (!selection) return;
+    const tileId = selection.tileId & 0x03ff;
+    if (tileId >= 265 && tileId <= 404) {
+      const densityBand = Math.floor((tileId - 265) / 9) % 4;
+      selectedTypeId = densityBand <= 1 ? 'R.D1' : densityBand === 2 ? 'R.D2' : 'R.D3';
+      refreshValue();
+    }
   });
 
   function changeScenario(): void {
@@ -67,7 +91,7 @@
           cityMonth: micropolisReactive.cityMonth
         }
       });
-      status = 'Fichier scénario + paramètres exporté.';
+      status = 'Tables et métadonnées du scénario exportées (la carte et l’état complet de la simulation ne sont pas inclus).';
     } catch (error) {
       status = error instanceof Error ? error.message : 'Échec de l’export.';
     }
@@ -84,8 +108,9 @@
       <div>
         <strong>DONNÉES DU SCÉNARIO</strong>
         <small>Les valeurs sont communes à toutes les occurrences d’un même type.</small>
+        {#if queriedTile}<small>Dernière sélection QUERY : case {queriedTile.x}, {queriedTile.y} · tuile {queriedTile.tileId & 0x03ff}</small>{/if}
       </div>
-      <button type="button" onclick={exportSave}>Exporter scénario + partie</button>
+      <button type="button" onclick={exportSave}>Exporter les tables</button>
     </header>
     <div class="editor-fields">
       <label>
@@ -110,7 +135,7 @@
       <label>
         Propriété
         <select bind:value={propertyName} onchange={refreshValue}>
-          {#each (catalog as { commonProperties: string[] }).commonProperties as property}
+          {#each commonProperties as property}
             <option value={property}>{property}</option>
           {/each}
         </select>
@@ -121,7 +146,7 @@
       </label>
       <button type="button" onclick={applyProperty}>Appliquer à tout le type</button>
     </div>
-    <p class="shared-note">Sélectionner un bâtiment avec QUERY sert à identifier son type. La table modifiée est partagée : aucun réglage individuel n’est créé pour ce bâtiment.</p>
+    <p class="shared-note">Sélectionner une construction avec QUERY identifie automatiquement les zones résidentielles prises en charge. La table modifiée est partagée : aucun réglage individuel n’est créé pour cette occurrence. Les types non encore reliés au catalogue peuvent être choisis dans la liste.</p>
     {#if status}<p class="status" role="status">{status}</p>{/if}
     <details>
       <summary>Valeurs spécifiques déjà enregistrées</summary>
