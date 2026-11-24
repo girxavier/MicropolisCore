@@ -292,6 +292,7 @@ export interface Micropolis extends ClassHandle {
   temperatureMin: number;
   temperatureMax: number;
   temperatureMean: number;
+  climateIndex: number;
   climateReady: boolean;
   climateEpochCityTime: number;
   cityYear: number;
