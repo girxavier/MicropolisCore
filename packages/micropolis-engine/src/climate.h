@@ -32,11 +32,13 @@ public:
     // savedEpoch < 0 starts the climate clock at cityTime.
     bool initialize(const std::string &cityName, long long cityTime,
                     long long savedEpoch = -1,
-                    double savedCurrentYearWarming = 0.0);
+                    double savedCurrentYearWarming = 0.0,
+                    const std::vector<double> &savedWarmingHistory = std::vector<double>());
     bool update(long long cityTime);
     void setCityWarmingForYear(std::size_t yearIndex, double contribution);
     double tileClimateIndex(int tile) const;
     double tileClimateWeight(int tile) const;
+    std::vector<double> cityWarmingHistory() const;
 
     bool isReady() const;
     long long epochCityTime() const;
