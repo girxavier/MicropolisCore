@@ -199,6 +199,7 @@ bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
 {
     ready = false;
     generatedYears.clear();
+    annualCityClimateIndices.clear();
     activeCity = normalizeCity(cityName);
     if (!loadTables()) return false;
     if (references.find(activeCity) == references.end()) return false;
