@@ -385,6 +385,9 @@ export class MicropolisSimulator {
         const cleanName = name.trim();
         if (!cleanName) throw new Error('Saisissez un nom de scénario.');
         const id = citySaveId(cleanName);
+        if (this.cityFileNames.some((path) => citySaveId(path) === id)) {
+            throw new Error('Ce nom est reserve a une des cinq villes d’origine. Choisissez un autre nom pour votre scenario.');
+        }
         if (localStorage.getItem(CITY_SAVE_PREFIX + id)) {
             throw new Error('Un scénario porte déjà ce nom. Choisissez un autre nom : les scénarios sources ne sont jamais écrasés.');
         }
