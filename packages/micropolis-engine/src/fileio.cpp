@@ -604,6 +604,14 @@ void Micropolis::loadScenario(Scenario s)
     setSpeed(3);
     setCityTax(7);
 
+    // Built-in scenarios start a fresh climate history, independent of the
+    // previously loaded user city.
+    climateAnnualIndexSum = 0.0;
+    climateMonthlySamples = 0;
+    climateCurrentYearWarming = 0.0;
+    climateLastSampleMonth = -1;
+    climateSavedWarmingHistory.clear();
+
     loadFileData(fname);
     initializeClimate(cityTime);
 
