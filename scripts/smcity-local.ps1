@@ -97,7 +97,7 @@ if (-not $SkipInstall) {
 Invoke-Step "Build C++ engine and WebAssembly assets" { pnpm --filter @micropolis/engine-wasm run build }
 Invoke-Step "Svelte and TypeScript checks" { pnpm --filter micropolis run check }
 Invoke-Step "Micropolis tests" {
-    pnpm --filter micropolis exec vitest run --exclude cli/entry.smoke.test.ts --exclude src/lib/monorepo.integration.test.ts
+    pnpm --filter micropolis run test --exclude cli/entry.smoke.test.ts --exclude src/lib/monorepo.integration.test.ts
 }
 Invoke-Step "Vite production build" { pnpm --filter micropolis exec vite build }
 
