@@ -3,6 +3,7 @@
 	import { toolState } from '$lib/ToolState.svelte';
 	import { editorModeState, scenarioDialogState } from '$lib/EditorMode.svelte';
 	import { commandBus } from '$lib/CommandBus';
+	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	let mobileOpen = $state(false);
 	let editorNotice = $state('');
 
