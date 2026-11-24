@@ -36,6 +36,9 @@ describe('Micropolis WASM loader', () => {
 
 		micropolis.init();
 
+		expect(typeof micropolis.saveCityAs).toBe('function');
+		expect(typeof micropolis.getPowerGrid).toBe('function');
+
 		const loaded = micropolis.loadCity('/cities/haight.cty');
 		expect(loaded).toBe(true);
 		expect(micropolis.totalFunds).not.toBe(0);
