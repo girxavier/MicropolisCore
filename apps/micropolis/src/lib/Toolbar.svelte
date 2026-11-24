@@ -34,7 +34,13 @@
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
 		else {
 			scenarioDialogState.set(false);
-			micropolisReactive.attachedSimulator?.exitEditorMode();
+			try {
+				const save = micropolisReactive.attachedSimulator?.startGameSession();
+				editorNotice = save ? 'Partie démarrée · sauvegarde datée créée.' : 'Partie démarrée.';
+			} catch (error) {
+				micropolisReactive.attachedSimulator?.resumeSimulation();
+				editorNotice = error instanceof Error ? 'Partie démarrée, mais sauvegarde impossible : ' + error.message : 'Partie démarrée, sauvegarde impossible.';
+			}
 		}
 	}
 </script>
@@ -68,6 +74,7 @@
 			</details>
 		{/each}
 	{:else}
+		<button type="button" class="tool-item" onclick={() => scenarioDialogState.set(true)}>Charger un scénario / sauvegarder la partie</button>
 		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain' && group.id !== 'special' && !group.id.endsWith('-buildings')) as group (group.id)}
 			{#if group.label}<div class="tool-group-label">{group.label}</div>{/if}
 			{#each group.tools as tool (tool.id)}
