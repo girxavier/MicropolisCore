@@ -219,6 +219,12 @@ void Micropolis::init()
     temperatureMin = 0.0;
     temperatureMax = 0.0;
     temperatureMean = 0.0;
+    climateIndex = 127.5;
+    climateAnnualIndexSum = 0.0;
+    climateMonthlySamples = 0;
+    climateCurrentYearWarming = 0.0;
+    climateLastSampleMonth = -1;
+    climateSavedWarmingHistory.clear();
     climateReady = false;
     climateEpochCityTime = -1;
 

@@ -66,6 +66,15 @@ describe('micropolisReactive simulation and callbacks', () => {
 		expect(micropolis.cityTime).toBeGreaterThan(before);
 	});
 
+	it('restores a nonzero engine speed after pause and resume', () => {
+		micropolis.setSpeed(3);
+		micropolis.pause();
+		expect(micropolis.simSpeed).toBe(0);
+		expect(micropolis.simPausedSpeed).toBe(3);
+		micropolis.resume();
+		expect(micropolis.simSpeed).toBe(3);
+	});
+
 	it('syncFromEngine keeps reactive mirror in sync after ticks', () => {
 		tickN(micropolis, 20);
 		expect(micropolisReactive.cityTime).toBe(micropolis.cityTime);

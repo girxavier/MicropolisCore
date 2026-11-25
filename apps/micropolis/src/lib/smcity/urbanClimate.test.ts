@@ -8,35 +8,32 @@ import {
 } from './urbanClimate';
 
 describe('urban climate aggregation', () => {
-	it('averages all cells, including neutral cells', () => {
-		expect(computeCityClimateIndex([100, 0, 0, 0])).toBe(25);
+	it('averages classified objects rather than empty map cells', () => {
+		expect(computeCityClimateIndex([255, 0])).toBe(127.5);
 	});
 
-	it('counts every occupied cell of a multi-cell object independently', () => {
-		expect(computeCityClimateIndex([50, 50, 50, 0])).toBe(37.5);
+	it('uses the neutral midpoint when the map has no classified objects', () => {
+		expect(computeCityClimateIndex([])).toBe(127.5);
 	});
 
-	it('supports signed contributions', () => {
-		expect(computeCityClimateIndex([-75, 25, 0, 0])).toBe(-12.5);
+	it('keeps fractional values such as the low-density baseline', () => {
+		expect(computeCityClimateIndex([127.5, 127.5])).toBe(127.5);
 	});
 
-	it('rejects values outside the allowed cell range', () => {
-		expect(() => computeCityClimateIndex([101])).toThrow(RangeError);
-	});
-
-	it('rejects an empty map', () => {
-		expect(() => computeCityClimateIndex([])).toThrow(RangeError);
+	it('rejects values outside the 0–255 range', () => {
+		expect(() => computeCityClimateIndex([256])).toThrow(RangeError);
 	});
 });
 
 describe('annual city effect', () => {
 	it('averages exactly twelve monthly records', () => {
-		expect(computeAnnualCityClimateIndex(Array(12).fill(50))).toBe(50);
+		expect(computeAnnualCityClimateIndex(Array(12).fill(127.5))).toBe(127.5);
 	});
 
-	it('converts the annual index to degrees Celsius', () => {
-		expect(cityClimateTemperatureShift(100)).toBe(1);
-		expect(cityClimateTemperatureShift(-100)).toBe(-1);
+	it('converts the annual index linearly to degrees Celsius', () => {
+		expect(cityClimateTemperatureShift(0)).toBe(-1);
+		expect(cityClimateTemperatureShift(127.5)).toBe(0);
+		expect(cityClimateTemperatureShift(255)).toBe(1);
 	});
 
 	it('rejects incomplete years', () => {
@@ -48,13 +45,10 @@ describe('annual city effect', () => {
 	});
 });
 
-describe('local temperature', () => {
-	it('uses the diffused cell index at four degrees per 100 points', () => {
-		expect(computeLocalTemperature(20, 50)).toBe(22);
-		expect(computeLocalTemperature(20, -50)).toBe(18);
-	});
-
-	it('rejects an invalid diffused index', () => {
-		expect(() => computeLocalTemperature(20, 101)).toThrow(RangeError);
+describe('local temperature helper', () => {
+	it('centers local effects on the neutral index', () => {
+		expect(computeLocalTemperature(20, 127.5)).toBe(20);
+		expect(computeLocalTemperature(20, 255)).toBe(24);
+		expect(computeLocalTemperature(20, 0)).toBe(16);
 	});
 });

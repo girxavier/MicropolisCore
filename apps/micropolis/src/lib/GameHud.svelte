@@ -6,7 +6,7 @@
 	const funds = $derived(micropolisReactive.totalFunds);
 	const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 	const dateLabel = $derived(
-		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${cityLabel(micropolisReactive.cityFileName) || micropolisReactive.cityName || 'Micropolis'}`
+		`${monthNames[micropolisReactive.cityMonth] ?? 'Mois'} ${micropolisReactive.cityYear} · ${micropolisReactive.cityName || cityLabel(micropolisReactive.cityFileName) || 'Micropolis'}`
 	);
 
 	const simLabel = $derived(
@@ -32,14 +32,18 @@
 
     function selectCity(event: Event) {
         const select = event.currentTarget as HTMLSelectElement;
-        micropolisReactive.loadCity(select.value);
+        const loaded = micropolisReactive.loadCity(select.value);
+        if (loaded && !editorModeState.active) {
+            try { micropolisReactive.attachedSimulator?.startGameSession(); }
+            catch (error) { micropolisReactive.attachedSimulator?.resumeSimulation(); toolState.setSpeedFeedback(error instanceof Error ? 'Partie lancée ; sauvegarde impossible : ' + error.message : 'Partie lancée ; sauvegarde impossible.'); }
+        }
     }
 
 </script>
 
 <div class="game-hud" aria-live="polite">
     <div class="hud-row hud-city">
-        <select class="hud-city-select" value={micropolisReactive.cityFileName}
+        <select class="hud-city-select" value={micropolisReactive.cityFileNames.includes(micropolisReactive.cityFileName) ? micropolisReactive.cityFileName : ''}
                 onchange={selectCity} aria-label="Ville">
             <option value="" disabled>Scénario en cours</option>
             {#each micropolisReactive.cityFileNames as city}
@@ -65,6 +69,10 @@
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMax.toFixed(1)} °C` : '—'}</strong>
         </span>
     </div>
+    <div class="hud-row climate-index-row" aria-label="Indice climat">
+        <span class="climate-index-label">INDICE CLIMAT</span>
+        <strong>{micropolisReactive.climateReady ? micropolisReactive.climateIndex.toFixed(1) : '—'}</strong>
+    </div>
 	<div class="hud-row hud-meta">
 		<span class="hud-rci">
 			<span class="rci-item"><span class="rci-letter">R</span> {micropolisReactive.demandR}</span>
@@ -72,9 +80,11 @@
 			<span class="rci-item"><span class="rci-letter">I</span> {micropolisReactive.demandI}</span>
 		</span>
 		<span class="hud-tax">{taxLabel}</span>
-		<span class="hud-speed" class:paused={micropolisReactive.simPaused}>{simLabel}</span>
+		<span class="hud-speed" class:paused={micropolisReactive.simPaused} title={editorModeState.active ? "La vitesse se règle hors mode édition" : "Y : ralentir · I : accélérer"}>{simLabel}</span>
 	</div>
-	{#if toolState.lastToolFeedback}
+	{#if toolState.speedFeedback}
+		<div class="hud-feedback">{toolState.speedFeedback}</div>
+	{:else if toolState.lastToolFeedback}
 		<div class="hud-feedback">{toolState.lastToolFeedback}</div>
 	{/if}
 </div>
@@ -150,6 +160,23 @@
 
     .climate-max .climate-label {
         color: #f4b77b;
+    }
+
+    .climate-index-row {
+        margin-top: 0.18rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.12rem 0.35rem;
+        font-size: 0.74rem;
+        font-variant-numeric: tabular-nums;
+        color: #dce4f8;
+    }
+
+    .climate-index-label {
+        color: #a9c8ef;
+        font-size: 0.66rem;
+        font-weight: 700;
     }
 
 	.hud-meta {

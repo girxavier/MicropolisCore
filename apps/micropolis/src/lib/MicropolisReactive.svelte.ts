@@ -77,6 +77,7 @@ let cityTime = $state(0);
 let temperatureMin = $state(0);
 let temperatureMax = $state(0);
 let temperatureMean = $state(0);
+let climateIndex = $state(127.5);
 let climateReady = $state(false);
 
 function syncFromEngine(): void {
@@ -99,7 +100,13 @@ function syncFromEngine(): void {
 	temperatureMin = m.temperatureMin;
 	temperatureMax = m.temperatureMax;
 	temperatureMean = m.temperatureMean;
+	climateIndex = m.climateIndex;
 	climateReady = m.climateReady;
+}
+
+function refreshClimateIndex(): void {
+	const m = attachedSimulator?.micropolis;
+	if (m) climateIndex = m.computeCityClimateIndex();
 }
 
 /**
@@ -116,16 +123,19 @@ class MicropolisReactiveCallback {
 
 	didGenerateMap(_micropolis: Micropolis | null, _callbackVal: unknown, _seed: number): void {
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadCity(_micropolis: Micropolis | null, _callbackVal: unknown, _filename: string): void {
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadScenario(_micropolis: Micropolis | null, _callbackVal: unknown, _name: string, _fname: string): void {
 		syncFromEngine();
+		refreshClimateIndex();
 	}
 
 	didLoseGame(_micropolis: Micropolis | null, _callbackVal: unknown): void {
@@ -137,6 +147,7 @@ class MicropolisReactiveCallback {
 	}
 
 	didTool(_micropolis: Micropolis | null, _callbackVal: unknown, _name: string, _x: number, _y: number): void {
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
@@ -165,6 +176,7 @@ class MicropolisReactiveCallback {
 
 	newGame(_micropolis: Micropolis | null, _callbackVal: unknown): void {
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	}
 
@@ -265,6 +277,7 @@ class MicropolisReactiveCallback {
 		temperatureMin = tmin;
 		temperatureMax = tmax;
 		temperatureMean = tmoy;
+		climateIndex = _micropolis?.climateIndex ?? climateIndex;
 		climateReady = true;
 	}
 
@@ -380,6 +393,7 @@ export interface MicropolisReactiveSnapshot {
 	temperatureMin: number;
 	temperatureMax: number;
 	temperatureMean: number;
+	climateIndex: number;
 	climateReady: boolean;
 	worldWidth: number;
 	worldHeight: number;
@@ -456,13 +470,16 @@ export const micropolisReactive = {
 
 	loadCity(fileName: string): boolean {
 		commandBus.clearHistory();
-		return attachedSimulator?.loadCity(fileName) ?? false;
+		const loaded = attachedSimulator?.loadCity(fileName) ?? false;
+		if (loaded) refreshClimateIndex();
+		return loaded;
 	},
 
 	loadScenario(scenario: number): void {
 		commandBus.clearHistory();
 		attachedSimulator?.loadScenario(scenario);
 		syncFromEngine();
+		refreshClimateIndex();
 		mapRevision++;
 	},
 
@@ -520,6 +537,7 @@ export const micropolisReactive = {
 			const m = requireMicropolis();
 			if (tileLinearIndex(x, y) === null) return;
 			m.setTile(x, y, value);
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		setFunds(amount: number): void {
@@ -552,12 +570,14 @@ export const micropolisReactive = {
 		},
 		doTool(tool: EditingTool, x: number, y: number): ToolResult {
 			const r = requireMicropolis().doTool(tool, x, y);
+			refreshClimateIndex();
 			mapRevision++;
 			return r;
 		},
 		loadCity(path: string): boolean {
 			const ok = requireMicropolis().loadCity(path);
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 			return ok;
 		},
@@ -565,18 +585,21 @@ export const micropolisReactive = {
 			commandBus.clearHistory();
 			requireMicropolis().generateSomeRandomCity();
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		clearMap(): void {
 			commandBus.clearHistory();
 			requireMicropolis().clearMap();
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		generateMap(seed: number): void {
 			commandBus.clearHistory();
 			requireMicropolis().generateMap(seed);
 			syncFromEngine();
+			refreshClimateIndex();
 			mapRevision++;
 		},
 		updateMaps(): void {
@@ -602,6 +625,7 @@ export const micropolisReactive = {
 		},
 		/** After raw writes into `memory.mapU16`, bump observers. */
 		bumpMap(): void {
+			refreshClimateIndex();
 			mapRevision++;
 		}
 	},
@@ -721,6 +745,9 @@ export const micropolisReactive = {
 	get temperatureMean() {
 		return temperatureMean;
 	},
+	get climateIndex() {
+		return climateIndex;
+	},
 	get climateReady() {
 		return climateReady;
 	},
@@ -764,6 +791,7 @@ export const micropolisReactive = {
 			temperatureMin,
 			temperatureMax,
 			temperatureMean,
+			climateIndex,
 			climateReady,
 			worldWidth: attachedSimulator?.micropolisengine?.WORLD_W ?? 0,
 			worldHeight: attachedSimulator?.micropolisengine?.WORLD_H ?? 0

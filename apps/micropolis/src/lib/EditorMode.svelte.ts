@@ -12,3 +12,11 @@ export const editorModeState = {
     return editorMode;
   }
 };
+
+let scenarioDialogOpen = $state(false);
+
+export const scenarioDialogState = {
+  get open() { return scenarioDialogOpen; },
+  set(open: boolean) { scenarioDialogOpen = open; },
+  toggle() { scenarioDialogOpen = !scenarioDialogOpen; return scenarioDialogOpen; }
+};

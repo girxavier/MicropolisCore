@@ -292,6 +292,7 @@ export interface Micropolis extends ClassHandle {
   temperatureMin: number;
   temperatureMax: number;
   temperatureMean: number;
+  climateIndex: number;
   climateReady: boolean;
   climateEpochCityTime: number;
   cityYear: number;
@@ -375,6 +376,8 @@ export interface Micropolis extends ClassHandle {
   setCallback(_0: Callback | null, _1: any): void;
   init(): void;
   loadCity(_0: EmbindString): boolean;
+  saveCityAs(_0: EmbindString): void;
+  getPowerGrid(_0: number, _1: number): number;
   loadScenario(_0: Scenario): void;
   simTick(): void;
   simUpdate(): void;
@@ -415,6 +418,7 @@ export interface Micropolis extends ClassHandle {
   seedRandom(_0: number): void;
   getTile(_0: number, _1: number): number;
   setTile(_0: number, _1: number, _2: number): void;
+  computeCityClimateIndex(): number;
   setFunds(_0: number): void;
   updateMaps(): void;
   updateGraphs(): void;

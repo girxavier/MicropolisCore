@@ -1,0 +1,49 @@
+name: SmCity build and checks
+
+on:
+  push:
+    branches:
+      - smcity/editor-scenario-tools
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-check:
+    name: Emscripten + Svelte checks + app build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: ''
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 4.0.10
+          actions-cache-folder: emsdk-cache
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts --prod=false
+
+      - name: Compile engine and generate WASM assets
+        run: |
+          pnpm --filter @micropolis/engine-wasm exec tsc --version
+          PATH="$PWD/packages/micropolis-engine/node_modules/.bin:$PWD/node_modules/.bin:$PATH" make -C packages/micropolis-engine SHELL=/bin/bash install
+
+      - name: Svelte and TypeScript checks
+        run: pnpm --filter micropolis run check
+
+      - name: Micropolis tests
+        run: pnpm --filter micropolis exec vitest run --exclude cli/entry.smoke.test.ts --exclude src/lib/monorepo.integration.test.ts
+
+      - name: Production app bundle
+        run: pnpm --filter micropolis exec vite build

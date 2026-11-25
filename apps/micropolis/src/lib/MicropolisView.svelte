@@ -18,9 +18,10 @@
   import { toolFootprintAtCenter } from '$lib/gameTools';
   import type { CursorPresence } from '$lib/input/types';
   import type { ScreenRect } from '$lib/input/viewportTileFrame';
-  import { editorModeState } from '$lib/EditorMode.svelte';
+  import { editorModeState, scenarioDialogState } from '$lib/EditorMode.svelte';
+  import ScenarioSaveLoadModal from '$lib/ScenarioSaveLoadModal.svelte';
 
-  let micropolisSimulator: MicropolisSimulator | null = null;
+  let micropolisSimulator = $state<MicropolisSimulator | null>(null);
   let tileView: TileView | null = null;
   let viewRenderRef: (() => void) | null = null;
 
@@ -82,7 +83,13 @@
     else micropolisSimulator.exitEditorMode(false);
     micropolisSimulator.syncMapViews();
     await tileView!.initialize(micropolisSimulator);
-    if (!startInEditor) micropolisSimulator.setPaused(false);
+    if (!startInEditor) {
+      try { micropolisSimulator.startGameSession(); }
+      catch (error) {
+        console.error('Could not create initial dated game save:', error);
+        micropolisSimulator.resumeSimulation();
+      }
+    }
 
     console.log("MicropolisView: onMount:", "micropolisSimulator:", micropolisSimulator);
 
@@ -118,6 +125,9 @@
       />
       <GameHud />
       <ZoneStatusPanel />
+      {#if scenarioDialogState.open}
+        <ScenarioSaveLoadModal onClose={() => scenarioDialogState.set(false)} />
+      {/if}
       <BudgetModal />
       <HelpModal />
     </div>

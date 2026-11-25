@@ -4,6 +4,8 @@ import { micropolisReactive } from './MicropolisReactive.svelte';
 let activeToolId = $state<ToolId>('road');
 let hoverTile = $state<[number, number] | null>(null);
 let lastToolFeedback = $state<string | null>(null);
+let speedFeedback = $state<string | null>(null);
+let speedFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 let toolRevision = $state(0);
 let hoverRevision = $state(0);
 
@@ -45,6 +47,17 @@ export const toolState = {
 	},
 	get lastToolFeedback() {
 		return lastToolFeedback;
+	},
+	get speedFeedback() {
+		return speedFeedback;
+	},
+	setSpeedFeedback(message: string | null) {
+		speedFeedback = message;
+		if (speedFeedbackTimer !== null) clearTimeout(speedFeedbackTimer);
+		speedFeedbackTimer = message === null ? null : setTimeout(() => {
+			speedFeedback = null;
+			speedFeedbackTimer = null;
+		}, 1800);
 	},
 	setLastToolFeedback(message: string | null) {
 		lastToolFeedback = message;

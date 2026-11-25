@@ -1,6 +1,5 @@
-# Lightweight checks on push/PR — no Emscripten, no GitHub Pages deploy.
-# The live demo at https://micropolisweb.com/ is unchanged by pushes to main.
-# Publish only via: Actions → "Build Wasm Library with Emscripten" → deploy_to_pages ✓
+# Pull-request checks; the Micropolis test job rebuilds its Emscripten module.
+# No GitHub Pages deployment is performed by this workflow.
 
 name: PR Checks
 
@@ -20,7 +19,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run verify:structure
 
   build-ts:
@@ -33,7 +32,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter vitamoo run build
       - run: pnpm --filter mooshow run build
       - run: pnpm --filter vitamoospace run build
@@ -48,7 +47,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter micropolis run check
 
   test:
@@ -61,10 +60,19 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 4.0.10
+          actions-cache-folder: emsdk-cache
       - run: pnpm --filter vitamoo run build
       - run: pnpm --filter mooshow run build
       - run: pnpm --filter mooshow run test
       - run: pnpm --filter @micropolis/sims-io run build
       - run: pnpm --filter @micropolis/sims-io run test
-      - run: pnpm --filter micropolis run test
+      - name: Compile Micropolis engine and refresh WASM bindings
+        run: |
+          pnpm --filter @micropolis/engine-wasm exec tsc --version
+          PATH="$PWD/packages/micropolis-engine/node_modules/.bin:$PWD/node_modules/.bin:$PATH" make -C packages/micropolis-engine SHELL=/bin/bash install
+      - name: Run Micropolis tests (excluding CLI-only rune bootstrap)
+        run: pnpm --filter micropolis exec vitest run --exclude cli/entry.smoke.test.ts --exclude src/lib/monorepo.integration.test.ts

@@ -1,21 +1,30 @@
 <script lang="ts">
 	import { GAME_TOOL_GROUPS, toolMenuLabel, type ToolId } from '$lib/gameTools';
 	import { toolState } from '$lib/ToolState.svelte';
-	import { editorModeState } from '$lib/EditorMode.svelte';
-	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
+	import { editorModeState, scenarioDialogState } from '$lib/EditorMode.svelte';
 	import { commandBus } from '$lib/CommandBus';
+	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	let mobileOpen = $state(false);
+	let editorNotice = $state('');
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
 		mobileOpen = false;
 	}
 
-	function selectSpeed(index: number) {
-		const sim = micropolisReactive.attachedSimulator;
-		sim?.setGameSpeed(index);
-		sim?.setPaused(false);
-		mobileOpen = false;
+	function resetMap() {
+		if (!confirm('Réinitialiser entièrement la carte ? Cette action efface la ville en cours.')) return;
+		micropolisReactive.poke.clearMap();
+		micropolisReactive.syncFromEngine();
+		editorNotice = 'Carte réinitialisée.';
+	}
+
+	function generateTerrain() {
+		if (!confirm('Générer un nouveau terrain ? La carte actuelle sera remplacée.')) return;
+		const seed = Math.floor(Math.random() * 0x7fffffff);
+		micropolisReactive.poke.generateMap(seed);
+		micropolisReactive.syncFromEngine();
+		editorNotice = 'Terrain généré · graine ' + seed + '.';
 	}
 
 	function toggleEditorMode() {
@@ -23,7 +32,16 @@
 		const next = !editorModeState.active;
 		editorModeState.set(next);
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
-		else micropolisReactive.attachedSimulator?.exitEditorMode();
+		else {
+			scenarioDialogState.set(false);
+			try {
+				const save = micropolisReactive.attachedSimulator?.startGameSession();
+				editorNotice = save ? 'Partie démarrée · sauvegarde datée créée.' : 'Partie démarrée.';
+			} catch (error) {
+				micropolisReactive.attachedSimulator?.resumeSimulation();
+				editorNotice = error instanceof Error ? 'Partie démarrée, mais sauvegarde impossible : ' + error.message : 'Partie démarrée, sauvegarde impossible.';
+			}
+		}
 	}
 </script>
 
@@ -35,11 +53,16 @@
 		{editorModeState.active ? 'REPRENDRE LE JEU' : 'MODE MAQUETTISTE'}
 	</button>
 	{#if editorModeState.active}
+		<div class="tool-group-label">Carte et scénarios</div>
+		<button type="button" class="tool-item" onclick={() => scenarioDialogState.set(true)}>Sauvegarder / charger un scénario</button>
+		<button type="button" class="tool-item" onclick={generateTerrain}>Générer un terrain</button>
+		<button type="button" class="tool-item" onclick={resetMap}>RESET · Carte vierge</button>
+		{#if editorNotice}<div class="tool-group-label" role="status">{editorNotice}</div>{/if}
 		<div class="tool-group-label">Historique</div>
 		<button type="button" class="tool-item" onclick={() => commandBus.undo()}>↶ Annuler (Ctrl+Z)</button>
 		<button type="button" class="tool-item" onclick={() => commandBus.redo()}>↷ Rétablir (Ctrl+Y)</button>
 		{#each GAME_TOOL_GROUPS as group (group.id)}
-			<details class="tool-category" open={group.id === 'terrain'}>
+			<details class="tool-category" open>
 				<summary>{group.label ?? group.id}</summary>
 				{#each group.tools as tool (tool.id)}
 					<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
@@ -51,18 +74,13 @@
 			</details>
 		{/each}
 	{:else}
-		<div class="tool-group-label">Vitesse du jeu</div>
-		{#each [{ index: 0, label: 'Lente · 58 s/mois' }, { index: 1, label: 'Normale · 29 s/mois' }, { index: 2, label: 'Rapide · 10 s/mois' }] as speed}
-			<button type="button" class="tool-item" class:active={micropolisReactive.gameSpeedIndex === speed.index} onclick={() => selectSpeed(speed.index)}>
-				<span class="tool-key">{speed.index + 1}:</span><span class="tool-name">{speed.label}</span>
-			</button>
-		{/each}
-		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain' && !group.id.endsWith('-buildings')) as group (group.id)}
+		<button type="button" class="tool-item" onclick={() => scenarioDialogState.set(true)}>Charger un scénario / sauvegarder la partie</button>
+		{#each GAME_TOOL_GROUPS.filter((group) => group.id !== 'terrain' && group.id !== 'special' && !group.id.endsWith('-buildings')) as group (group.id)}
 			{#if group.label}<div class="tool-group-label">{group.label}</div>{/if}
 			{#each group.tools as tool (tool.id)}
 				<button type="button" class="tool-item" class:active={toolState.activeToolId === tool.id}
 					title="{tool.shortcut}: {toolMenuLabel(tool)}" onclick={() => selectTool(tool.id)}>
-					<span class="tool-key">{tool.shortcut}:</span><span class="tool-name">{toolMenuLabel(tool)}</span>
+					{#if tool.shortcut !== '—'}<span class="tool-key">{tool.shortcut}:</span>{/if}<span class="tool-name">{toolMenuLabel(tool)}</span>
 				</button>
 			{/each}
 		{/each}

@@ -486,6 +486,8 @@
   function applyToolAt(tx: number, ty: number): void {
     const eng = micropolisSimulator?.micropolisengine;
     if (!eng || !micropolisSimulator) return;
+    const sim = micropolisSimulator.micropolis;
+    if (!sim) return;
 
     const tileX = Math.floor(tx);
     const tileY = Math.floor(ty);
@@ -494,7 +496,7 @@
 
     const mapBefore = micropolisReactive.memory.mapU16;
     const before = mapBefore ? new Uint16Array(mapBefore) : null;
-    const fundsBefore = micropolisSimulator.micropolis.totalFunds;
+    const fundsBefore = sim.totalFunds;
     const directBuildingCenter = editorModeState.active
       ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
       : null;
@@ -520,7 +522,7 @@
             let value = tileId + tileFlags;
             if (isCenter) {
               value |= bits.ZONEBIT.value | bits.BULLBIT.value;
-              const powered = micropolisSimulator.micropolis?.getPowerGrid(tileX, tileY) ?? 0;
+              const powered = sim.getPowerGrid(tileX, tileY);
               if (powered) value |= bits.PWRBIT.value;
             }
             micropolisReactive.poke.setTile(left + dx, top + dy, value);
@@ -534,7 +536,7 @@
       result = micropolisReactive.poke.doTool(tool, tileX, tileY);
     }
     const afterMap = micropolisReactive.memory.mapU16;
-    const fundsDelta = micropolisSimulator.micropolis.totalFunds - fundsBefore;
+    const fundsDelta = sim.totalFunds - fundsBefore;
     if (before && afterMap) {
       const changes: Array<{ index: number; before: number; after: number }> = [];
       for (let i = 0; i < Math.min(before.length, afterMap.length); i++) {
@@ -641,6 +643,30 @@
       event.preventDefault();
       void commandBus.redo(commandContext(event));
       return;
+    }
+
+    // Y slows down; I speeds up. Keep editor mode frozen and reserve Ctrl+Y for redo.
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && !editorModeState.active) {
+      const speedKey = key.toLowerCase();
+      if (speedKey === 'y' || speedKey === 'i') {
+        event.preventDefault();
+        const current = micropolisSimulator.gameSpeed;
+        const next = Math.max(0, Math.min(3, current + (speedKey === 'i' ? 1 : -1)));
+        const labels = [
+          'Lente · 58 s/mois',
+          'Normale · 29 s/mois',
+          'Rapide · 10 s/mois',
+          'Très rapide · 5 s/mois'
+        ];
+        if (next === current) {
+          toolState.setSpeedFeedback(speedKey === 'y' ? 'Vitesse minimale déjà active.' : 'Vitesse maximale déjà active.');
+        } else {
+          micropolisSimulator.setGameSpeed(next);
+          micropolisSimulator.resumeSimulation();
+          toolState.setSpeedFeedback('Vitesse : ' + labels[next] + '.');
+        }
+        return;
+      }
     }
 
     if (key === 'Shift') {

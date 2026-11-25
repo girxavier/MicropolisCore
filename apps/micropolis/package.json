@@ -2,9 +2,9 @@
 	"name": "micropolis",
 	"version": "0.0.1",
 	"scripts": {
-		"dev": "concurrently -n vite,engine \"pnpm run dev:vite\" \"pnpm run dev:engine\"",
+		"dev": "pnpm --filter @micropolis/engine-wasm run build && concurrently -n vite,engine \"pnpm run dev:vite\" \"pnpm run dev:engine\"",
 		"dev:vite": "vite dev",
-		"dev:engine": "chokidar \"../../packages/micropolis-engine/src/*.cpp\" \"../../packages/micropolis-engine/src/*.h\" \"../../content/micropolis/climate/*.csv\" --initial --silent --command \"pnpm --filter @micropolis/engine-wasm run build\"",
+		"dev:engine": "chokidar \"../../packages/micropolis-engine/src/*.cpp\" \"../../packages/micropolis-engine/src/*.h\" \"../../content/micropolis/climate/*.csv\" --silent --command \"pnpm --filter @micropolis/engine-wasm run build\"",
 		"prebuild": "pnpm --filter @micropolis/engine-wasm run build",
 		"build": "vite build",
 		"preview": "vite preview",
@@ -31,7 +31,8 @@
 		"typescript": "^5.0.0",
 		"vite": "^5.0.3",
 		"vitest": "^2.1.9",
-		"yargs": "^17.7.2"
+		"yargs": "^17.7.2",
+		"@types/node": "^25.6.0"
 	},
 	"type": "module",
 	"dependencies": {

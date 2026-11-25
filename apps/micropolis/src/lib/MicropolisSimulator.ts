@@ -40,6 +40,37 @@ export async function loadMicropolisEngine(): Promise<MainModule> {
 	return micropolisengine;
 }
 
+export interface BrowserCitySaveSlot { id: string; name: string; path: string; savedAt: string; }
+export interface BrowserGameSaveSlot extends BrowserCitySaveSlot { sourceId: string; sourceName: string; }
+
+const CITY_SAVE_PREFIX = 'smcity:city-file:v1:';
+const GAME_SAVE_PREFIX = 'smcity:game-save:v1:';
+
+type BrowserFileSystemModule = MainModule & {
+  FS?: { readFile: (path: string) => Uint8Array };
+  FS_unlink?: (path: string) => void;
+  FS_createDataFile?: (parent: string, name: string, data: Uint8Array, canRead: boolean, canWrite: boolean, canOwn: boolean) => void;
+};
+
+function citySaveId(value: string): string {
+  const leaf = value.trim().replace(/\\/g, '/').split('/').pop() ?? '';
+  return leaf.replace(/\.cty$/i, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
+}
+
+function encodeCityBytes(bytes: Uint8Array): string {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  return btoa(binary);
+}
+
+function decodeCityBytes(encoded: string): Uint8Array {
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 export class MicropolisSimulator {
 
 	micropolisengine: MainModule | null = null;
@@ -55,11 +86,10 @@ export class MicropolisSimulator {
       "/cities/brest.cty",
       "/cities/toulouse.cty",
     ];
-    // 16 phases per city-time unit × 4 city-time units per month = 64 ticks/month.
-    // At 1.1 / 2.2 / 6.4 ticks per second: about 58 / 29 / 10 seconds per month.
+    // 64 simulation ticks per month; speed 4 targets 5 seconds per month.
     gameSpeed = 1;
-    keyFramesPerSecondValues = [1.1, 2.2, 6.4];
-    keyPassesValues = [1, 1, 1];
+    keyFramesPerSecondValues = [1.1, 2.2, 6.4, 12.8];
+    keyPassesValues = [1, 1, 1, 1];
     tickIntervalId: number | NodeJS.Timeout | null = null;
     framesPerSecond: number = 0;
     pausedFramesPerSecond: number = 0;
@@ -69,6 +99,8 @@ export class MicropolisSimulator {
     private isInitialized: boolean = false;
     private hasLoadedCity: boolean = false;
     private editorSavedFunds: number | null = null;
+    private currentSourceId = '';
+    private currentSourceName = '';
     private renderCallbacks: Set<() => void> = new Set();
   
     constructor() {
@@ -175,6 +207,9 @@ export class MicropolisSimulator {
         const fps = this.keyFramesPerSecondValues[safeSpeed];
         if (this.paused) this.pausedFramesPerSecond = fps;
         else this.setFramesPerSecond(fps);
+        // Keep the engine's internal simulation gate enabled. The JS timer controls
+        // real-time pacing; without this, pause()/resume() can restore simSpeed=0.
+        this.micropolis?.setSpeed(3);
         this.micropolis?.setPasses(this.keyPassesValues[safeSpeed]);
     }
 
@@ -186,14 +221,39 @@ export class MicropolisSimulator {
         this.micropolis.setFunds(1_000_000_000);
     }
 
-    /** Restore the previous budget and resume normal simulation. */
+    /** Restore the previous budget and resume the engine even if its internal pause flag drifted. */
     exitEditorMode(resumeSimulation = true) {
         if (!this.micropolis) return;
         if (this.editorSavedFunds !== null) {
             this.micropolis.setFunds(this.editorSavedFunds);
             this.editorSavedFunds = null;
         }
-        if (resumeSimulation) this.setPaused(false);
+        if (resumeSimulation) this.resumeSimulation();
+    }
+
+    /** Force a clean transition from editor/loading state into a running game. */
+    resumeSimulation(): void {
+        if (!this.micropolis || this.disposed) return;
+        const fps = this.paused
+            ? (this.pausedFramesPerSecond || this.keyFramesPerSecondValues[this.gameSpeed])
+            : (this.framesPerSecond || this.keyFramesPerSecondValues[this.gameSpeed]);
+        this.micropolis.setSpeed(3);
+        this.micropolis.setPasses(this.keyPassesValues[this.gameSpeed]);
+        this.micropolis.resume();
+        this.paused = false;
+        this.pausedFramesPerSecond = fps;
+        this.setFramesPerSecond(fps);
+        this.render();
+        for (const fn of this.renderCallbacks) {
+            try { fn(); } catch (e) { console.warn('MicropolisSimulator: view render failed:', e); }
+        }
+    }
+
+    /** Start a fresh dated play session derived from the currently loaded scenario. */
+    startGameSession(): BrowserGameSaveSlot {
+        this.exitEditorMode(false);
+        this.resumeSimulation();
+        return this.saveGameToBrowserSlot();
     }
 
     resetFramesPerSecond() {
@@ -272,9 +332,175 @@ export class MicropolisSimulator {
       unregisterRenderCallback(fn: () => void) {
         if (fn) this.renderCallbacks.delete(fn);
       }
+    listBrowserCitySaveSlots(): BrowserCitySaveSlot[] {
+        if (typeof localStorage === 'undefined') return [];
+        const slots: BrowserCitySaveSlot[] = [];
+        for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (!key?.startsWith(CITY_SAVE_PREFIX)) continue;
+            try {
+                const record = JSON.parse(localStorage.getItem(key) ?? 'null') as BrowserCitySaveSlot;
+                if (record?.id && record.path) slots.push(record);
+            } catch { /* ignore damaged slot */ }
+        }
+        return slots.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    }
+
+    listBrowserGameSaveSlots(): BrowserGameSaveSlot[] {
+        if (typeof localStorage === 'undefined') return [];
+        const slots: BrowserGameSaveSlot[] = [];
+        for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (!key?.startsWith(GAME_SAVE_PREFIX)) continue;
+            try {
+                const record = JSON.parse(localStorage.getItem(key) ?? 'null') as BrowserGameSaveSlot;
+                if (record?.id && record.path && record.savedAt) slots.push(record);
+            } catch { /* ignore damaged save */ }
+        }
+        return slots.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+    }
+
+    private persistScenarioFile(path: string, name: string, id: string): BrowserCitySaveSlot {
+        const module = this.micropolisengine as BrowserFileSystemModule | null;
+        if (!module?.FS?.readFile) throw new Error('Le moteur WASM ne permet pas de lire les fichiers de sauvegarde.');
+        const bytes = module.FS.readFile(path);
+        const slot: BrowserCitySaveSlot = { id, name, path, savedAt: new Date().toISOString() };
+        localStorage.setItem(CITY_SAVE_PREFIX + id, JSON.stringify({ ...slot, bytes: encodeCityBytes(bytes) }));
+        this.cityFileName = path;
+        if (this.micropolis) this.micropolis.cityFileName = path;
+        this.currentSourceId = 'scenario:' + id;
+        this.currentSourceName = name;
+        this.syncMapViews();
+        this.render();
+        return slot;
+    }
+
+    /** Enregistre un nouveau scénario source immuable ; un original existant n'est jamais écrasé. */
+    saveCurrentCityToBrowserSlot(): BrowserCitySaveSlot {
+        if (!this.micropolis) throw new Error('Aucune ville active à enregistrer.');
+        const name = this.micropolis.cityName || citySaveId(this.cityFileName || 'scenario');
+        return this.saveCityAsBrowserSlot(name);
+    }
+
+    saveCityAsBrowserSlot(name: string): BrowserCitySaveSlot {
+        if (!this.micropolis || !this.micropolisengine || typeof localStorage === 'undefined') throw new Error('La sauvegarde locale du navigateur est indisponible.');
+        const cleanName = name.trim();
+        if (!cleanName) throw new Error('Saisissez un nom de scénario.');
+        const id = citySaveId(cleanName);
+        if (this.cityFileNames.some((path) => citySaveId(path) === id)) {
+            throw new Error('Ce nom est reserve a une des cinq villes d’origine. Choisissez un autre nom pour votre scenario.');
+        }
+        if (localStorage.getItem(CITY_SAVE_PREFIX + id)) {
+            throw new Error('Un scénario porte déjà ce nom. Choisissez un autre nom : les scénarios sources ne sont jamais écrasés.');
+        }
+        const path = '/cities/user-' + id + '.cty';
+        const editorFunds = this.micropolis.totalFunds;
+        if (this.editorSavedFunds !== null) this.micropolis.setFunds(this.editorSavedFunds);
+        try {
+            this.micropolis.setCityName(cleanName);
+            this.micropolis.saveCityAs(path);
+            this.micropolis.setCityName(cleanName);
+        } finally {
+            if (this.editorSavedFunds !== null) this.micropolis.setFunds(editorFunds);
+        }
+        return this.persistScenarioFile(path, cleanName, id);
+    }
+
+    private restoreBrowserCityFile(path: string, encodedBytes: string): boolean {
+        const module = this.micropolisengine as BrowserFileSystemModule | null;
+        const engine = this.micropolis;
+        if (!module || !engine) return false;
+        const bytes = decodeCityBytes(encodedBytes);
+        const filename = path.split('/').pop() ?? 'scenario.cty';
+        try { module.FS_unlink?.(path); } catch { /* file did not exist */ }
+        if (!module.FS_createDataFile) throw new Error('Le moteur WASM ne permet pas de recharger les sauvegardes locales.');
+        module.FS_createDataFile('/cities', filename, bytes, true, true, true);
+        return engine.loadCity(path);
+    }
+
+    loadBrowserCitySaveSlot(idOrName: string): boolean {
+        if (typeof localStorage === 'undefined') return false;
+        const id = citySaveId(idOrName);
+        const raw = localStorage.getItem(CITY_SAVE_PREFIX + id);
+        if (!raw) return false;
+        const record = JSON.parse(raw) as BrowserCitySaveSlot & { bytes: string };
+        const loaded = this.restoreBrowserCityFile(record.path, record.bytes);
+        if (loaded && this.micropolis) {
+            this.micropolis.setCityName(record.name);
+            this.cityFileName = record.path;
+            this.currentSourceId = 'scenario:' + record.id;
+            this.currentSourceName = record.name;
+            this.hasLoadedCity = true;
+            if (this.editorSavedFunds !== null) {
+                this.editorSavedFunds = this.micropolis.totalFunds;
+                this.micropolis.setFunds(1_000_000_000);
+                this.micropolis.pause();
+            }
+            this.syncMapViews();
+            this.render();
+        }
+        return loaded;
+    }
+
+    /** Crée une sauvegarde datée de la partie sans toucher au scénario source. */
+    saveGameToBrowserSlot(): BrowserGameSaveSlot {
+        if (!this.micropolis || !this.micropolisengine || typeof localStorage === 'undefined') {
+            throw new Error('La sauvegarde locale du navigateur est indisponible.');
+        }
+        const module = this.micropolisengine as BrowserFileSystemModule;
+        if (!module.FS?.readFile) throw new Error('Le moteur WASM ne permet pas de lire les fichiers de sauvegarde.');
+        const name = this.currentSourceName || this.micropolis.cityName || citySaveId(this.cityFileName || 'scenario');
+        const sourceId = this.currentSourceId || ('builtin:' + citySaveId(this.cityFileName || name));
+        const savedAt = new Date().toISOString();
+        const stamp = savedAt.replace(/[:.]/g, '-');
+        const baseId = citySaveId(name) + '-' + stamp;
+        let id = baseId;
+        let suffix = 1;
+        while (localStorage.getItem(GAME_SAVE_PREFIX + id)) id = baseId + '-' + suffix++;
+        const path = '/cities/game-' + id + '.cty';
+        this.micropolis.setCityName(name);
+        this.micropolis.saveCityAs(path);
+        this.micropolis.setCityName(name);
+        const bytes = module.FS.readFile(path);
+        const slot: BrowserGameSaveSlot = { id, name, sourceId, sourceName: name, path, savedAt };
+        localStorage.setItem(GAME_SAVE_PREFIX + id, JSON.stringify({ ...slot, bytes: encodeCityBytes(bytes) }));
+        this.cityFileName = path;
+        this.micropolis.cityFileName = path;
+        this.currentSourceId = sourceId;
+        this.currentSourceName = name;
+        this.syncMapViews();
+        this.render();
+        return slot;
+    }
+
+    loadBrowserGameSaveSlot(id: string): boolean {
+        if (typeof localStorage === 'undefined') return false;
+        const raw = localStorage.getItem(GAME_SAVE_PREFIX + id);
+        if (!raw) return false;
+        const record = JSON.parse(raw) as BrowserGameSaveSlot & { bytes: string };
+        const loaded = this.restoreBrowserCityFile(record.path, record.bytes);
+        if (loaded && this.micropolis) {
+            this.micropolis.setCityName(record.name);
+            this.cityFileName = record.path;
+            this.currentSourceId = record.sourceId;
+            this.currentSourceName = record.sourceName || record.name;
+            this.hasLoadedCity = true;
+            if (this.editorSavedFunds !== null) {
+                this.editorSavedFunds = this.micropolis.totalFunds;
+                this.micropolis.setFunds(1_000_000_000);
+                this.micropolis.pause();
+            }
+            this.syncMapViews();
+            this.render();
+        }
+        return loaded;
+    }
+
 	loadDefaultCityOnce() {
 		if (this.micropolis && !this.hasLoadedCity) {
 			this.micropolis.loadCity(this.cityFileName);
+			this.currentSourceId = 'builtin:' + citySaveId(this.cityFileName);
+			this.currentSourceName = this.micropolis.cityName;
 			this.hasLoadedCity = true;
 			this.syncMapViews();
 		}
@@ -285,10 +511,14 @@ export class MicropolisSimulator {
         const loaded = this.micropolis.loadCity(fileName);
         if (loaded) {
             this.cityFileName = fileName;
+            const source = this.listBrowserCitySaveSlots().find((slot) => slot.path === fileName);
+            this.currentSourceId = source ? 'scenario:' + source.id : 'builtin:' + citySaveId(fileName);
+            this.currentSourceName = this.micropolis.cityName;
             this.hasLoadedCity = true;
             if (this.editorSavedFunds !== null) {
                 this.editorSavedFunds = this.micropolis.totalFunds;
                 this.micropolis.setFunds(1_000_000_000);
+                this.micropolis.pause();
             }
             this.syncMapViews();
             this.render();
@@ -317,11 +547,14 @@ export class MicropolisSimulator {
 
         this.micropolis.loadScenario(scenarioValue);
         this.cityFileName = '';
+        this.currentSourceId = 'scenario:' + citySaveId(this.micropolis.cityName);
+        this.currentSourceName = this.micropolis.cityName;
         this.hasLoadedCity = true;
 
         if (this.editorSavedFunds !== null) {
             this.editorSavedFunds = this.micropolis.totalFunds;
             this.micropolis.setFunds(1_000_000_000);
+            this.micropolis.pause();
         }
 
         this.syncMapViews();
