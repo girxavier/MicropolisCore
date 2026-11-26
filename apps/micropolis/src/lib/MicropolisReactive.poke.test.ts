@@ -154,6 +154,32 @@ describe('micropolisReactive poke / peek / memory', () => {
 		}
 	});
 
+	it('poke.generateTerrainForEditor applies forest density and a directed river', () => {
+		simulatorLike.mopData?.fill(7);
+		const before = micropolisReactive.mapRevision;
+		micropolisReactive.poke.generateTerrainForEditor(4242, 0, 100, 0, 0, false, 6, 2, 0, 0);
+		expect(micropolis.generatedCitySeed).toBe(4242);
+		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		for (let y = 0; y < engine.WORLD_H; y++) {
+			for (let x = 0; x < engine.WORLD_W; x++) {
+				const tile = (micropolisReactive.peek.tile(x, y) ?? 0) & 0x03ff;
+				expect(tile).toBeGreaterThanOrEqual(engine.Tiles.WOODS_LOW.value);
+				expect(tile).toBeLessThanOrEqual(engine.Tiles.WOODS_HIGH.value);
+			}
+		}
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
+
+		micropolisReactive.poke.generateTerrainForEditor(4243, 0, 0, 100, 0, true, 6, 2, 0, 0);
+		const westEdge = (micropolisReactive.peek.tile(0, Math.floor(engine.WORLD_H / 2)) ?? 0) & 0x03ff;
+		const eastEdge = (micropolisReactive.peek.tile(engine.WORLD_W - 1, Math.floor(engine.WORLD_H / 2)) ?? 0) & 0x03ff;
+		expect(westEdge).toBeGreaterThanOrEqual(engine.Tiles.WATER_LOW.value);
+		expect(westEdge).toBeLessThanOrEqual(engine.Tiles.WATER_HIGH.value);
+		expect(eastEdge).toBeGreaterThanOrEqual(engine.Tiles.WATER_LOW.value);
+		expect(eastEdge).toBeLessThanOrEqual(engine.Tiles.WATER_HIGH.value);
+	});
+
 	it('poke.clearMap clears map tiles and stale MOP atlas selectors', () => {
 		const virtualAgricultureTile = 53;
 		micropolisReactive.poke.setTile(5, 5, virtualAgricultureTile);
