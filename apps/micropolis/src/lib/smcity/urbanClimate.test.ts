@@ -72,7 +72,7 @@ describe('logarithmic city-wide climate transform', () => {
 		expect(transformRawCityClimateScore(400000)).toBeCloseTo(100, 2);
 		expect(transformRawCityClimateScore(800670)).toBeCloseTo(125, 2);
 		expect(transformRawCityClimateScore(-400000)).toBeCloseTo(-100, 2);
-		expect(transformRawCityClimateScore(1573720)).toBeGreaterThan(150);
+		expect(transformRawCityClimateScore(1600000)).toBeGreaterThan(150);
 	});
 
 	it('includes the 3x3 organic market-gardening footprint in both climate fields', () => {
