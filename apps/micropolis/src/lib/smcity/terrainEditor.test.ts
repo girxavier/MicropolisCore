@@ -64,6 +64,7 @@ describe('SmCity terrain editor model', () => {
     expect(() => createTerrainSnapshot({ ...snapshot, tiles: [0, 0] })).toThrow(RangeError);
     expect(() => createTerrainSnapshot({ ...snapshot, tiles: [0, 0, -1, 0, 0, 0] })).toThrow(RangeError);
     expect(() => createTerrainSnapshot({ ...snapshot, tiles: [0, 0, 240, 0, 0, 0] })).toThrow(/terrain/);
+    expect(() => createTerrainSnapshot({ ...snapshot, riverFlow: { from: 'N', to: 'N' } })).toThrow(/rivière/);
   });
 
   it('rejects files that are not terrain-library documents', () => {
