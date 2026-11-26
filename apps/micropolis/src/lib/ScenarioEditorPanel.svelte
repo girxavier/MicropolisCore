@@ -172,7 +172,7 @@
       const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(name, exists);
       if (!saved) throw new Error('Aucun simulateur disponible.');
       micropolisReactive.syncFromEngine();
-      scenarioData = createEmptyScenarioData(saved.id);
+      scenarioData = { ...createEmptyScenarioData(saved.id), agriculturalZones: { ...(scenarioData.agriculturalZones ?? {}) } };
       saveScenarioData(scenarioData);
       micropolisReactive.attachedSimulator?.micropolis?.clearZoneLocks();
       micropolisReactive.refreshCityClimateIndex();

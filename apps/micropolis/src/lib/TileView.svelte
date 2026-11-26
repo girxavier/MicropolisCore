@@ -25,7 +25,7 @@
   import { toolState } from '$lib/ToolState.svelte';
   import { editorModeState } from '$lib/EditorMode.svelte';
   import { resolveEditingTool, resolveDirectBuildingCenterTile, agriculturalLevelForTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
-  import { loadScenarioData, saveScenarioData, upsertAgriculturalZone } from '$lib/smcity/scenarioData';
+  import { loadScenarioData, removeAgriculturalZone, saveScenarioData, upsertAgriculturalZone } from '$lib/smcity/scenarioData';
   import {
     syncViewportScreenScale,
     panToKeepWorldAtScreen,
@@ -500,7 +500,7 @@
     const fundsBefore = micropolis.totalFunds;
     const agriculturalLevel = agriculturalLevelForTool(toolState.activeToolId);
     const agriculturalScenarioId = micropolisReactive.cityFileName || micropolisReactive.cityName || 'default';
-    const agriculturalDataBefore = agriculturalLevel !== null ? loadScenarioData(agriculturalScenarioId) : null;
+    const agriculturalDataBefore = loadScenarioData(agriculturalScenarioId);
     const directBuildingCenter = editorModeState.active
       ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
       : null;
@@ -607,10 +607,23 @@
       const tool = resolveEditingTool(eng, toolState.activeToolId);
       result = micropolisReactive.poke.doTool(tool, tileX, tileY);
     }
+    if (agriculturalLevel === null && toolState.activeToolId !== 'query') {
+      const resultCode = typeof result === 'number' ? result : result.value;
+      if (resultCode === eng.ToolResult.TOOLRESULT_OK.value) {
+        const affectedZones = Object.values(agriculturalDataBefore.agriculturalZones ?? {}).filter((zone) =>
+          Math.abs(zone.x - tileX) <= 1 && Math.abs(zone.y - tileY) <= 1
+        );
+        if (affectedZones.length) {
+          let nextData = agriculturalDataBefore;
+          for (const zone of affectedZones) nextData = removeAgriculturalZone(nextData, zone.x, zone.y);
+          saveScenarioData(nextData);
+        }
+      }
+    }
     const afterMap = micropolisReactive.memory.mapU16;
     const fundsDelta = micropolis.totalFunds - fundsBefore;
-    const agriculturalDataAfter = agriculturalDataBefore ? loadScenarioData(agriculturalScenarioId) : null;
-    const agriculturalDataChanged = !!agriculturalDataBefore && !!agriculturalDataAfter &&
+    const agriculturalDataAfter = loadScenarioData(agriculturalScenarioId);
+    const agriculturalDataChanged =
       JSON.stringify(agriculturalDataBefore.agriculturalZones) !== JSON.stringify(agriculturalDataAfter.agriculturalZones);
     if (before && afterMap) {
       const changes: Array<{ index: number; before: number; after: number }> = [];
@@ -629,7 +642,7 @@
           micropolisReactive.poke.updateMaps();
           const currentFunds = micropolisReactive.totalFunds;
           micropolisReactive.poke.setFunds(field === 'before' ? currentFunds - fundsDelta : currentFunds + fundsDelta);
-          if (agriculturalDataChanged && agriculturalDataBefore && agriculturalDataAfter) {
+          if (agriculturalDataChanged) {
             saveScenarioData(field === 'before' ? agriculturalDataBefore : agriculturalDataAfter);
             micropolisReactive.refreshCityClimateIndex();
           }

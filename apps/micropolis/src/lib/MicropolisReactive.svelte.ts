@@ -581,6 +581,13 @@ export const micropolisReactive = {
 		if (typeof attachedSimulator?.micropolis?.clearZoneLocks === 'function') attachedSimulator.micropolis.clearZoneLocks();
 		zoneLockRevision++;
 	},
+	clearScenarioAgriculturalZones(): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const data = loadScenarioData(scenarioId);
+		if (Object.keys(data.agriculturalZones ?? {}).length === 0) return;
+		saveScenarioData({ ...data, agriculturalZones: {}, updatedAt: new Date().toISOString() });
+		mapRevision++;
+	},
 
 	/**
 	 * Embind module (`WORLD_W`, `MapTileBits`, `EditingTool`, `Tiles`, …).
