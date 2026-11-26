@@ -9,7 +9,7 @@ export interface AgriculturalZone {
   level: number;
   monthsInStage: number;
   specialization: 'MAR';
-  productionMode: 'BIO';
+  productionMode: 'BIO' | 'CONV';
 }
 export interface ScenarioData {
   schemaVersion: 1;
