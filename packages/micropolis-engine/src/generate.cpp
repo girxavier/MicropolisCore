@@ -181,6 +181,9 @@ void Micropolis::clearMap()
             map[x][y] = DIRT;
         }
     }
+
+    // Clearing the visible tiles must also invalidate cached map views.
+    invalidateMaps();
 }
 
 
