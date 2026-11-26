@@ -60,7 +60,6 @@
   const tileHeight = 16;
   const tileSetCount = 10;
   let tileSet: number = 0;
-  let tileSet: number = 0;
 
   let canvasGL: HTMLCanvasElement | null = null;
   let ctxGL: WebGL2RenderingContext | null = null;
@@ -914,7 +913,7 @@
     
     if (!micropolisSimulator) return;
 
-    tileSet = index;
+    tileSet = ((Math.trunc(index) % tileSetCount) + tileSetCount) % tileSetCount;
     micropolisSimulator.fillMopTiles(tileSet);
 
     micropolisSimulator.render();
