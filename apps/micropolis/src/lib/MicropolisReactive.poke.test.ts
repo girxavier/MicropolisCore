@@ -164,7 +164,7 @@ describe('micropolisReactive poke / peek / memory', () => {
 			for (let x = 0; x < engine.WORLD_W; x++) {
 				const tile = (micropolisReactive.peek.tile(x, y) ?? 0) & 0x03ff;
 				expect(tile).toBeGreaterThanOrEqual(engine.Tiles.WOODS_LOW.value);
-				expect(tile).toBeLessThanOrEqual(engine.Tiles.WOODS_HIGH.value);
+				expect(tile).toBeLessThanOrEqual(engine.Tiles.WOODS5.value);
 			}
 		}
 		if (simulatorLike.mopData) {
