@@ -215,7 +215,7 @@ bool SmCityClimate::initialize(const std::string &cityName, long long cityTime,
 
 bool SmCityClimate::setAnnualCityClimateIndex(std::size_t yearIndex, double index)
 {
-    if (!std::isfinite(index) || index < -100.0 || index > 100.0) return false;
+    if (!std::isfinite(index)) return false;
     annualCityClimateIndices[yearIndex] = index;
     if (generatedYears.size() > yearIndex) generatedYears.resize(yearIndex);
     return true;

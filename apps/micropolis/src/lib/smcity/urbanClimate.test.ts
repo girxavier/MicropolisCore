@@ -7,6 +7,7 @@ import {
 	diffuseClimateIndexField,
 	computeMapCellTemperatures,
 	computeLocalTemperature,
+	transformRawCityClimateScore,
 	cityClimateTemperatureShift,
 	shiftMonthlyClimateReference
 } from './urbanClimate';
@@ -37,7 +38,7 @@ describe('map-derived city climate index', () => {
 	it('includes every map cell and applies scenario-wide type overrides', () => {
 		const tiles = new Uint16Array(12000);
 		tiles[0] = 750; // coal plant tile, +100
-		expect(computeMapCityClimateIndex(tiles)).toBeCloseTo(100 / 12000);
+		expect(computeMapCityClimateIndex(tiles)).toBeCloseTo(transformRawCityClimateScore(100));
 	});
 
 	it('rejects map buffers with the wrong dimensions', () => {
@@ -65,6 +66,30 @@ describe('local signed climate field', () => {
 	});
 });
 
+describe('logarithmic city-wide climate transform', () => {
+	it('matches the agreed calibration points and remains unbounded', () => {
+		expect(transformRawCityClimateScore(84700)).toBeCloseTo(50, 2);
+		expect(transformRawCityClimateScore(400000)).toBeCloseTo(100, 2);
+		expect(transformRawCityClimateScore(800670)).toBeCloseTo(125, 2);
+		expect(transformRawCityClimateScore(-400000)).toBeCloseTo(-100, 2);
+		expect(transformRawCityClimateScore(1573720)).toBeGreaterThan(150);
+	});
+
+	it('includes the 3x3 organic market-gardening footprint in both climate fields', () => {
+		const tiles = new Uint16Array(12000);
+		const scenario = {
+			schemaVersion: 1 as const, scenarioId: 'test', updatedAt: '',
+			constructionTypes: {}, monthlyClimateIndices: {}, lockedZones: {},
+			agriculturalZones: {
+				'10,10': { id: '10,10', x: 10, y: 10, level: 1, monthsInStage: 0, specialization: 'MAR' as const, productionMode: 'BIO' as const }
+			}
+		};
+		const field = computeMapCellClimateIndices(tiles, scenario);
+		for (let x = 9; x <= 11; x++) for (let y = 9; y <= 11; y++) expect(field[x * 100 + y]).toBe(-25);
+		expect(computeMapCityClimateIndex(tiles, scenario)).toBeCloseTo(transformRawCityClimateScore(-225));
+	});
+});
+
 describe('annual city effect', () => {
 	it('averages exactly twelve monthly records', () => {
 		expect(computeAnnualCityClimateIndex(Array(12).fill(50))).toBe(50);
@@ -73,6 +98,7 @@ describe('annual city effect', () => {
 	it('converts the annual index to degrees Celsius', () => {
 		expect(cityClimateTemperatureShift(100)).toBe(1);
 		expect(cityClimateTemperatureShift(-100)).toBe(-1);
+		expect(cityClimateTemperatureShift(150)).toBe(1.5);
 	});
 
 	it('rejects incomplete years', () => {

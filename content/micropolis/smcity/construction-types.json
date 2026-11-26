@@ -4,10 +4,18 @@
     "width": 120,
     "height": 100,
     "cellCount": 12000,
-    "aggregation": "arithmetic_mean_of_all_cells",
+    "aggregation": "signed_logarithmic_sum",
     "emptyCellClimateIndex": 0,
-    "minimumClimateIndex": -100,
-    "maximumClimateIndex": 100
+    "minimumClimateIndex": null,
+    "maximumClimateIndex": null,
+    "rawScoreTransform": "sgn(S) * 100 * ln(1 + abs(S) / 31110.5377) / 2.62881793",
+    "calibration": {
+      "84700": 50,
+      "400000": 100,
+      "800670": 125
+    },
+    "cellMinimumClimateIndex": -100,
+    "cellMaximumClimateIndex": 100
   },
   "commonProperties": [
     "id",
@@ -30,7 +38,9 @@
     "developmentRule",
     "politicalStatus",
     "tileFamily",
-    "footprint"
+    "footprint",
+    "productionCapacity",
+    "growthProgressMonths"
   ],
   "categories": [
     {
