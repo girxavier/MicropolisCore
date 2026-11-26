@@ -1822,6 +1822,9 @@ private:
 
     void smoothRiver();
 
+    /** Rebuild one shoreline tile without touching distant coastlines. */
+    void smoothRiverAt(int x, int y);
+
     void smoothWater();
 
     void putOnMap(MapValue mChar, short xLoc, short yLoc);
