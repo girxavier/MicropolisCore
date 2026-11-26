@@ -109,6 +109,15 @@ function syncFromEngine(): void {
 	climateReady = m.climateReady;
 }
 
+/**
+ * MOP selects the atlas independently of map tile IDs. Whenever the engine
+ * replaces the map, rebind the view and return every cell to the base tileset.
+ */
+function resetMopAtlasSelectors(): void {
+	attachedSimulator?.syncMapViews();
+	attachedSimulator?.mopData?.fill(0);
+}
+
 /** Recompute and persist the current month's map-derived urban climate index. */
 function isLockableZoneType(typeId: string | null): boolean {
 	return !!typeId && (typeId.startsWith('R.') || typeId.startsWith('C.') || typeId.startsWith('I.'));
@@ -211,20 +220,22 @@ class MicropolisReactiveCallback {
 
 	didGenerateMap(_micropolis: Micropolis | null, _callbackVal: unknown, _seed: number): void {
 		syncFromEngine();
-		attachedSimulator?.syncMapViews();
+		resetMopAtlasSelectors();
 		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadCity(_micropolis: Micropolis | null, _callbackVal: unknown, _filename: string): void {
 		syncFromEngine();
-		attachedSimulator?.syncMapViews();
+		resetMopAtlasSelectors();
 		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadScenario(_micropolis: Micropolis | null, _callbackVal: unknown, _name: string, _fname: string): void {
 		syncFromEngine();
+		resetMopAtlasSelectors();
+		mapRevision++;
 	}
 
 	didLoseGame(_micropolis: Micropolis | null, _callbackVal: unknown): void {
@@ -733,7 +744,10 @@ export const micropolisReactive = {
 		},
 		generateMap(seed: number): void {
 			commandBus.clearHistory();
-			requireMicropolis().generateMap(seed);
+			const engine = requireMicropolis();
+			engine.generateMap(seed);
+			resetMopAtlasSelectors();
+			engine.updateMaps();
 			syncFromEngine();
 			mapRevision++;
 		},
