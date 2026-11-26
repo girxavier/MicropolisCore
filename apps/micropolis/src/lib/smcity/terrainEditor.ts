@@ -60,11 +60,6 @@ const DIRECTION_VECTOR: Record<CompassDirection, readonly [number, number]> = {
   S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1]
 };
 
-const OPPOSITE: Record<CompassDirection, CompassDirection> = {
-  N: 'S', NE: 'SW', E: 'W', SE: 'NW',
-  S: 'N', SW: 'NE', W: 'E', NW: 'SE'
-};
-
 export function validateTerrainConfig(config: TerrainGenerationConfig): TerrainGenerationConfig {
   if (!Number.isInteger(config.seed) || config.seed < 0 || config.seed > 0xffffffff) {
     throw new RangeError('La graine doit être un entier non négatif sur 32 bits.');
@@ -78,8 +73,8 @@ export function validateTerrainConfig(config: TerrainGenerationConfig): TerrainG
   if (!TERRAIN_DIRECTIONS.includes(from) || !TERRAIN_DIRECTIONS.includes(to)) {
     throw new Error('Direction de rivière inconnue.');
   }
-  if (from === to || OPPOSITE[from] === to) {
-    throw new Error('Les directions de départ et d’arrivée doivent être distinctes et non opposées.');
+  if (from === to) {
+    throw new Error('Les directions de départ et d’arrivée doivent être distinctes.');
   }
   if (!Number.isFinite(sinuosity) || sinuosity < 0 || sinuosity > 100) {
     throw new RangeError('La sinuosité doit être comprise entre 0 et 100.');
@@ -98,11 +93,11 @@ export function directionVector(direction: CompassDirection): readonly [number, 
 }
 
 /**
- * Filter the destination choices to plausible exits: never the same edge and
- * never the directly opposite edge. The eight compass points remain available.
+ * Filter destination choices: the river cannot enter and leave through the same edge.
+ * Opposite directions are valid and describe a straight crossing.
  */
 export function validRiverDestinations(from: CompassDirection): CompassDirection[] {
-  return TERRAIN_DIRECTIONS.filter((to) => to !== from && to !== OPPOSITE[from]);
+  return TERRAIN_DIRECTIONS.filter((to) => to !== from);
 }
 
 export function createTerrainSnapshot(input: Omit<TerrainSnapshot, 'format' | 'version'>): TerrainSnapshot {
