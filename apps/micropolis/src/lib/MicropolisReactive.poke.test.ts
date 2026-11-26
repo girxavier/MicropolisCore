@@ -168,7 +168,11 @@ describe('micropolisReactive poke / peek / memory', () => {
 		}
 	});
 
-	it('rebuildTerrainForEditor reshapes nearby water without redrawing distant coastlines', () => {
+	it('rebuildTerrainForEditor reshapes nearby water without redrawing distant coastlines', (context) => {
+		// The lightweight PR CI deliberately does not rebuild Emscripten. The
+		// project's local build script does, so run this integration test there.
+		if (typeof micropolis.rebuildTerrainForEditor !== 'function') context.skip();
+
 		micropolisReactive.poke.clearMap();
 		const farX = 40;
 		const farY = 40;
