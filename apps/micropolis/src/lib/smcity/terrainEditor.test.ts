@@ -63,6 +63,7 @@ describe('SmCity terrain editor model', () => {
     expect(parseTerrainSnapshot(serializeTerrainSnapshot(snapshot))).toEqual(snapshot);
     expect(() => createTerrainSnapshot({ ...snapshot, tiles: [0, 0] })).toThrow(RangeError);
     expect(() => createTerrainSnapshot({ ...snapshot, tiles: [0, 0, -1, 0, 0, 0] })).toThrow(RangeError);
+    expect(() => createTerrainSnapshot({ ...snapshot, tiles: [0, 0, 240, 0, 0, 0] })).toThrow(/terrain/);
   });
 
   it('rejects files that are not terrain-library documents', () => {
