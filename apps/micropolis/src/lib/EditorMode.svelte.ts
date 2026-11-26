@@ -9,7 +9,6 @@ export const editorModeState = {
     editorMode = active;
   },
   toggleScenarioPanel() {
-    if (!editorMode) return false;
     scenarioPanelOpen = !scenarioPanelOpen;
     return scenarioPanelOpen;
   },
