@@ -12,7 +12,6 @@
   import ScenarioEditorPanel from '$lib/ScenarioEditorPanel.svelte';
   import BudgetModal from '$lib/BudgetModal.svelte';
   import SoftwareSpriteLayer from '$lib/sprites/SoftwareSpriteLayer.svelte';
-  import AgricultureLayer from '$lib/AgricultureLayer.svelte';
   import { triggerSkywriting, toggleSkywritingPilot } from '$lib/sprites/plugins/skywriting/SkywritingPlugin.svelte';
   import CursorLayer from '$lib/input/CursorLayer.svelte';
   import { tileFootprintScreenRect } from '$lib/input/viewportTileFrame';
@@ -114,7 +113,6 @@
     <div class="map-stack">
       <TileView bind:this={tileView} />
       <SoftwareSpriteLayer getViewport={getMapViewport} simulator={micropolisSimulator} />
-      <AgricultureLayer getViewport={getMapViewport} />
       <CursorLayer
         backend="dom"
         presences={localCursorPresence}
