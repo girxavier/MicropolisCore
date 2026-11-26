@@ -63,6 +63,8 @@ jobs:
           cache: pnpm
       - uses: mymindstorm/setup-emsdk@v14
       - run: pnpm install --frozen-lockfile
+      - name: Install TypeScript compiler for Emscripten declarations
+        run: npm install --global typescript@5.9.3
       - name: Build C++/WASM engine before testing
         run: PATH="$PWD/packages/micropolis-engine/node_modules/.bin:$PWD/node_modules/.bin:$PATH" make -C packages/micropolis-engine install SHELL=/bin/bash
       - run: pnpm --filter vitamoo run build
