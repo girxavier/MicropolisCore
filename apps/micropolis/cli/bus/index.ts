@@ -6,7 +6,6 @@
  */
 
 import type { Argv } from 'yargs';
-import { callCommandMcpTool, commandMcpTools } from '../../src/lib/CommandMcpService';
 import { normalizeStructuredFormat, stringifyStructured } from '../lib/format.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -37,6 +36,7 @@ function print(value: unknown, format: string) {
 }
 
 async function callAndPrint(toolName: string, args: JsonRecord, format: string) {
+	const { callCommandMcpTool } = await import('../../src/lib/CommandMcpService');
 	const result = await callCommandMcpTool(toolName, args);
 	const text = result.content.map((item) => item.text).join('\n');
 	print(text, format);
@@ -56,7 +56,8 @@ export function extendBusCommands(argv: Argv): Argv {
 				'tools',
 				'Print MCP-style tool descriptors',
 				() => {},
-				(argv) => {
+				async (argv) => {
+					const { commandMcpTools } = await import('../../src/lib/CommandMcpService');
 					print(commandMcpTools, fmt(argv));
 				}
 			)
