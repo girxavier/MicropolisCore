@@ -61,6 +61,11 @@
 		{editorModeState.active ? 'REPRENDRE LE JEU' : 'MODE MAQUETTISTE'}
 	</button>
 	{#if editorModeState.active}
+		<button type="button" class="mode-toggle scenario-panel-toggle" class:active={editorModeState.scenarioPanelOpen}
+			aria-expanded={editorModeState.scenarioPanelOpen}
+			onclick={() => editorModeState.toggleScenarioPanel()}>
+			{editorModeState.scenarioPanelOpen ? 'FERMER DONNÉES & SCÉNARIOS' : 'DONNÉES & SCÉNARIOS'}
+		</button>
 		<div class="tool-group-label">Carte et terrain</div>
 		<button type="button" class="tool-item clear-tool" onclick={() => selectTool('clear')}>CLEAR · Terre nue</button>
 		<button type="button" class="tool-item" onclick={generateTerrain}>Générer un terrain</button>

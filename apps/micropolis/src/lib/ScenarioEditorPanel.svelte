@@ -197,7 +197,7 @@
   }
 </script>
 
-{#if editorModeState.active}
+{#if editorModeState.active && editorModeState.scenarioPanelOpen}
   <section class="scenario-editor" aria-label="Éditeur des propriétés de construction">
     <header>
       <div>
