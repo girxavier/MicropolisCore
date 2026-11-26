@@ -61,7 +61,7 @@ const DIRECTION_VECTOR: Record<CompassDirection, readonly [number, number]> = {
 };
 
 export function validateTerrainConfig(config: TerrainGenerationConfig): TerrainGenerationConfig {
-  if (!Number.isInteger(config.seed) || config.seed < 0 || config.seed > 0xffffffff) {
+  if (!Number.isInteger(config.seed) || config.seed < 0 || config.seed > 0x7fffffff) {
     throw new RangeError('La graine doit être un entier non négatif sur 32 bits.');
   }
   for (const [key, value] of Object.entries(config.densities)) {
