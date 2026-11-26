@@ -11,6 +11,8 @@ export interface RgbaImage {
 	width: number;
 	height: number;
 	data: Uint8ClampedArray;
+	/** Optional virtual tile IDs: `mopSet:tileId` -> source atlas tile and set. */
+	tileAliases?: Record<string, { tileId: number; tileSet: number }>;
 }
 
 export interface TileAtlas {
@@ -115,15 +117,18 @@ export function renderMicropolisMapSoftware(
 			const tileValue = mapData[cellIndex] ?? 0;
 			const tileId = tileValue & TILE_ID_MASK;
 			const tileSet = (mopData?.[cellIndex] ?? 0) & 0xff;
+			const alias = atlas.tileAliases?.[`${tileSet}:${tileId}`];
+			const sourceTileId = alias?.tileId ?? tileId;
+			const sourceTileSet = alias?.tileSet ?? tileSet;
 			// The atlas is a regular grid of tiles. Tile id N maps to row/column by
 			// the atlas tile count per row, then the intra-tile pixel offset selects
 			// the exact source texel.
 			// `tileCount` lets tiny overlay/UI/debug atlases intentionally contain
 			// only a handful of tiles. Repeat wraps ids around that small set; clamp
 			// pins invalid ids to the last tile so bad data stays visible.
-			const tileValueInSet = shouldWrap ? tileId % tileCount : clampInt(tileId, 0, tileCount - 1);
+			const tileValueInSet = shouldWrap ? sourceTileId % tileCount : clampInt(sourceTileId, 0, tileCount - 1);
 			const tileCol = tileValueInSet % tilesPerRow;
-			const tileRow = Math.floor(tileValueInSet / tilesPerRow) + (tileSet % setsPerAtlas) * rowsPerSet;
+			const tileRow = Math.floor(tileValueInSet / tilesPerRow) + (sourceTileSet % setsPerAtlas) * rowsPerSet;
 			// Pixel aspect lets old/non-square source pixels describe their intended
 			// visual ratio without changing logical world tile size. Defaults 1:1.
 			const aspectScale = pixelAspectY / pixelAspectX;
