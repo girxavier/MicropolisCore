@@ -117,6 +117,10 @@ export function createTerrainSnapshot(input: Omit<TerrainSnapshot, 'format' | 'v
       !(tile === 0 || (tile >= 2 && tile <= 43)))) {
     throw new RangeError('Une carte de terrain ne peut contenir que de la terre, de l’eau et des arbres.');
   }
+  if (input.riverFlow && (!TERRAIN_DIRECTIONS.includes(input.riverFlow.from) ||
+      !TERRAIN_DIRECTIONS.includes(input.riverFlow.to) || input.riverFlow.from === input.riverFlow.to)) {
+    throw new Error('Métadonnées de rivière invalides.');
+  }
   return { ...input, format: 'smcity-terrain', version: 1, tiles: [...input.tiles] };
 }
 
