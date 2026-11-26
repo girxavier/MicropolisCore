@@ -1,4 +1,4 @@
-# Lightweight checks on push/PR — no Emscripten, no GitHub Pages deploy.
+# Pull-request checks include a fresh C++/WASM build; no Pages deployment.
 # The live demo at https://micropolisweb.com/ is unchanged by pushes to main.
 # Publish only via: Actions → "Build Wasm Library with Emscripten" → deploy_to_pages ✓
 
@@ -52,7 +52,7 @@ jobs:
       - run: pnpm --filter micropolis run check
 
   test:
-    name: Tests (sims-io, mooshow, Micropolis WASM)
+    name: Tests (sims-io, mooshow, Micropolis C++/WASM)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +61,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: mymindstorm/setup-emsdk@v14
       - run: pnpm install --frozen-lockfile
+      - name: Build C++/WASM engine before testing
+        run: PATH="$PWD/packages/micropolis-engine/node_modules/.bin:$PWD/node_modules/.bin:$PATH" make -C packages/micropolis-engine install SHELL=/bin/bash
       - run: pnpm --filter vitamoo run build
       - run: pnpm --filter mooshow run build
       - run: pnpm --filter mooshow run test

@@ -1794,6 +1794,12 @@ public:
 
     void generateMap(int seed);
 
+    /** Generate a terrain-only map from explicit terrain editor controls. */
+    void generateTerrainForEditor(int seed, int waterDensity, int forestDensity,
+                                  int wastelandDensity, int isolatedTreeDensity,
+                                  bool riverEnabled, int riverFrom, int riverTo,
+                                  int sinuosity, int riverWidth);
+
     /** Rebuild terrain graphics after an editor brush changes a map cell. */
     void rebuildTerrainForEditor(int x, int y, bool waterChanged,
                                  bool treesChanged, bool preserveTargetTree);

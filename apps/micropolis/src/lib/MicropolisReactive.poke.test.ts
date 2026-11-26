@@ -154,6 +154,34 @@ describe('micropolisReactive poke / peek / memory', () => {
 		}
 	});
 
+	it('poke.generateTerrainForEditor applies forest density and a directed river', (context) => {
+		if (typeof micropolis.generateTerrainForEditor !== 'function') context.skip();
+		simulatorLike.mopData?.fill(7);
+		const before = micropolisReactive.mapRevision;
+		micropolisReactive.poke.generateTerrainForEditor(4242, 0, 100, 0, 0, false, 6, 2, 0, 0);
+		expect(micropolis.generatedCitySeed).toBe(4242);
+		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		let forestTileCount = 0;
+		for (let y = 0; y < engine.WORLD_H; y++) {
+			for (let x = 0; x < engine.WORLD_W; x++) {
+				const tile = (micropolisReactive.peek.tile(x, y) ?? 0) & 0x03ff;
+				if (tile >= engine.Tiles.WOODS_LOW.value && tile <= engine.Tiles.WOODS5.value) forestTileCount++;
+			}
+		}
+		expect(forestTileCount).toBeGreaterThan(0);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
+
+		micropolisReactive.poke.generateTerrainForEditor(4243, 0, 0, 100, 0, true, 6, 2, 0, 0);
+		const westEdge = (micropolisReactive.peek.tile(0, Math.floor(engine.WORLD_H / 2)) ?? 0) & 0x03ff;
+		const eastEdge = (micropolisReactive.peek.tile(engine.WORLD_W - 1, Math.floor(engine.WORLD_H / 2)) ?? 0) & 0x03ff;
+		expect(westEdge).toBeGreaterThanOrEqual(engine.Tiles.WATER_LOW.value);
+		expect(westEdge).toBeLessThanOrEqual(engine.Tiles.WATER_HIGH.value);
+		expect(eastEdge).toBeGreaterThanOrEqual(engine.Tiles.WATER_LOW.value);
+		expect(eastEdge).toBeLessThanOrEqual(engine.Tiles.WATER_HIGH.value);
+	});
+
 	it('poke.clearMap clears map tiles and stale MOP atlas selectors', () => {
 		const virtualAgricultureTile = 53;
 		micropolisReactive.poke.setTile(5, 5, virtualAgricultureTile);
@@ -173,8 +201,8 @@ describe('micropolisReactive poke / peek / memory', () => {
 	});
 
 	it('rebuildTerrainForEditor reshapes nearby water without redrawing distant coastlines', (context) => {
-		// The lightweight PR CI deliberately does not rebuild Emscripten. The
-		// project's local build script does, so run this integration test there.
+		// Skip only when the checked-in WASM artifact predates this editor binding;
+		// pull-request CI and the local build script rebuild the engine first.
 		if (typeof micropolis.rebuildTerrainForEditor !== 'function') context.skip();
 
 		micropolisReactive.poke.clearMap();
@@ -190,6 +218,28 @@ describe('micropolisReactive poke / peek / memory', () => {
 
 		expect(micropolisReactive.peek.tile(farX, farY)).toBe(redge & 0x03ff);
 		expect(micropolisReactive.peek.tile(targetX, targetY)).not.toBe(engine.Tiles.RIVER.value & 0x03ff);
+	});
+
+	it('poke.loadTerrainTiles restores bare terrain and editable natural-tile flags', () => {
+		const width = engine.WORLD_W;
+		const height = engine.WORLD_H;
+		const tiles = new Array<number>(width * height).fill(engine.Tiles.DIRT.value);
+		const waterIndex = 12 * width + 14;
+		const treeIndex = 13 * width + 15;
+		tiles[waterIndex] = engine.Tiles.REDGE.value;
+		tiles[treeIndex] = engine.Tiles.WOODS.value;
+		simulatorLike.mopData?.fill(7);
+		const before = micropolisReactive.mapRevision;
+		micropolisReactive.poke.loadTerrainTiles(width, height, tiles);
+		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		expect((micropolisReactive.peek.tile(14, 12) ?? 0) & 0x03ff).toBe(engine.Tiles.REDGE.value);
+		expect((micropolisReactive.peek.tile(14, 12) ?? 0) & engine.MapTileBits.BULLBIT.value).not.toBe(0);
+		expect((micropolisReactive.peek.tile(15, 13) ?? 0) & 0x03ff).toBe(engine.Tiles.WOODS.value);
+		expect((micropolisReactive.peek.tile(15, 13) ?? 0) & engine.MapTileBits.BLBNBIT.value).not.toBe(0);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
+		expect(() => micropolisReactive.poke.loadTerrainTiles(width - 1, height, tiles)).toThrow(RangeError);
 	});
 
 	it('poke.generateSomeRandomCity increments mapRevision, resets atlas selectors and places non-trivial tiles', () => {

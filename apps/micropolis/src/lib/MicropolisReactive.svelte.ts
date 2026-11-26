@@ -751,6 +751,36 @@ export const micropolisReactive = {
 			syncFromEngine();
 			mapRevision++;
 		},
+		generateTerrainForEditor(seed: number, waterDensity: number, forestDensity: number, wastelandDensity: number, isolatedTreeDensity: number, riverEnabled: boolean, riverFrom: number, riverTo: number, sinuosity: number, riverWidth: number): void {
+			commandBus.clearHistory();
+			const engine = requireMicropolis();
+			engine.generateTerrainForEditor(seed, waterDensity, forestDensity, wastelandDensity, isolatedTreeDensity, riverEnabled, riverFrom, riverTo, sinuosity, riverWidth);
+			resetMopAtlasSelectors();
+			engine.updateMaps();
+			syncFromEngine();
+			mapRevision++;
+		},
+		loadTerrainTiles(width: number, height: number, tiles: readonly number[]): void {
+			const engine = requireMicropolis();
+			const module = attachedSimulator?.micropolisengine;
+			if (!module || width !== module.WORLD_W || height !== module.WORLD_H || tiles.length !== width * height) {
+				throw new RangeError('Les dimensions de ce terrain ne correspondent pas à la carte actuelle.');
+			}
+			commandBus.clearHistory();
+			const treeFlags = module.MapTileBits.BLBNBIT.value;
+			const shorelineFlag = module.MapTileBits.BULLBIT.value;
+			for (let y = 0; y < height; y++) {
+				for (let x = 0; x < width; x++) {
+					const tile = tiles[y * width + x];
+					const flags = tile >= 21 && tile <= 43 ? treeFlags : tile >= 3 && tile <= 20 ? shorelineFlag : 0;
+					engine.setTile(x, y, tile | flags);
+				}
+			}
+			resetMopAtlasSelectors();
+			engine.updateMaps();
+			syncFromEngine();
+			mapRevision++;
+		},
 		rebuildTerrainForEditor(x: number, y: number, waterChanged: boolean, treesChanged: boolean, preserveTargetTree: boolean): void {
 			requireMicropolis().rebuildTerrainForEditor(x, y, waterChanged, treesChanged, preserveTargetTree);
 			mapRevision++;

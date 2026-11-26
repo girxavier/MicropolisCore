@@ -1248,6 +1248,7 @@ function createTypedArrayFromMap(mapInstance) {
         return arr;
     })
     .function("generateMap", &Micropolis::generateMap)
+    .function("generateTerrainForEditor", &Micropolis::generateTerrainForEditor)
     .function("clearMap", &Micropolis::clearMap)
     .function("rebuildTerrainForEditor", &Micropolis::rebuildTerrainForEditor)
     //.function("getDemands", &Micropolis::getDemands, allow_raw_pointers()) // TODO: wrap

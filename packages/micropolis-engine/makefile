@@ -66,7 +66,12 @@
 # Emscripten settings
 
 
+# Use Git Bash on Windows and the system Bash on Linux/macOS.
+ifeq ($(OS),Windows_NT)
 SHELL := C:/PROGRA~1/Git/bin/bash.exe
+else
+SHELL := /bin/bash
+endif
 .SHELLFLAGS := -c
 
 EMCC = em++

@@ -5,8 +5,30 @@
 	import { editorModeState } from '$lib/EditorMode.svelte';
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { commandBus } from '$lib/CommandBus';
+	import { createTerrainSnapshot, DEFAULT_TERRAIN_CONFIG, deleteTerrainSnapshot, listTerrainSnapshots, normalizeBareTerrainTile, saveTerrainSnapshot, validateTerrainConfig, type CompassDirection, type RiverWidth, type TerrainGenerationConfig, type TerrainSnapshot } from '$lib/smcity/terrainEditor';
 	let mobileOpen = $state(false);
 	let editorNotice = $state('');
+	let generatorOpen = $state(false);
+	let libraryOpen = $state(false);
+	let savedTerrains = $state<TerrainSnapshot[]>([]);
+	let lastGeneratedRiverFlow = $state<{ from: CompassDirection; to: CompassDirection } | undefined>(undefined);
+	let terrainSeed = $state(1);
+	let terrainConfig = $state<TerrainGenerationConfig>({
+		seed: DEFAULT_TERRAIN_CONFIG.seed,
+		densities: { ...DEFAULT_TERRAIN_CONFIG.densities },
+		river: { ...DEFAULT_TERRAIN_CONFIG.river }
+	});
+	const directionOptions: { value: CompassDirection; label: string }[] = [
+		{ value: 'N', label: 'Nord' }, { value: 'NE', label: 'Nord-est' },
+		{ value: 'E', label: 'Est' }, { value: 'SE', label: 'Sud-est' },
+		{ value: 'S', label: 'Sud' }, { value: 'SW', label: 'Sud-ouest' },
+		{ value: 'W', label: 'Ouest' }, { value: 'NW', label: 'Nord-ouest' }
+	];
+	const widthOptions: { value: RiverWidth; label: string }[] = [
+		{ value: 'XS', label: 'Très étroite' }, { value: 'S', label: 'Étroite' },
+		{ value: 'M', label: 'Moyenne' }, { value: 'L', label: 'Large' },
+		{ value: 'XL', label: 'Très large' }
+	];
 
 	function selectTool(id: ToolId) {
 		toolState.setActiveTool(id);
@@ -30,14 +52,67 @@
 		editorNotice = 'Carte réinitialisée.';
 	}
 
-	function generateTerrain() {
-		if (!confirm('Générer un nouveau terrain ? La carte actuelle sera remplacée.')) return;
-		const seed = Math.floor(Math.random() * 0x7fffffff);
-		micropolisReactive.poke.generateMap(seed);
+	function openTerrainGenerator() {
+		terrainSeed = Math.floor(Math.random() * 0x7fffffff);
+		generatorOpen = true;
+		mobileOpen = false;
+	}
+
+	function applyTerrainGeneration() {
+		const config = validateTerrainConfig({ ...terrainConfig, seed: terrainSeed });
+		const directionIndex: Record<CompassDirection, number> = { N: 0, NE: 1, E: 2, SE: 3, S: 4, SW: 5, W: 6, NW: 7 };
+		const widthIndex: Record<RiverWidth, number> = { XS: 0, S: 1, M: 2, L: 3, XL: 4 };
+		micropolisReactive.poke.generateTerrainForEditor(
+			config.seed, config.densities.water, config.densities.forest,
+			config.densities.wasteland, config.densities.isolatedTrees,
+			config.river.enabled, directionIndex[config.river.from], directionIndex[config.river.to],
+			config.river.sinuosity, widthIndex[config.river.width]
+		);
 		micropolisReactive.clearScenarioZoneLocks();
 		micropolisReactive.clearScenarioAgriculturalZones();
 		micropolisReactive.refreshCityClimateIndex();
-		editorNotice = `Terrain généré · graine ${seed}.`;
+		micropolisReactive.syncFromEngine();
+		lastGeneratedRiverFlow = config.river.enabled ? { from: config.river.from, to: config.river.to } : undefined;
+		editorNotice = `Terrain généré · graine ${config.seed}.`;
+		generatorOpen = false;
+	}
+
+	function openTerrainLibrary() {
+		savedTerrains = listTerrainSnapshots();
+		libraryOpen = true;
+		mobileOpen = false;
+	}
+
+	function saveCurrentTerrain() {
+		const name = prompt('Nom de ce terrain :');
+		if (!name?.trim()) return;
+		const width = micropolisReactive.worldWidth;
+		const height = micropolisReactive.worldHeight;
+		if (!width || !height) return;
+		const tiles: number[] = [];
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) tiles.push(normalizeBareTerrainTile(micropolisReactive.peek.tile(x, y) ?? 0));
+		}
+		const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `terrain-${Date.now()}`;
+		const snapshot = createTerrainSnapshot({
+			id, name: name.trim(), createdAt: new Date().toISOString(), width, height, tiles,
+			riverFlow: lastGeneratedRiverFlow
+		});
+		savedTerrains = saveTerrainSnapshot(snapshot);
+	}
+
+	function loadSavedTerrain(snapshot: TerrainSnapshot) {
+		micropolisReactive.poke.loadTerrainTiles(snapshot.width, snapshot.height, snapshot.tiles);
+		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.clearScenarioAgriculturalZones();
+		micropolisReactive.refreshCityClimateIndex();
+		lastGeneratedRiverFlow = snapshot.riverFlow;
+		editorNotice = `Terrain chargé · ${snapshot.name}.`;
+		libraryOpen = false;
+	}
+
+	function removeSavedTerrain(id: string) {
+		savedTerrains = deleteTerrainSnapshot(id);
 	}
 
 	function toggleEditorMode() {
@@ -72,7 +147,8 @@
 	{#if editorModeState.active}
 		<div class="tool-group-label">Carte et terrain</div>
 		<button type="button" class="tool-item clear-tool" onclick={() => selectTool('clear')}>CLEAR · Terre nue</button>
-		<button type="button" class="tool-item" onclick={generateTerrain}>Générer un terrain</button>
+		<button type="button" class="tool-item" onclick={openTerrainGenerator}>Générer un terrain</button>
+		<button type="button" class="tool-item" onclick={openTerrainLibrary}>Bibliothèque de terrains</button>
 		<button type="button" class="tool-item" onclick={resetMap}>RESET · Carte vierge</button>
 		{#if editorNotice}<div class="tool-group-label" role="status">{editorNotice}</div>{/if}
 		<div class="tool-group-label">Historique</div>
@@ -124,6 +200,101 @@
 	{/if}
 </nav>
 
+{#if generatorOpen}
+	<div class="terrain-generator-backdrop" role="presentation">
+		<dialog open class="terrain-generator" aria-labelledby="terrain-generator-title">
+			<header class="generator-header">
+				<h2 id="terrain-generator-title">Générateur de terrain</h2>
+				<button type="button" class="generator-close" aria-label="Fermer" onclick={() => generatorOpen = false}>×</button>
+			</header>
+			<p class="generator-warning">La génération remplace entièrement la carte actuelle. Aucun aperçu n'est effectué.</p>
+			<label class="generator-seed">Graine aléatoire
+				<input type="number" min="0" max="2147483647" value={terrainSeed}
+					oninput={(event) => terrainSeed = Math.max(0, Math.min(2147483647, Math.floor(Number(event.currentTarget.value) || 0)))} />
+			</label>
+			<fieldset class="density-fields">
+				<legend>Densités relatives</legend>
+				<p class="density-help">Les valeurs règlent la répartition relative des quatre types de terrain. Si les quatre sont à 0, la carte sera nue (sauf rivière).</p>
+				{#each [
+					{ key: 'water', label: 'Eau' },
+					{ key: 'forest', label: 'Forêt' },
+					{ key: 'wasteland', label: 'Terrain dégagé' },
+					{ key: 'isolatedTrees', label: 'Arbres isolés' }
+				] as item (item.key)}
+					<label class="density-row">
+						<span>{item.label}</span>
+						<input type="range" min="0" max="100" step="1"
+							value={terrainConfig.densities[item.key as keyof TerrainGenerationConfig['densities']]}
+							oninput={(event) => terrainConfig.densities[item.key as keyof TerrainGenerationConfig['densities']] = Number(event.currentTarget.value)} />
+						<output>{terrainConfig.densities[item.key as keyof TerrainGenerationConfig['densities']]}</output>
+					</label>
+				{/each}
+			</fieldset>
+			<fieldset class="river-fields">
+				<legend>Rivière</legend>
+				<label class="river-enable"><input type="checkbox" checked={terrainConfig.river.enabled}
+					onchange={(event) => terrainConfig.river.enabled = event.currentTarget.checked} /> Générer une rivière</label>
+				{#if terrainConfig.river.enabled}
+					<div class="river-direction">
+						<label>Départ
+							<select value={terrainConfig.river.from} onchange={(event) => { const next = event.currentTarget.value as CompassDirection; terrainConfig.river.from = next; if (terrainConfig.river.to === next) terrainConfig.river.to = directionOptions.find((option) => option.value !== next)?.value ?? 'E'; }}>
+								{#each directionOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+							</select>
+						</label>
+						<span>vers</span>
+						<label>Arrivée
+							<select value={terrainConfig.river.to} onchange={(event) => terrainConfig.river.to = event.currentTarget.value as CompassDirection}>
+								{#each directionOptions.filter((option) => option.value !== terrainConfig.river.from) as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+							</select>
+						</label>
+					</div>
+					<label class="density-row"><span>Sinuosité</span>
+						<input type="range" min="0" max="100" step="1" value={terrainConfig.river.sinuosity}
+							oninput={(event) => terrainConfig.river.sinuosity = Number(event.currentTarget.value)} />
+						<output>{terrainConfig.river.sinuosity}</output>
+					</label>
+					<label class="river-width">Largeur
+						<select value={terrainConfig.river.width} onchange={(event) => terrainConfig.river.width = event.currentTarget.value as RiverWidth}>
+							{#each widthOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+						</select>
+					</label>
+				{/if}
+			</fieldset>
+			<footer class="generator-actions">
+				<button type="button" class="generator-cancel" onclick={() => generatorOpen = false}>Fermer</button>
+				<button type="button" class="generator-submit" onclick={applyTerrainGeneration}>Générer</button>
+			</footer>
+		</dialog>
+	</div>
+{/if}
+
+{#if libraryOpen}
+	<div class="terrain-generator-backdrop" role="presentation">
+		<dialog open class="terrain-generator terrain-library" aria-labelledby="terrain-library-title">
+			<header class="generator-header">
+				<h2 id="terrain-library-title">Bibliothèque de terrains nus</h2>
+				<button type="button" class="generator-close" aria-label="Fermer" onclick={() => libraryOpen = false}>×</button>
+			</header>
+			<p class="generator-warning">Seuls la terre, l'eau et les arbres sont conservés. Bâtiments, réseaux et données de ville sont exclus.</p>
+			<button type="button" class="generator-submit save-terrain" onclick={saveCurrentTerrain}>Enregistrer le terrain actuel</button>
+			{#if savedTerrains.length === 0}
+				<p class="library-empty">Aucun terrain enregistré dans ce navigateur.</p>
+			{:else}
+				<ul class="terrain-saved-list">
+					{#each savedTerrains as snapshot (snapshot.id)}
+						<li>
+							<div><strong>{snapshot.name}</strong><small>{snapshot.width} × {snapshot.height} · {new Date(snapshot.createdAt).toLocaleDateString('fr-FR')}</small></div>
+							<button type="button" onclick={() => loadSavedTerrain(snapshot)}>Charger</button>
+							<button type="button" class="delete-saved" aria-label={`Supprimer ${snapshot.name}`} onclick={() => removeSavedTerrain(snapshot.id)}>×</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+			<footer class="generator-actions"><button type="button" class="generator-cancel" onclick={() => libraryOpen = false}>Fermer</button></footer>
+		</dialog>
+	</div>
+{/if}
+
 <style>
 	.mobile-toolbar-toggle { display: none; }
 
@@ -163,6 +334,36 @@
 		cursor: pointer;
 	}
 	.mode-toggle.active { background: #79522c; border-color: #e3b878; }
+	.terrain-generator-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:1rem; background:rgba(5,10,20,.78); }
+	.terrain-generator { box-sizing:border-box; width:min(34rem,calc(100vw - 2rem)); max-width:100%; min-width:0; max-height:calc(100vh - 2rem); overflow:auto; padding:1rem; border:1px solid #8090b0; border-radius:8px; background:#182338; color:#edf2ff; box-shadow:0 18px 60px #000b; font: .78rem ui-monospace,monospace; }
+	.generator-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+	.generator-header h2 { margin:0; font-size:1rem; }
+	.generator-close { border:0; background:transparent; color:inherit; font-size:1.6rem; cursor:pointer; }
+	.generator-warning { padding:.55rem .65rem; border-left:3px solid #d5a35b; background:#332c26; color:#f3d9b2; line-height:1.4; }
+	.generator-seed,.river-width { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin:.6rem 0; }
+	.generator-seed input { width:11rem; padding:.35rem; }
+	.density-fields,.river-fields { margin:.75rem 0; padding:.6rem .75rem .75rem; border:1px solid #52647f; border-radius:5px; }
+	.density-fields legend,.river-fields legend { padding:0 .35rem; color:#c8d7f3; font-weight:800; }
+	.density-help { margin:.25rem 0 .65rem; color:#b8c5dc; font-size:.68rem; line-height:1.35; }
+	.density-row { display:grid; grid-template-columns:minmax(5.5rem,7rem) minmax(0,1fr) 1.8rem; align-items:center; gap:.45rem; margin:.55rem 0; }
+	.density-row input { width:100%; accent-color:#8bb4e8; }
+	.density-row output { text-align:right; font-variant-numeric:tabular-nums; }
+	.river-enable { display:flex; align-items:center; gap:.5rem; }
+	.river-direction { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:end; gap:.45rem; margin:.7rem 0; }
+	.river-direction label { display:grid; gap:.25rem; }
+	.river-direction select,.river-width select { width:100%; padding:.35rem; }
+	.generator-actions { display:flex; justify-content:flex-end; gap:.6rem; margin-top:1rem; }
+	.generator-actions button { padding:.5rem .9rem; border:1px solid #7d8ca8; border-radius:4px; font:inherit; font-weight:800; cursor:pointer; }
+	.generator-cancel { background:#28354b; color:#edf2ff; }
+	.generator-submit { background:#315b85; border-color:#9bbbe5 !important; color:white; }
+	.save-terrain { margin:.25rem 0 .75rem; }
+	.library-empty { padding:.8rem; color:#b8c5dc; text-align:center; }
+	.terrain-saved-list { display:grid; gap:.45rem; margin:.6rem 0; padding:0; list-style:none; }
+	.terrain-saved-list li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:.4rem; min-width:0; padding:.55rem; border:1px solid #52647f; border-radius:4px; }
+	.terrain-saved-list li div { display:grid; gap:.2rem; min-width:0; }
+	.terrain-saved-list small { color:#b8c5dc; }
+	.terrain-saved-list button { padding:.35rem .55rem; border:1px solid #7d8ca8; border-radius:4px; background:#28354b; color:#edf2ff; font:inherit; cursor:pointer; }
+	.terrain-saved-list .delete-saved { font-size:1.1rem; }
 
 	.terrain-brush-palette { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.2rem; padding:.25rem .35rem .45rem; }
 	.terrain-brush { display:flex; flex-direction:column; align-items:center; gap:.2rem; min-width:0; padding:.3rem .1rem; border:1px solid #52647f; border-radius:3px; background:#1e293b; color:#e8eeff; font:inherit; font-size:.48rem; cursor:pointer; }

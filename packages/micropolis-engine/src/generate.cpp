@@ -171,6 +171,147 @@ void Micropolis::generateMap(int seed)
 }
 
 
+/**
+ * Generate a terrain-only map from explicit editor controls.
+ * Density values are relative weights (0–100), not exact cell percentages.
+ * Direction indices follow Direction2: N, NE, E, SE, S, SW, W, NW.
+ */
+void Micropolis::generateTerrainForEditor(int seed, int waterDensity,
+                                          int forestDensity, int wastelandDensity,
+                                          int isolatedTreeDensity, bool riverEnabled,
+                                          int riverFrom, int riverTo, int sinuosity,
+                                          int riverWidth)
+{
+    if (waterDensity < 0 || waterDensity > 100 ||
+        forestDensity < 0 || forestDensity > 100 ||
+        wastelandDensity < 0 || wastelandDensity > 100 ||
+        isolatedTreeDensity < 0 || isolatedTreeDensity > 100 ||
+        sinuosity < 0 || sinuosity > 100 ||
+        riverFrom < 0 || riverFrom > 7 || riverTo < 0 || riverTo > 7 ||
+        riverFrom == riverTo || riverWidth < 0 || riverWidth > 4) return;
+
+    generatedCitySeed = seed;
+    seedRandom(seed);
+    clearMap();
+
+    const int totalWeight = waterDensity + forestDensity +
+                            wastelandDensity + isolatedTreeDensity;
+    bool isolatedTrees[WORLD_W][WORLD_H] = {};
+
+    if (totalWeight > 0) {
+        for (int x = 0; x < WORLD_W; x++) {
+            for (int y = 0; y < WORLD_H; y++) {
+                const int choice = getRandom(totalWeight);
+                if (choice < waterDensity) {
+                    map[x][y] = RIVER;
+                } else if (choice < waterDensity + forestDensity) {
+                    map[x][y] = WOODS | BLBNBIT;
+                } else if (choice < waterDensity + forestDensity + wastelandDensity) {
+                    map[x][y] = DIRT;
+                } else {
+                    isolatedTrees[x][y] = true;
+                }
+            }
+        }
+    }
+
+    // Merge scattered water cells into coherent lakes before drawing the
+    // directed river. This single cellular pass removes isolated puddles and
+    // fills small gaps inside water clusters without affecting forest tiles.
+    bool clusteredWater[WORLD_W][WORLD_H] = {};
+    for (int x = 0; x < WORLD_W; x++) {
+        for (int y = 0; y < WORLD_H; y++) {
+            int adjacentWater = 0;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    if (dx == 0 && dy == 0) continue;
+                    const int xx = x + dx, yy = y + dy;
+                    if (testBounds(xx, yy)) {
+                        const MapTile adjacent = map[xx][yy] & LOMASK;
+                        if (adjacent >= WATER_LOW && adjacent <= WATER_HIGH) adjacentWater++;
+                    }
+                }
+            }
+            const MapTile current = map[x][y] & LOMASK;
+            const bool wasWater = current >= WATER_LOW && current <= WATER_HIGH;
+            clusteredWater[x][y] = wasWater ? adjacentWater >= 2 : adjacentWater >= 5;
+        }
+    }
+    for (int x = 0; x < WORLD_W; x++) {
+        for (int y = 0; y < WORLD_H; y++) {
+            const MapTile current = map[x][y] & LOMASK;
+            const bool wasWater = current >= WATER_LOW && current <= WATER_HIGH;
+            if (clusteredWater[x][y]) map[x][y] = RIVER;
+            else if (wasWater) map[x][y] = DIRT;
+        }
+    }
+
+    if (riverEnabled) {
+        const double centerX = (WORLD_W - 1) / 2.0;
+        const double centerY = (WORLD_H - 1) / 2.0;
+        double startX = centerX, startY = centerY;
+        double endX = centerX, endY = centerY;
+        switch (riverFrom) {
+            case 0: startY = 0; break;
+            case 1: startX = WORLD_W - 1; startY = 0; break;
+            case 2: startX = WORLD_W - 1; break;
+            case 3: startX = WORLD_W - 1; startY = WORLD_H - 1; break;
+            case 4: startY = WORLD_H - 1; break;
+            case 5: startX = 0; startY = WORLD_H - 1; break;
+            case 6: startX = 0; break;
+            case 7: startX = 0; startY = 0; break;
+        }
+        switch (riverTo) {
+            case 0: endY = 0; break;
+            case 1: endX = WORLD_W - 1; endY = 0; break;
+            case 2: endX = WORLD_W - 1; break;
+            case 3: endX = WORLD_W - 1; endY = WORLD_H - 1; break;
+            case 4: endY = WORLD_H - 1; break;
+            case 5: endX = 0; endY = WORLD_H - 1; break;
+            case 6: endX = 0; break;
+            case 7: endX = 0; endY = 0; break;
+        }
+
+        const double dx = endX - startX;
+        const double dy = endY - startY;
+        const double length = (fabs(dx) > fabs(dy)) ? fabs(dx) : fabs(dy);
+        const double normalX = (length > 0) ? -dy / length : 0;
+        const double normalY = (length > 0) ? dx / length : 0;
+        const double amplitude = sinuosity * 0.13;
+        const int radius = riverWidth + 1;
+        const int steps = (int)length;
+        for (int step = 0; step <= steps; step++) {
+            const double progress = (steps > 0) ? (double)step / steps : 0;
+            const double bend = amplitude * sin(progress * 6.283185307179586);
+            const int cx = (int)(startX + dx * progress + normalX * bend + 0.5);
+            const int cy = (int)(startY + dy * progress + normalY * bend + 0.5);
+            for (int ox = -radius; ox <= radius; ox++) {
+                for (int oy = -radius; oy <= radius; oy++) {
+                    if (ox * ox + oy * oy > radius * radius) continue;
+                    const int x = cx + ox, y = cy + oy;
+                    if (testBounds(x, y)) map[x][y] = RIVER;
+                }
+            }
+        }
+    }
+
+    smoothWater();
+    smoothRiver();
+    smoothTrees();
+    smoothTrees();
+
+    // Add isolated trees after forest smoothing so they remain scattered.
+    for (int x = 0; x < WORLD_W; x++) {
+        for (int y = 0; y < WORLD_H; y++) {
+            if (isolatedTrees[x][y] && (map[x][y] & LOMASK) == DIRT) {
+                map[x][y] = WOODS | BLBNBIT;
+            }
+        }
+    }
+    invalidateMaps();
+}
+
+
 /** Clear the whole world to ::DIRT tiles */
 void Micropolis::clearMap()
 {
