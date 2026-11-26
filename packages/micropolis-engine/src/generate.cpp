@@ -181,6 +181,9 @@ void Micropolis::clearMap()
             map[x][y] = DIRT;
         }
     }
+
+    // Clearing the visible tiles must also invalidate cached map views.
+    invalidateMaps();
 }
 
 
@@ -355,6 +358,46 @@ void Micropolis::doTrees()
 
     smoothTrees();
     smoothTrees();
+}
+
+
+/**
+ * Rebuild one shoreline tile using the same orientation table as smoothRiver().
+ * Unlike the full-map pass, this leaves unrelated coastlines untouched.
+ */
+void Micropolis::smoothRiverAt(int x, int y)
+{
+    if (!testBounds(x, y) || map[x][y] != REDGE) {
+        return;
+    }
+
+    static short dx[4] = { -1,  0,  1,  0 };
+    static short dy[4] = {  0,  1,  0, -1 };
+    static short redgeTable[16] = {
+        13 | BULLBIT, 13 | BULLBIT, 17 | BULLBIT, 15 | BULLBIT,
+        5 | BULLBIT,  2,            19 | BULLBIT, 17 | BULLBIT,
+        9 | BULLBIT,  11 | BULLBIT, 2,            13 | BULLBIT,
+        7 | BULLBIT,  9 | BULLBIT,  5 | BULLBIT,  2
+    };
+
+    int bitIndex = 0;
+    for (int direction = 0; direction < 4; direction++) {
+        bitIndex <<= 1;
+        const int xx = x + dx[direction];
+        const int yy = y + dy[direction];
+        if (testBounds(xx, yy) &&
+            ((map[xx][yy] & LOMASK) != DIRT) &&
+            (((map[xx][yy] & LOMASK) < WOODS_LOW) ||
+             ((map[xx][yy] & LOMASK) > WOODS_HIGH))) {
+            bitIndex++;
+        }
+    }
+
+    short tile = redgeTable[bitIndex & 15];
+    if (tile != RIVER && getRandom(1)) {
+        tile++;
+    }
+    map[x][y] = tile;
 }
 
 
@@ -755,6 +798,133 @@ void Micropolis::smoothWater()
             }
         }
     }
+}
+
+
+/**
+ * Rebuild terrain graphics after an editor brush changes a single map cell.
+ *
+ * Keep the established full-map smoothing algorithms unchanged:
+ * water edits use the local shoreline rules and smoothRiverAt(), while tree
+ * edits use the local smoothTreesAt() neighborhood pass. Full-map
+ * smoothWater(), smoothRiver(), and smoothTrees() remain generation-time passes.
+ */
+void Micropolis::rebuildTerrainForEditor(int x, int y, bool waterChanged,
+                                         bool treesChanged, bool preserveTargetTree)
+{
+    if (!testBounds(x, y)) {
+        return;
+    }
+
+    bool waterNeighborhoodChanged = waterChanged;
+    if (!waterNeighborhoodChanged) {
+        // A land/forest change can also alter a river-edge tile's local
+        // orientation, so inspect the immediate neighborhood before skipping it.
+        for (int dx = -1; dx <= 1 && !waterNeighborhoodChanged; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (!testBounds(xx, yy)) {
+                    continue;
+                }
+                const MapTile tile = map[xx][yy] & LOMASK;
+                if (tile >= WATER_LOW && tile <= WATER_HIGH) {
+                    waterNeighborhoodChanged = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (waterNeighborhoodChanged) {
+        // Re-evaluate only the changed cell's 3×3 neighborhood. This mirrors
+        // smoothWater()'s edge rules without running its full-map scan.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (!testBounds(xx, yy)) {
+                    continue;
+                }
+
+                MapTile tile = map[xx][yy] & LOMASK;
+                if (tile < WATER_LOW || tile > WATER_HIGH) {
+                    continue;
+                }
+
+                bool allWater = true;
+                const Position pos(xx, yy);
+                for (Direction2 dir = DIR2_BEGIN; dir < DIR2_END; dir = increment90(dir)) {
+                    const MapTile adjacent = getTileFromMap(pos, dir, WATER_LOW);
+                    if (adjacent < WATER_LOW || adjacent > WATER_HIGH) {
+                        allWater = false;
+                        break;
+                    }
+                }
+
+                if (!allWater) {
+                    map[xx][yy] = REDGE;
+                } else if (tile != CHANNEL) {
+                    map[xx][yy] = RIVER;
+                }
+            }
+        }
+
+        // Match smoothWater()'s shoreline rule for trees touching river
+        // interiors, while preserving the tree explicitly painted at (x, y).
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (!testBounds(xx, yy) || (preserveTargetTree && xx == x && yy == y)) {
+                    continue;
+                }
+
+                const MapTile tile = map[xx][yy] & LOMASK;
+                if (tile < WOODS_LOW || tile > WOODS_HIGH) {
+                    continue;
+                }
+
+                const Position pos(xx, yy);
+                for (Direction2 dir = DIR2_BEGIN; dir < DIR2_END; dir = increment90(dir)) {
+                    const MapTile adjacent = getTileFromMap(pos, dir, TILE_INVALID);
+                    if (adjacent == RIVER || adjacent == CHANNEL) {
+                        map[xx][yy] = REDGE;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Rebuild only the edited neighborhood. The full-map smoothRiver()
+        // remains reserved for generation, so painting here cannot redraw
+        // distant coastlines or change their random shoreline variants.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (testBounds(xx, yy)) {
+                    smoothRiverAt(xx, yy);
+                }
+            }
+        }
+        // Shoreline conversion can remove tree cells from the local cluster.
+        treesChanged = true;
+    }
+
+    if (treesChanged) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (testBounds(xx, yy)) {
+                    smoothTreesAt(xx, yy, true);
+                }
+            }
+        }
+    }
+
+    invalidateMaps();
 }
 
 

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { GAME_TOOL_GROUPS, toolMenuLabel, type ToolId } from '$lib/gameTools';
+	import { GAME_TOOL_GROUPS, TERRAIN_BRUSHES, toolMenuLabel, type ToolId } from '$lib/gameTools';
+	import tileAtlas from '$lib/images/tilesets/all.png';
 	import { toolState } from '$lib/ToolState.svelte';
 	import { editorModeState } from '$lib/EditorMode.svelte';
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
@@ -23,6 +24,7 @@
 		if (!confirm('Réinitialiser entièrement la carte ? Cette action efface la ville en cours.')) return;
 		micropolisReactive.poke.clearMap();
 		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.clearScenarioAgriculturalZones();
 		micropolisReactive.refreshCityClimateIndex();
 		micropolisReactive.syncFromEngine();
 		editorNotice = 'Carte réinitialisée.';
@@ -33,6 +35,7 @@
 		const seed = Math.floor(Math.random() * 0x7fffffff);
 		micropolisReactive.poke.generateMap(seed);
 		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.clearScenarioAgriculturalZones();
 		micropolisReactive.refreshCityClimateIndex();
 		editorNotice = `Terrain généré · graine ${seed}.`;
 	}
@@ -43,7 +46,9 @@
 		editorModeState.set(next);
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
 		else {
-			if (toolState.activeToolId === 'clear') toolState.setActiveTool('road');
+			if (['clear', 'terrain-paint', 'water', 'land', 'forest'].includes(toolState.activeToolId)) {
+				toolState.setActiveTool('road');
+			}
 			micropolisReactive.refreshCityClimateIndex();
 			micropolisReactive.attachedSimulator?.exitEditorMode();
 		}
@@ -56,6 +61,13 @@
 <nav class="toolbar" class:mobile-open={mobileOpen} aria-label="City tools">
 	<button type="button" class="mode-toggle" class:active={editorModeState.active} onclick={toggleEditorMode}>
 		{editorModeState.active ? 'REPRENDRE LE JEU' : 'MODE MAQUETTISTE'}
+	</button>
+	<button type="button" class="mode-toggle scenario-panel-toggle" class:active={editorModeState.scenarioPanelOpen}
+		aria-expanded={editorModeState.scenarioPanelOpen}
+		onclick={() => editorModeState.toggleScenarioPanel()}>
+		{editorModeState.scenarioPanelOpen
+			? (editorModeState.active ? 'FERMER DONNÉES & SCÉNARIOS' : 'FERMER SCÉNARIOS')
+			: (editorModeState.active ? 'DONNÉES & SCÉNARIOS' : 'SCÉNARIOS')}
 	</button>
 	{#if editorModeState.active}
 		<div class="tool-group-label">Carte et terrain</div>
@@ -78,6 +90,21 @@
 				{/each}
 			</details>
 		{/each}
+		{#if toolState.activeToolId === 'terrain-paint'}
+			<div class="tool-group-label">Peindre le terrain</div>
+			<div class="terrain-brush-palette" role="group" aria-label="Type de terrain à peindre">
+				{#each TERRAIN_BRUSHES as brush (brush.id)}
+					<button type="button" class="terrain-brush" class:active={toolState.activeTerrainBrush === brush.id}
+						aria-pressed={toolState.activeTerrainBrush === brush.id}
+						title={brush.label}
+						onclick={() => toolState.setTerrainBrush(brush.id)}>
+						<span class="terrain-thumb" aria-hidden="true"
+							style={`background-image:url("${tileAtlas}");background-position:-${(brush.tileId % 16) * 32}px -${Math.floor(brush.tileId / 16) * 32}px;`}></span>
+						<span>{brush.label}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
 	{:else}
 		<div class="tool-group-label">Vitesse du jeu</div>
 		{#each [{ index: 0, label: 'Lente · 58 s/mois' }, { index: 1, label: 'Normale · 29 s/mois' }, { index: 2, label: 'Rapide · 10 s/mois' }] as speed}
@@ -137,6 +164,10 @@
 	}
 	.mode-toggle.active { background: #79522c; border-color: #e3b878; }
 
+	.terrain-brush-palette { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.2rem; padding:.25rem .35rem .45rem; }
+	.terrain-brush { display:flex; flex-direction:column; align-items:center; gap:.2rem; min-width:0; padding:.3rem .1rem; border:1px solid #52647f; border-radius:3px; background:#1e293b; color:#e8eeff; font:inherit; font-size:.48rem; cursor:pointer; }
+	.terrain-brush.active { border-color:#f0c16a; background:#304878; box-shadow:inset 0 0 0 1px #f0c16a; }
+	.terrain-thumb { display:block; width:32px; height:32px; flex:0 0 32px; background-size:512px 1920px; background-repeat:no-repeat; image-rendering:pixelated; }
 	.tool-category { border-top: 1px solid rgba(255,255,255,.1); }
 	.tool-category summary {
 		padding: .35rem .45rem;

@@ -24,7 +24,8 @@
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { toolState } from '$lib/ToolState.svelte';
   import { editorModeState } from '$lib/EditorMode.svelte';
-  import { resolveEditingTool, resolveDirectBuildingCenterTile, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
+  import { resolveEditingTool, resolveDirectBuildingCenterTile, agriculturalLevelForTool, agriculturalProductionModeForTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
+  import { loadScenarioData, removeAgriculturalZone, saveScenarioData, upsertAgriculturalZone } from '$lib/smcity/scenarioData';
   import {
     syncViewportScreenScale,
     panToKeepWorldAtScreen,
@@ -43,14 +44,50 @@
   // Tile Sets
   import tileLayer_all10 from '$lib/images/tilesets/all.png';
 
+  // all.png contains ten 32×32 tilesets stacked vertically.
+  // Map tile IDs are 10-bit values (0–1023); MOP data selects the tileset (0–9).
+  // Keeping tileCount and tilesPerSet at 1024 makes the renderer calculate
+  // 32 rows per set and select the correct 512×512 block from the atlas.
+  // Nine unused engine tile IDs reserved for agriculture; avoid 841–843 (fountain animation). MOP values 1–6 identify D0–D5.
+  // The aliases point back to the exact 3×3 groups authored in all.png:
+  // columns 3–20, rows 31–33. Row 31 belongs to atlas set 0; rows 32–33 to set 1.
+  const agricultureMapTileIds = [53, 54, 55, 223, 610, 611, 1020, 1021, 1022] as const;
+  const agricultureTileAliases: Record<string, { tileId: number; tileSet: number; desaturate?: number }> = {};
+  for (let stage = 0; stage < 6; stage++) {
+    for (let dy = 0; dy < 3; dy++) {
+      for (let dx = 0; dx < 3; dx++) {
+        const sourceColumn = 3 + stage * 3 + dx;
+        const sourceRow = 31 + dy;
+        const sourceSet = Math.floor(sourceRow / 32);
+        const sourceLocalRow = sourceRow % 32;
+        const sourceTileId = sourceLocalRow * 32 + sourceColumn;
+        const mapTileId = agricultureMapTileIds[dy * 3 + dx];
+        agricultureTileAliases[`${stage + 1}:${mapTileId}`] = {
+          tileId: sourceTileId,
+          tileSet: sourceSet,
+        };
+        // Conventional plots reuse the same sprites with a restrained 22% desaturation.
+        agricultureTileAliases[`${stage + 7}:${mapTileId}`] = {
+          tileId: sourceTileId,
+          tileSet: sourceSet,
+          desaturate: 0.22,
+        };
+      }
+    }
+  }
+
   const tileLayers = [
-    tileLayer_all10,
+    {
+      url: tileLayer_all10,
+      tileCount: 1024,
+      tilesPerSet: 1024,
+      tileAliases: agricultureTileAliases,
+    },
   ];
 
   const tileWidth = 16;
   const tileHeight = 16;
-  const tileCount = 960;
-  let tileSetCount = 10;
+  const tileSetCount = 10;
   let tileSet: number = 0;
 
   let canvasGL: HTMLCanvasElement | null = null;
@@ -379,9 +416,45 @@
 
   }
 
+  function syncAgriculturalZonesToMap(): void {
+    const simulator = micropolisSimulator;
+    const engine = simulator?.micropolisengine;
+    const map = simulator?.mapData;
+    const mop = simulator?.mopData;
+    if (!engine || !map || !mop) return;
+
+    const reservedIds = new Set<number>(agricultureMapTileIds);
+    // Clear stale agricultural cells first. The placement operation already
+    // turns the underlying 3×3 parcel into dirt, so dirt is the safe base tile.
+    for (let index = 0; index < map.length; index++) {
+      if (reservedIds.has(map[index] & engine.MapTileBits.LOMASK.value)) {
+        map[index] = engine.Tiles.DIRT.value;
+        mop[index] = tileSet;
+      }
+    }
+
+    const scenarioId = micropolisReactive.cityFileName || micropolisReactive.cityName || 'default';
+    const zones = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {});
+    for (const zone of zones) {
+      const left = zone.x - 1;
+      const top = zone.y - 1;
+      if (left < 0 || top < 0 || left + 3 > engine.WORLD_W || top + 3 > engine.WORLD_H) continue;
+      for (let dy = 0; dy < 3; dy++) {
+        for (let dx = 0; dx < 3; dx++) {
+          const index = (left + dx) * engine.WORLD_H + top + dy;
+          map[index] = agricultureMapTileIds[dy * 3 + dx];
+          // MOP 1–6 select organic sprites; 7–12 select the same sprites
+          // with a subtle desaturation for conventional production.
+          mop[index] = zone.level + (zone.productionMode === 'CONV' ? 7 : 1);
+        }
+      }
+    }
+  }
+
   export function render(): void {
     if (!renderReady || !tileRenderer || !micropolisSimulator) return;
     if (!micropolisSimulator.syncMapViews()) return;
+    syncAgriculturalZonesToMap();
     tileRenderer.mapData = micropolisSimulator.mapData!;
     tileRenderer.mopData = micropolisSimulator.mopData!;
     try {
@@ -497,6 +570,10 @@
     const mapBefore = micropolisReactive.memory.mapU16;
     const before = mapBefore ? new Uint16Array(mapBefore) : null;
     const fundsBefore = micropolis.totalFunds;
+    const agriculturalLevel = agriculturalLevelForTool(toolState.activeToolId);
+    const agriculturalProductionMode = agriculturalProductionModeForTool(toolState.activeToolId);
+    const agriculturalScenarioId = micropolisReactive.cityFileName || micropolisReactive.cityName || 'default';
+    const agriculturalDataBefore = loadScenarioData(agriculturalScenarioId);
     const directBuildingCenter = editorModeState.active
       ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
       : null;
@@ -507,6 +584,75 @@
       micropolisReactive.poke.setTile(tileX, tileY, eng.Tiles.DIRT.value);
       micropolisReactive.poke.updateMaps();
       result = eng.ToolResult.TOOLRESULT_OK;
+    } else if (editorModeState.active && toolState.activeToolId === 'terrain-paint') {
+      const brush = toolState.activeTerrainBrush;
+      const currentTile = micropolis.getTile(tileX, tileY) & eng.MapTileBits.LOMASK.value;
+      const wasWater = currentTile >= eng.Tiles.WATER_LOW.value && currentTile <= eng.Tiles.WATER_HIGH.value;
+      const wasTree = currentTile >= eng.Tiles.WOODS_LOW.value && currentTile <= eng.Tiles.WOODS_HIGH.value;
+      const isNaturalTerrain = currentTile === eng.Tiles.DIRT.value || wasWater || wasTree;
+
+      // Remove a complete existing structure/network when possible; the selected cell
+      // is then replaced unconditionally, so the brush works on every map cell.
+      if (!isNaturalTerrain) {
+        micropolisReactive.poke.doTool(eng.EditingTool.TOOL_BULLDOZER, tileX, tileY);
+      }
+
+      const tileValue = brush === 'forest'
+        ? (eng.Tiles.WOODS.value | eng.MapTileBits.BLBNBIT.value)
+        : brush === 'water'
+          ? eng.Tiles.RIVER.value
+          : eng.Tiles.DIRT.value;
+      micropolisReactive.poke.setTile(tileX, tileY, tileValue);
+
+      micropolisReactive.poke.rebuildTerrainForEditor(
+        tileX,
+        tileY,
+        brush === 'water' || wasWater,
+        brush === 'forest' || wasTree,
+        brush === 'forest'
+      );
+      result = eng.ToolResult.TOOLRESULT_OK;
+    } else if (agriculturalLevel !== null) {
+      const left = tileX - 1;
+      const top = tileY - 1;
+      if (left < 0 || top < 0 || left + 3 > eng.WORLD_W || top + 3 > eng.WORLD_H) {
+        result = eng.ToolResult.TOOLRESULT_FAILED;
+      } else {
+        let buildable = true;
+        const existingZoneAtCenter = agriculturalDataBefore?.agriculturalZones?.[`${tileX},${tileY}`];
+        for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
+          const tile = micropolis.getTile(left + dx, top + dy) & eng.MapTileBits.LOMASK.value;
+          // Accept bare soil, every tree/forest variant (including WOODS2–5),
+          // cleared rubble, and this parcel's own virtual agricultural tiles.
+          // Water, fire/flood tiles, roads, networks and buildings stay protected.
+          const isOwnAgriculturalTile = existingZoneAtCenter !== undefined &&
+            agricultureMapTileIds.some((reservedId) => reservedId === tile);
+          const isBuildableNaturalGround = tile === eng.Tiles.DIRT.value ||
+            (tile >= eng.Tiles.WOODS_LOW.value && tile <= eng.Tiles.LASTRUBBLE.value) ||
+            isOwnAgriculturalTile;
+          if (!isBuildableNaturalGround) buildable = false;
+        }
+        const overlaps = Object.values(agriculturalDataBefore?.agriculturalZones ?? {}).some((zone) =>
+          !(zone.x === tileX && zone.y === tileY) && Math.abs(zone.x - tileX) < 3 && Math.abs(zone.y - tileY) < 3
+        );
+        const cost = editorModeState.active ? 0 : 100;
+        if (!buildable || overlaps) result = eng.ToolResult.TOOLRESULT_FAILED;
+        else if (micropolis.totalFunds < cost) result = eng.ToolResult.TOOLRESULT_NO_MONEY;
+        else {
+          for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
+            micropolisReactive.poke.setTile(left + dx, top + dy, eng.Tiles.DIRT.value);
+          }
+          const data = upsertAgriculturalZone(agriculturalDataBefore!, {
+            id: `${tileX},${tileY}`, x: tileX, y: tileY,
+            level: agriculturalLevel, monthsInStage: 0,
+            specialization: 'MAR', productionMode: agriculturalProductionMode ?? 'BIO'
+          });
+          saveScenarioData(data);
+          if (cost > 0) micropolisReactive.poke.setFunds(micropolis.totalFunds - cost);
+          micropolisReactive.poke.updateMaps();
+          result = eng.ToolResult.TOOLRESULT_OK;
+        }
+      }
     } else if (directBuildingCenter !== null) {
       const left = tileX - 1;
       const top = tileY - 1;
@@ -541,14 +687,30 @@
       const tool = resolveEditingTool(eng, toolState.activeToolId);
       result = micropolisReactive.poke.doTool(tool, tileX, tileY);
     }
+    if (agriculturalLevel === null && toolState.activeToolId !== 'query') {
+      const resultCode = typeof result === 'number' ? result : result.value;
+      if (resultCode === eng.ToolResult.TOOLRESULT_OK.value) {
+        const affectedZones = Object.values(agriculturalDataBefore.agriculturalZones ?? {}).filter((zone) =>
+          Math.abs(zone.x - tileX) <= 1 && Math.abs(zone.y - tileY) <= 1
+        );
+        if (affectedZones.length) {
+          let nextData = agriculturalDataBefore;
+          for (const zone of affectedZones) nextData = removeAgriculturalZone(nextData, zone.x, zone.y);
+          saveScenarioData(nextData);
+        }
+      }
+    }
     const afterMap = micropolisReactive.memory.mapU16;
     const fundsDelta = micropolis.totalFunds - fundsBefore;
+    const agriculturalDataAfter = loadScenarioData(agriculturalScenarioId);
+    const agriculturalDataChanged =
+      JSON.stringify(agriculturalDataBefore.agriculturalZones) !== JSON.stringify(agriculturalDataAfter.agriculturalZones);
     if (before && afterMap) {
       const changes: Array<{ index: number; before: number; after: number }> = [];
       for (let i = 0; i < Math.min(before.length, afterMap.length); i++) {
         if (before[i] !== afterMap[i]) changes.push({ index: i, before: before[i], after: afterMap[i] });
       }
-      if (changes.length) {
+      if (changes.length || agriculturalDataChanged) {
         const restore = (field: 'before' | 'after') => {
           const live = micropolisReactive.memory.mapU16;
           if (!live) return;
@@ -560,6 +722,10 @@
           micropolisReactive.poke.updateMaps();
           const currentFunds = micropolisReactive.totalFunds;
           micropolisReactive.poke.setFunds(field === 'before' ? currentFunds - fundsDelta : currentFunds + fundsDelta);
+          if (agriculturalDataChanged) {
+            saveScenarioData(field === 'before' ? agriculturalDataBefore : agriculturalDataAfter);
+            micropolisReactive.refreshCityClimateIndex();
+          }
           simulator.render();
         };
         commandBus.recordUndo({
@@ -571,7 +737,7 @@
     }
     const feedback = toolResultMessage(result as { value: number });
     toolState.setLastToolFeedback(feedback);
-    if (editorModeState.active) micropolisReactive.refreshCityClimateIndex();
+    if (editorModeState.active || agriculturalLevel !== null) micropolisReactive.refreshCityClimateIndex();
     simulator.render();
   }
 
@@ -817,7 +983,7 @@
     
     if (!micropolisSimulator) return;
 
-    tileSet = index;
+    tileSet = ((Math.trunc(index) % tileSetCount) + tileSetCount) % tileSetCount;
     micropolisSimulator.fillMopTiles(tileSet);
 
     micropolisSimulator.render();

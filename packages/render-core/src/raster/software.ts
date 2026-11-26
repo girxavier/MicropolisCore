@@ -37,6 +37,8 @@ export interface TileAtlas {
 	opacity?: number;
 	tint?: [number, number, number, number];
 	data: Uint8ClampedArray;
+	/** Optional virtual tile IDs: `mopSet:tileId` -> source atlas tile and set. */
+	tileAliases?: Record<string, { tileId: number; tileSet: number; desaturate?: number }>;
 }
 
 // Micropolis stores rendering flags in the high bits of each map cell; the low
@@ -115,15 +117,18 @@ export function renderMicropolisMapSoftware(
 			const tileValue = mapData[cellIndex] ?? 0;
 			const tileId = tileValue & TILE_ID_MASK;
 			const tileSet = (mopData?.[cellIndex] ?? 0) & 0xff;
+			const alias = atlas.tileAliases?.[`${tileSet}:${tileId}`];
+			const sourceTileId = alias?.tileId ?? tileId;
+			const sourceTileSet = alias?.tileSet ?? tileSet;
 			// The atlas is a regular grid of tiles. Tile id N maps to row/column by
 			// the atlas tile count per row, then the intra-tile pixel offset selects
 			// the exact source texel.
 			// `tileCount` lets tiny overlay/UI/debug atlases intentionally contain
 			// only a handful of tiles. Repeat wraps ids around that small set; clamp
 			// pins invalid ids to the last tile so bad data stays visible.
-			const tileValueInSet = shouldWrap ? tileId % tileCount : clampInt(tileId, 0, tileCount - 1);
+			const tileValueInSet = shouldWrap ? sourceTileId % tileCount : clampInt(sourceTileId, 0, tileCount - 1);
 			const tileCol = tileValueInSet % tilesPerRow;
-			const tileRow = Math.floor(tileValueInSet / tilesPerRow) + (tileSet % setsPerAtlas) * rowsPerSet;
+			const tileRow = Math.floor(tileValueInSet / tilesPerRow) + (sourceTileSet % setsPerAtlas) * rowsPerSet;
 			// Pixel aspect lets old/non-square source pixels describe their intended
 			// visual ratio without changing logical world tile size. Defaults 1:1.
 			const aspectScale = pixelAspectY / pixelAspectX;
@@ -146,9 +151,20 @@ export function renderMicropolisMapSoftware(
 
 			// Output is tightly-packed RGBA8: row-major destination pixels, four
 			// channels per pixel. This matches ImageData and the sidecar video layout.
-			out[outIndex] = atlas.data[srcIndex] ?? 0;
-			out[outIndex + 1] = atlas.data[srcIndex + 1] ?? 0;
-			out[outIndex + 2] = atlas.data[srcIndex + 2] ?? 0;
+			const red = atlas.data[srcIndex] ?? 0;
+			const green = atlas.data[srcIndex + 1] ?? 0;
+			const blue = atlas.data[srcIndex + 2] ?? 0;
+			const desaturate = Math.max(0, Math.min(1, alias?.desaturate ?? 0));
+			if (desaturate > 0) {
+				const gray = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+				out[outIndex] = Math.round(red + (gray - red) * desaturate);
+				out[outIndex + 1] = Math.round(green + (gray - green) * desaturate);
+				out[outIndex + 2] = Math.round(blue + (gray - blue) * desaturate);
+			} else {
+				out[outIndex] = red;
+				out[outIndex + 1] = green;
+				out[outIndex + 2] = blue;
+			}
 			out[outIndex + 3] = atlas.data[srcIndex + 3] ?? 255;
 		}
 	}

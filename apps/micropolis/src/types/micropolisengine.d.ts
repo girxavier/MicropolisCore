@@ -415,6 +415,7 @@ export interface Micropolis extends ClassHandle {
   getActiveSprites(): any;
   generateMap(_0: number): void;
   clearMap(): void;
+  rebuildTerrainForEditor(_x: number, _y: number, _waterChanged: boolean, _treesChanged: boolean, _preserveTargetTree: boolean): void;
   simRandom(): number;
   getRandom(_0: number): number;
   getRandom16(): number;

@@ -25,6 +25,7 @@ describe('micropolisReactive poke / peek / memory', () => {
 	let engine: MainModule;
 	let micropolis: Micropolis;
 	let jsCallbackWrapper: JSCallback;
+	let simulatorLike: MicropolisSimulator;
 
 	beforeAll(async () => {
 		engine = await loadMicropolisMainModule();
@@ -35,7 +36,6 @@ describe('micropolisReactive poke / peek / memory', () => {
 		micropolis.init();
 		micropolis.loadCity('/cities/haight.cty');
 
-		let simulatorLike: MicropolisSimulator;
 		simulatorLike = {
 			micropolis,
 			micropolisengine: engine,
@@ -144,25 +144,62 @@ describe('micropolisReactive poke / peek / memory', () => {
 
 	// --- Map generation ---
 
-	it('poke.generateMap increments mapRevision', () => {
+	it('poke.generateMap increments mapRevision and clears stale atlas selectors', () => {
+		simulatorLike.mopData?.fill(7);
 		const before = micropolisReactive.mapRevision;
 		micropolisReactive.poke.generateMap(12345);
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 	});
 
-	it('poke.clearMap fills map with DIRT tiles', () => {
+	it('poke.clearMap clears map tiles and stale MOP atlas selectors', () => {
+		const virtualAgricultureTile = 53;
+		micropolisReactive.poke.setTile(5, 5, virtualAgricultureTile);
+		simulatorLike.mopData?.fill(7);
+
 		micropolisReactive.poke.clearMap();
 		const DIRT = engine.Tiles.DIRT.value;
-		// Sample a few spots — after clear the whole map should be DIRT
+		// Sample a few spots — after clear the whole map should be DIRT.
 		expect(micropolisReactive.peek.tile(0, 0)).toBe(DIRT);
+		expect(micropolisReactive.peek.tile(5, 5)).toBe(DIRT);
 		expect(micropolisReactive.peek.tile(30, 30)).toBe(DIRT);
 		expect(micropolisReactive.peek.tile(engine.WORLD_W - 1, engine.WORLD_H - 1)).toBe(DIRT);
+		// MOP is a separate array: all selectors must return to the base atlas.
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 	});
 
-	it('poke.generateSomeRandomCity increments mapRevision and places non-trivial tiles', () => {
+	it('rebuildTerrainForEditor reshapes nearby water without redrawing distant coastlines', (context) => {
+		// The lightweight PR CI deliberately does not rebuild Emscripten. The
+		// project's local build script does, so run this integration test there.
+		if (typeof micropolis.rebuildTerrainForEditor !== 'function') context.skip();
+
+		micropolisReactive.poke.clearMap();
+		const farX = 40;
+		const farY = 40;
+		const targetX = 10;
+		const targetY = 10;
+		const redge = engine.Tiles.REDGE.value;
+		micropolisReactive.poke.setTile(farX, farY, redge);
+		micropolisReactive.poke.setTile(targetX, targetY, engine.Tiles.RIVER.value);
+
+		micropolisReactive.poke.rebuildTerrainForEditor(targetX, targetY, true, false, false);
+
+		expect(micropolisReactive.peek.tile(farX, farY)).toBe(redge & 0x03ff);
+		expect(micropolisReactive.peek.tile(targetX, targetY)).not.toBe(engine.Tiles.RIVER.value & 0x03ff);
+	});
+
+	it('poke.generateSomeRandomCity increments mapRevision, resets atlas selectors and places non-trivial tiles', () => {
+		simulatorLike.mopData?.fill(7);
 		const before = micropolisReactive.mapRevision;
 		micropolisReactive.poke.generateSomeRandomCity();
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 		// A generated city should have at least some non-zero (non-DIRT) tiles
 		const mapU16 = micropolisReactive.memory.mapU16;
 		if (mapU16) {
@@ -173,10 +210,14 @@ describe('micropolisReactive poke / peek / memory', () => {
 
 	// --- poke.loadCity ---
 
-	it('poke.loadCity with valid path returns true and syncs state', () => {
+	it('poke.loadCity with valid path returns true, syncs state and clears stale atlas selectors', () => {
 		micropolisReactive.poke.setFunds(1000);
+		simulatorLike.mopData?.fill(7);
 		const ok = micropolisReactive.poke.loadCity('/cities/bluebird.cty');
 		expect(ok).toBe(true);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 		// Funds should be reset by city load
 		expect(micropolisReactive.totalFunds).toBe(micropolis.totalFunds);
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(0);

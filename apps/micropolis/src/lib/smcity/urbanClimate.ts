@@ -1,4 +1,4 @@
-import { getConstructionClimateRule, resolveConstructionTypeFromTileId } from './constructionCatalog';
+import { getAgriculturalClimateRule, getConstructionClimateRule, resolveConstructionTypeFromTileId } from './constructionCatalog';
 import type { ScenarioData } from './scenarioData';
 
 /**
@@ -39,23 +39,22 @@ export function computeCityClimateIndex(cellIndices: ArrayLike<number>): number 
 	return total / cellIndices.length;
 }
 
-/**
- * Calculate the raw city index from the actual map buffer. Every map cell is
- * included; legacy tile IDs without an unambiguous SmCity mapping contribute 0.
- */
+/** Convert the signed sum of all map-cell contributions into an unbounded city index. */
+export function transformRawCityClimateScore(rawSum: number): number {
+	if (!Number.isFinite(rawSum)) throw new RangeError('rawSum must be finite');
+	if (rawSum === 0) return 0;
+	return Math.sign(rawSum) * (100 * Math.log1p(Math.abs(rawSum) / 31110.5377)) / 2.62881793;
+}
+
+/** Calculate the city-wide index from the signed sum of every map cell. */
 export function computeMapCityClimateIndex(mapTiles: ArrayLike<number>, scenario?: ScenarioData): number {
 	if (mapTiles.length !== SM_CITY_MAP_CELL_COUNT) {
 		throw new RangeError(`Expected ${SM_CITY_MAP_CELL_COUNT} map cells; received ${mapTiles.length}`);
 	}
-	let total = 0;
-	for (let index = 0; index < mapTiles.length; index += 1) {
-		const typeId = resolveConstructionTypeFromTileId(mapTiles[index]);
-		if (!typeId) continue;
-		const rule = getConstructionClimateRule(typeId, scenario);
-		if (rule.kind === 'fixed') total += rule.value;
-		else if (rule.kind === 'range') total += (rule.min + rule.max) / 2;
-	}
-	return total / mapTiles.length;
+	const cells = computeMapCellClimateIndices(mapTiles, scenario);
+	let rawSum = 0;
+	for (let index = 0; index < cells.length; index += 1) rawSum += cells[index];
+	return transformRawCityClimateScore(rawSum);
 }
 
 /** One signed climate-index value per map cell; unknown/neutral tiles contribute 0. */
@@ -69,6 +68,18 @@ export function computeMapCellClimateIndices(mapTiles: ArrayLike<number>, scenar
 		if (rule.kind === 'fixed') field[index] = rule.value;
 		else if (rule.kind === 'range') field[index] = (rule.min + rule.max) / 2;
 		// Unassigned construction types deliberately contribute a neutral index of 0.
+	}
+	// Agricultural objects are stored outside the legacy Micropolis tile IDs.
+	// Their 3x3 footprint contributes the current level's coefficient per cell.
+	for (const zone of Object.values(scenario?.agriculturalZones ?? {})) {
+		if (zone.level <= 0 || zone.level > 5) continue;
+		const rule = getAgriculturalClimateRule('MAR', `D${zone.level}`, 'BIO', scenario);
+		const value = rule.kind === 'fixed' ? rule.value : rule.kind === 'range' ? (rule.min + rule.max) / 2 : 0;
+		for (let dx = -1; dx <= 1; dx += 1) for (let dy = -1; dy <= 1; dy += 1) {
+			const x = zone.x + dx, y = zone.y + dy;
+			if (x < 0 || y < 0 || x >= SM_CITY_MAP_WIDTH || y >= SM_CITY_MAP_HEIGHT) continue;
+			field[x * SM_CITY_MAP_HEIGHT + y] = value;
+		}
 	}
 	return field;
 }
@@ -120,15 +131,15 @@ export function computeAnnualCityClimateIndex(monthlyIndices: readonly number[])
 
 	let total = 0;
 	for (let month = 0; month < 12; month += 1) {
-		assertClimateIndex(monthlyIndices[month], `monthlyIndices[${month}]`);
+		if (!Number.isFinite(monthlyIndices[month])) throw new RangeError(`monthlyIndices[${month}] must be finite`);
 		total += monthlyIndices[month];
 	}
 	return total / 12;
 }
 
-/** +100 gives +1°C; -100 gives -1°C. */
+/** The unbounded annual city index converts linearly to a temperature shift. */
 export function cityClimateTemperatureShift(annualIndex: number): number {
-	assertClimateIndex(annualIndex, 'annualIndex');
+	if (!Number.isFinite(annualIndex)) throw new RangeError('annualIndex must be finite');
 	return annualIndex / 100;
 }
 

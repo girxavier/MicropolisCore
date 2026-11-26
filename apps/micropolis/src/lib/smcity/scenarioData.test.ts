@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   createEmptyScenarioData,
+  advanceAgriculturalDevelopment,
+  upsertAgriculturalZone,
   getScenarioTypeProperties,
   normalizeScenarioId,
   getAnnualClimateIndices,
@@ -36,6 +38,27 @@ describe('SmCity scenario data', () => {
     expect(getAnnualClimateIndices(data, 2026)).toBeNull();
     for (let month = 1; month < 12; month += 1) data = recordMonthlyClimateIndex(data, 2026, month, month);
     expect(getAnnualClimateIndices(data, 2026)).toEqual([-10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  });
+
+  it('stores agricultural parcels and advances one development level every twelve simulated months', () => {
+    let data = createEmptyScenarioData('orleans');
+    data = upsertAgriculturalZone(data, {
+      id: '20,30', x: 20, y: 30, level: 0, monthsInStage: 0,
+      specialization: 'MAR', productionMode: 'BIO'
+    });
+    for (let month = 0; month < 11; month++) data = advanceAgriculturalDevelopment(data);
+    expect(data.agriculturalZones['20,30'].level).toBe(0);
+    data = advanceAgriculturalDevelopment(data);
+    expect(data.agriculturalZones['20,30'].level).toBe(1);
+    expect(data.agriculturalZones['20,30'].monthsInStage).toBe(0);
+    for (let month = 0; month < 48; month++) data = advanceAgriculturalDevelopment(data);
+    expect(data.agriculturalZones['20,30'].level).toBe(5);
+  });
+
+  it('records city climate indices above 100 without clamping', () => {
+    let data = createEmptyScenarioData('orleans');
+    for (let month = 0; month < 12; month++) data = recordMonthlyClimateIndex(data, 2026, month, 125);
+    expect(getAnnualClimateIndices(data, 2026)).toEqual(Array(12).fill(125));
   });
 
   it('resets all overrides for one type without changing other types', () => {

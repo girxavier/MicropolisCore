@@ -1794,6 +1794,10 @@ public:
 
     void generateMap(int seed);
 
+    /** Rebuild terrain graphics after an editor brush changes a map cell. */
+    void rebuildTerrainForEditor(int x, int y, bool waterChanged,
+                                 bool treesChanged, bool preserveTargetTree);
+
 private:
 
     void makeNakedIsland();
@@ -1817,6 +1821,9 @@ private:
                         Direction2 riverDir, Direction2 terrainDir);
 
     void smoothRiver();
+
+    /** Rebuild one shoreline tile without touching distant coastlines. */
+    void smoothRiverAt(int x, int y);
 
     void smoothWater();
 

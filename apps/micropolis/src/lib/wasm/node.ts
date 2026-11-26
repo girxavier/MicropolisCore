@@ -39,7 +39,6 @@ function isBrowserOnlyEngineError(error: unknown): boolean {
 
 export async function loadMicropolisMainModule(): Promise<MainModule> {
 	assertWasmArtifactsPresent();
-	const wasmBinary = toArrayBuffer(readFileSync(wasmPath));
 	const dataBinary = toArrayBuffer(readFileSync(dataPath));
 
 	try {
@@ -47,8 +46,10 @@ export async function loadMicropolisMainModule(): Promise<MainModule> {
 			print: () => {},
 			printErr: () => {},
 			setStatus: () => {},
+			// Let Emscripten load the WASM file through locateFile/readAsync.
+			// Passing wasmBinary here is rejected by this generated module's
+			// INCOMING_MODULE_JS_API configuration.
 			locateFile: (filename: string) => path.join(projectLib, filename),
-			wasmBinary,
 			getPreloadedPackage: () => dataBinary
 		})) as MainModule;
 	} catch (nodeError) {
@@ -69,8 +70,10 @@ export async function loadMicropolisMainModule(): Promise<MainModule> {
 			print: () => {},
 			printErr: () => {},
 			setStatus: () => {},
+			// Let Emscripten load the WASM file through locateFile/readAsync.
+			// Passing wasmBinary here is rejected by this generated module's
+			// INCOMING_MODULE_JS_API configuration.
 			locateFile: (filename: string) => path.join(projectLib, filename),
-			wasmBinary,
 			getPreloadedPackage: () => dataBinary
 		})) as MainModule;
 	} finally {

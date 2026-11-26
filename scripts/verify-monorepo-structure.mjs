@@ -129,12 +129,32 @@ check('pnpm-workspace.yaml declares packages/* glob', () => {
 	if (!/['"]?packages\/\*['"]?/.test(workspace)) throw new Error("packages/* glob missing");
 });
 
-const workspaceDirs = ['apps', 'packages']
+const topLevelWorkspaceDirs = ['apps', 'packages']
 	.flatMap((root) =>
 		readdirSync(join(repoRoot, root), { withFileTypes: true })
 			.filter((entry) => entry.isDirectory())
 			.map((entry) => `${root}/${entry.name}`),
-	)
+	);
+
+// pnpm-workspace.yaml also includes Screen Angel's nested module and bridge
+// globs. Include those packages in dependency resolution checks as well.
+const screenAngelModulesRoot = 'apps/screen-angel/modules';
+const nestedWorkspaceDirs = existsSync(join(repoRoot, screenAngelModulesRoot))
+	? readdirSync(join(repoRoot, screenAngelModulesRoot), { withFileTypes: true })
+			.filter((entry) => entry.isDirectory())
+			.flatMap((entry) => {
+				const moduleDir = `${screenAngelModulesRoot}/${entry.name}`;
+				const bridgesDir = join(repoRoot, moduleDir, 'bridges');
+				const bridgeDirs = existsSync(bridgesDir)
+					? readdirSync(bridgesDir, { withFileTypes: true })
+							.filter((bridge) => bridge.isDirectory())
+							.map((bridge) => `${moduleDir}/bridges/${bridge.name}`)
+					: [];
+				return [moduleDir, ...bridgeDirs];
+			})
+	: [];
+
+const workspaceDirs = [...topLevelWorkspaceDirs, ...nestedWorkspaceDirs]
 	.filter((dir) => existsSync(join(repoRoot, dir, 'package.json')));
 
 const workspacePackages = new Map();

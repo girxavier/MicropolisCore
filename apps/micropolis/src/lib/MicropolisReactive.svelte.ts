@@ -13,7 +13,7 @@ import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
-import { getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
+import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
 import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
@@ -107,6 +107,15 @@ function syncFromEngine(): void {
 	temperatureMax = m.temperatureMax;
 	temperatureMean = m.temperatureMean;
 	climateReady = m.climateReady;
+}
+
+/**
+ * MOP selects the atlas independently of map tile IDs. Whenever the engine
+ * replaces the map, rebind the view and return every cell to the base tileset.
+ */
+function resetMopAtlasSelectors(): void {
+	attachedSimulator?.syncMapViews();
+	attachedSimulator?.mopData?.fill(0);
 }
 
 /** Recompute and persist the current month's map-derived urban climate index. */
@@ -211,20 +220,22 @@ class MicropolisReactiveCallback {
 
 	didGenerateMap(_micropolis: Micropolis | null, _callbackVal: unknown, _seed: number): void {
 		syncFromEngine();
-		attachedSimulator?.syncMapViews();
+		resetMopAtlasSelectors();
 		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadCity(_micropolis: Micropolis | null, _callbackVal: unknown, _filename: string): void {
 		syncFromEngine();
-		attachedSimulator?.syncMapViews();
+		resetMopAtlasSelectors();
 		refreshCityClimateIndex();
 		mapRevision++;
 	}
 
 	didLoadScenario(_micropolis: Micropolis | null, _callbackVal: unknown, _name: string, _fname: string): void {
 		syncFromEngine();
+		resetMopAtlasSelectors();
+		mapRevision++;
 	}
 
 	didLoseGame(_micropolis: Micropolis | null, _callbackVal: unknown): void {
@@ -351,6 +362,13 @@ class MicropolisReactiveCallback {
 	updateDate(_micropolis: Micropolis | null, _callbackVal: unknown, year: number, month: number): void {
 		cityYear = year;
 		cityMonth = month;
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const scenario = loadScenarioData(scenarioId);
+		const advanced = advanceAgriculturalDevelopment(scenario);
+		if (advanced !== scenario) {
+			saveScenarioData(advanced);
+			mapRevision++;
+		}
 		refreshCityClimateIndex();
 	}
 
@@ -574,6 +592,13 @@ export const micropolisReactive = {
 		if (typeof attachedSimulator?.micropolis?.clearZoneLocks === 'function') attachedSimulator.micropolis.clearZoneLocks();
 		zoneLockRevision++;
 	},
+	clearScenarioAgriculturalZones(): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const data = loadScenarioData(scenarioId);
+		if (Object.keys(data.agriculturalZones ?? {}).length === 0) return;
+		saveScenarioData({ ...data, agriculturalZones: {}, updatedAt: new Date().toISOString() });
+		mapRevision++;
+	},
 
 	/**
 	 * Embind module (`WORLD_W`, `MapTileBits`, `EditingTool`, `Tiles`, …).
@@ -705,14 +730,29 @@ export const micropolisReactive = {
 		},
 		clearMap(): void {
 			commandBus.clearHistory();
-			requireMicropolis().clearMap();
+			const engine = requireMicropolis();
+			engine.clearMap();
+
+			// MOP selects atlas sets independently from map tile IDs. Reset it too:
+			// otherwise stale agricultural selectors can survive after their virtual
+			// map tiles have been replaced with DIRT.
+			attachedSimulator?.mopData?.fill(0);
+
+			engine.updateMaps();
 			syncFromEngine();
 			mapRevision++;
 		},
 		generateMap(seed: number): void {
 			commandBus.clearHistory();
-			requireMicropolis().generateMap(seed);
+			const engine = requireMicropolis();
+			engine.generateMap(seed);
+			resetMopAtlasSelectors();
+			engine.updateMaps();
 			syncFromEngine();
+			mapRevision++;
+		},
+		rebuildTerrainForEditor(x: number, y: number, waterChanged: boolean, treesChanged: boolean, preserveTargetTree: boolean): void {
+			requireMicropolis().rebuildTerrainForEditor(x, y, waterChanged, treesChanged, preserveTargetTree);
 			mapRevision++;
 		},
 		updateMaps(): void {

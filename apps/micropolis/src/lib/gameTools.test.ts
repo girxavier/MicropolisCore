@@ -6,6 +6,10 @@ describe('toolFootprintAtCenter', () => {
 		expect(toolFootprintAtCenter(10, 20, 'road')).toEqual({ x: 10, y: 20, w: 1, h: 1 });
 	});
 
+	it('the generic terrain brush edits one map cell', () => {
+		expect(toolFootprintAtCenter(10, 20, 'terrain-paint')).toEqual({ x: 10, y: 20, w: 1, h: 1 });
+	});
+
 	it('3×3 zones anchor top-left at center − (1, 1)', () => {
 		expect(toolFootprintAtCenter(10, 20, 'res')).toEqual({ x: 9, y: 19, w: 3, h: 3 });
 	});

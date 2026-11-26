@@ -2,6 +2,15 @@ import referenceCatalog from '../../../../../content/micropolis/smcity/construct
 
 export type ScenarioPropertyValue = number | string | boolean | null;
 export type ConstructionProperties = Record<string, ScenarioPropertyValue>;
+export interface AgriculturalZone {
+  id: string;
+  x: number;
+  y: number;
+  level: number;
+  monthsInStage: number;
+  specialization: 'MAR';
+  productionMode: 'BIO' | 'CONV';
+}
 export interface ScenarioData {
   schemaVersion: 1;
   scenarioId: string;
@@ -9,6 +18,7 @@ export interface ScenarioData {
   constructionTypes: Record<string, ConstructionProperties>;
   monthlyClimateIndices: Record<string, number>;
   lockedZones: Record<string, boolean>;
+  agriculturalZones: Record<string, AgriculturalZone>;
 }
 export interface ScenarioSaveBundle {
   format: 'smcity-scenario-save';
@@ -26,7 +36,7 @@ const STORAGE_PREFIX = 'smcity:scenario-data:v1:';
 const commonProperties = (referenceCatalog as { commonProperties: string[] }).commonProperties;
 
 export function createEmptyScenarioData(scenarioId: string): ScenarioData {
-  return { schemaVersion: 1, scenarioId, updatedAt: new Date(0).toISOString(), constructionTypes: {}, monthlyClimateIndices: {}, lockedZones: {} };
+  return { schemaVersion: 1, scenarioId, updatedAt: new Date(0).toISOString(), constructionTypes: {}, monthlyClimateIndices: {}, lockedZones: {}, agriculturalZones: {} };
 }
 
 export function normalizeScenarioId(value: string): string {
@@ -35,7 +45,7 @@ export function normalizeScenarioId(value: string): string {
 }
 
 export function recordMonthlyClimateIndex(data: ScenarioData, year: number, month: number, index: number): ScenarioData {
-  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 0 || month > 11 || !Number.isFinite(index) || index < -100 || index > 100) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 0 || month > 11 || !Number.isFinite(index)) {
     throw new RangeError('Invalid monthly climate record');
   }
   const key = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -92,6 +102,39 @@ export function updateScenarioTypeProperty(
   };
 }
 
+export function upsertAgriculturalZone(data: ScenarioData, zone: AgriculturalZone): ScenarioData {
+  if (!Number.isInteger(zone.x) || !Number.isInteger(zone.y) || zone.x < 1 || zone.y < 1 ||
+      !Number.isInteger(zone.level) || zone.level < 0 || zone.level > 5 ||
+      !Number.isInteger(zone.monthsInStage) || zone.monthsInStage < 0 || zone.monthsInStage > 11) {
+    throw new RangeError('Invalid agricultural zone');
+  }
+  const id = `${zone.x},${zone.y}`;
+  return { ...data, updatedAt: new Date().toISOString(), agriculturalZones: { ...(data.agriculturalZones ?? {}), [id]: { ...zone, id } } };
+}
+
+export function removeAgriculturalZone(data: ScenarioData, x: number, y: number): ScenarioData {
+  const agriculturalZones = { ...(data.agriculturalZones ?? {}) };
+  delete agriculturalZones[`${x},${y}`];
+  return { ...data, updatedAt: new Date().toISOString(), agriculturalZones };
+}
+
+/** Advance each active farm by one simulated month; one development stage takes 12 months. */
+export function advanceAgriculturalDevelopment(data: ScenarioData): ScenarioData {
+  const current = data.agriculturalZones ?? {};
+  if (Object.keys(current).length === 0) return data;
+  let changed = false;
+  const agriculturalZones: Record<string, AgriculturalZone> = {};
+  for (const [key, zone] of Object.entries(current)) {
+    if (zone.level >= 5) { agriculturalZones[key] = zone; continue; }
+    const elapsed = zone.monthsInStage + 1;
+    agriculturalZones[key] = elapsed >= 12
+      ? { ...zone, level: zone.level + 1, monthsInStage: 0 }
+      : { ...zone, monthsInStage: elapsed };
+    changed = true;
+  }
+  return changed ? { ...data, updatedAt: new Date().toISOString(), agriculturalZones } : data;
+}
+
 export function serializeScenarioSave(bundle: ScenarioSaveBundle): string {
   return JSON.stringify(bundle, null, 2);
 }
@@ -117,7 +160,7 @@ export function loadScenarioData(scenarioId: string): ScenarioData {
     if (parsed.schemaVersion !== 1 || !parsed.constructionTypes || typeof parsed.constructionTypes !== 'object') {
       return createEmptyScenarioData(scenarioId);
     }
-    return { ...parsed, scenarioId, monthlyClimateIndices: parsed.monthlyClimateIndices ?? {}, lockedZones: parsed.lockedZones ?? {} };
+    return { ...parsed, scenarioId, monthlyClimateIndices: parsed.monthlyClimateIndices ?? {}, lockedZones: parsed.lockedZones ?? {}, agriculturalZones: parsed.agriculturalZones ?? {} };
   } catch {
     return createEmptyScenarioData(scenarioId);
   }
