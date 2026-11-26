@@ -804,10 +804,10 @@ void Micropolis::smoothWater()
 /**
  * Rebuild terrain graphics after an editor brush changes a single map cell.
  *
- * Keep the established smoothing algorithms unchanged: water edits use
- * smoothWater() followed by smoothRiver(), and tree edits use the local
- * smoothTreesAt() neighborhood pass. Full-map smoothTrees() remains the
- * generation-time pass in doTrees().
+ * Keep the established full-map smoothing algorithms unchanged:
+ * water edits use the local shoreline rules and smoothRiverAt(), while tree
+ * edits use the local smoothTreesAt() neighborhood pass. Full-map
+ * smoothWater(), smoothRiver(), and smoothTrees() remain generation-time passes.
  */
 void Micropolis::rebuildTerrainForEditor(int x, int y, bool waterChanged,
                                          bool treesChanged, bool preserveTargetTree)
