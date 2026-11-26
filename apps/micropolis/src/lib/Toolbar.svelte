@@ -202,7 +202,7 @@
 
 {#if generatorOpen}
 	<div class="terrain-generator-backdrop" role="presentation">
-		<section class="terrain-generator" role="dialog" aria-modal="true" aria-labelledby="terrain-generator-title">
+		<dialog open class="terrain-generator" aria-labelledby="terrain-generator-title">
 			<header class="generator-header">
 				<h2 id="terrain-generator-title">Générateur de terrain</h2>
 				<button type="button" class="generator-close" aria-label="Fermer" onclick={() => generatorOpen = false}>×</button>
@@ -264,13 +264,13 @@
 				<button type="button" class="generator-cancel" onclick={() => generatorOpen = false}>Fermer</button>
 				<button type="button" class="generator-submit" onclick={applyTerrainGeneration}>Générer</button>
 			</footer>
-		</section>
+		</dialog>
 	</div>
 {/if}
 
 {#if libraryOpen}
 	<div class="terrain-generator-backdrop" role="presentation">
-		<section class="terrain-generator terrain-library" role="dialog" aria-modal="true" aria-labelledby="terrain-library-title">
+		<dialog open class="terrain-generator terrain-library" aria-labelledby="terrain-library-title">
 			<header class="generator-header">
 				<h2 id="terrain-library-title">Bibliothèque de terrains nus</h2>
 				<button type="button" class="generator-close" aria-label="Fermer" onclick={() => libraryOpen = false}>×</button>
