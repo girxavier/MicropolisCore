@@ -719,7 +719,15 @@ export const micropolisReactive = {
 		},
 		clearMap(): void {
 			commandBus.clearHistory();
-			requireMicropolis().clearMap();
+			const engine = requireMicropolis();
+			engine.clearMap();
+
+			// MOP selects atlas sets independently from map tile IDs. Reset it too:
+			// otherwise stale agricultural selectors can survive after their virtual
+			// map tiles have been replaced with DIRT.
+			attachedSimulator?.mopData?.fill(0);
+
+			engine.updateMaps();
 			syncFromEngine();
 			mapRevision++;
 		},
