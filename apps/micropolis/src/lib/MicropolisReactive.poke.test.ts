@@ -220,6 +220,28 @@ describe('micropolisReactive poke / peek / memory', () => {
 		expect(micropolisReactive.peek.tile(targetX, targetY)).not.toBe(engine.Tiles.RIVER.value & 0x03ff);
 	});
 
+	it('poke.loadTerrainTiles restores bare terrain and editable natural-tile flags', () => {
+		const width = engine.WORLD_W;
+		const height = engine.WORLD_H;
+		const tiles = new Array<number>(width * height).fill(engine.Tiles.DIRT.value);
+		const waterIndex = 12 * width + 14;
+		const treeIndex = 13 * width + 15;
+		tiles[waterIndex] = engine.Tiles.REDGE.value;
+		tiles[treeIndex] = engine.Tiles.WOODS.value;
+		simulatorLike.mopData?.fill(7);
+		const before = micropolisReactive.mapRevision;
+		micropolisReactive.poke.loadTerrainTiles(width, height, tiles);
+		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		expect((micropolisReactive.peek.tile(14, 12) ?? 0) & 0x03ff).toBe(engine.Tiles.REDGE.value);
+		expect((micropolisReactive.peek.tile(14, 12) ?? 0) & engine.MapTileBits.BULLBIT.value).not.toBe(0);
+		expect((micropolisReactive.peek.tile(15, 13) ?? 0) & 0x03ff).toBe(engine.Tiles.WOODS.value);
+		expect((micropolisReactive.peek.tile(15, 13) ?? 0) & engine.MapTileBits.BLBNBIT.value).not.toBe(0);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
+		expect(() => micropolisReactive.poke.loadTerrainTiles(width - 1, height, tiles)).toThrow(RangeError);
+	});
+
 	it('poke.generateSomeRandomCity increments mapRevision, resets atlas selectors and places non-trivial tiles', () => {
 		simulatorLike.mopData?.fill(7);
 		const before = micropolisReactive.mapRevision;
