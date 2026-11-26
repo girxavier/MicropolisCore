@@ -171,6 +171,7 @@
 			</label>
 			<fieldset class="density-fields">
 				<legend>Densités relatives</legend>
+				<p class="density-help">Les valeurs règlent la répartition relative des quatre types de terrain.</p>
 				{#each [
 					{ key: 'water', label: 'Eau' },
 					{ key: 'forest', label: 'Forêt' },
@@ -193,7 +194,7 @@
 				{#if terrainConfig.river.enabled}
 					<div class="river-direction">
 						<label>Départ
-							<select value={terrainConfig.river.from} onchange={(event) => terrainConfig.river.from = event.currentTarget.value as CompassDirection}>
+							<select value={terrainConfig.river.from} onchange={(event) => { const next = event.currentTarget.value as CompassDirection; terrainConfig.river.from = next; if (terrainConfig.river.to === next) terrainConfig.river.to = directionOptions.find((option) => option.value !== next)?.value ?? 'E'; }}>
 								{#each directionOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
 							</select>
 						</label>
@@ -273,6 +274,7 @@
 	.generator-seed input { width:11rem; padding:.35rem; }
 	.density-fields,.river-fields { margin:.75rem 0; padding:.6rem .75rem .75rem; border:1px solid #52647f; border-radius:5px; }
 	.density-fields legend,.river-fields legend { padding:0 .35rem; color:#c8d7f3; font-weight:800; }
+	.density-help { margin:.25rem 0 .65rem; color:#b8c5dc; font-size:.68rem; line-height:1.35; }
 	.density-row { display:grid; grid-template-columns:8.5rem 1fr 2rem; align-items:center; gap:.7rem; margin:.55rem 0; }
 	.density-row input { width:100%; accent-color:#8bb4e8; }
 	.density-row output { text-align:right; font-variant-numeric:tabular-nums; }
