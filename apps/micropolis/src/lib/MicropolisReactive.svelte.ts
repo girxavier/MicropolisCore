@@ -13,7 +13,7 @@ import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
-import { getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
+import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
 import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
@@ -351,6 +351,13 @@ class MicropolisReactiveCallback {
 	updateDate(_micropolis: Micropolis | null, _callbackVal: unknown, year: number, month: number): void {
 		cityYear = year;
 		cityMonth = month;
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const scenario = loadScenarioData(scenarioId);
+		const advanced = advanceAgriculturalDevelopment(scenario);
+		if (advanced !== scenario) {
+			saveScenarioData(advanced);
+			mapRevision++;
+		}
 		refreshCityClimateIndex();
 	}
 

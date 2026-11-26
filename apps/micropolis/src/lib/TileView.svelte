@@ -24,7 +24,8 @@
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { toolState } from '$lib/ToolState.svelte';
   import { editorModeState } from '$lib/EditorMode.svelte';
-  import { resolveEditingTool, resolveDirectBuildingCenterTile, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
+  import { resolveEditingTool, resolveDirectBuildingCenterTile, agriculturalLevelForTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
+  import { loadScenarioData, saveScenarioData, upsertAgriculturalZone } from '$lib/smcity/scenarioData';
   import {
     syncViewportScreenScale,
     panToKeepWorldAtScreen,
@@ -497,6 +498,9 @@
     const mapBefore = micropolisReactive.memory.mapU16;
     const before = mapBefore ? new Uint16Array(mapBefore) : null;
     const fundsBefore = micropolis.totalFunds;
+    const agriculturalLevel = agriculturalLevelForTool(toolState.activeToolId);
+    const agriculturalScenarioId = micropolisReactive.cityFileName || micropolisReactive.cityName || 'default';
+    const agriculturalDataBefore = agriculturalLevel !== null ? loadScenarioData(agriculturalScenarioId) : null;
     const directBuildingCenter = editorModeState.active
       ? resolveDirectBuildingCenterTile(eng, toolState.activeToolId)
       : null;
@@ -535,6 +539,40 @@
         brush === 'forest'
       );
       result = eng.ToolResult.TOOLRESULT_OK;
+    } else if (agriculturalLevel !== null) {
+      const left = tileX - 1;
+      const top = tileY - 1;
+      if (left < 0 || top < 0 || left + 3 > eng.WORLD_W || top + 3 > eng.WORLD_H) {
+        result = eng.ToolResult.TOOLRESULT_FAILED;
+      } else {
+        let buildable = true;
+        for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
+          const tile = micropolis.getTile(left + dx, top + dy) & eng.MapTileBits.LOMASK.value;
+          const isDirt = tile === eng.Tiles.DIRT.value;
+          const isVegetation = tile >= eng.Tiles.WOODS_LOW.value && tile <= eng.Tiles.WOODS_HIGH.value;
+          if (!isDirt && !isVegetation) buildable = false;
+        }
+        const overlaps = Object.values(agriculturalDataBefore?.agriculturalZones ?? {}).some((zone) =>
+          !(zone.x === tileX && zone.y === tileY) && Math.abs(zone.x - tileX) < 3 && Math.abs(zone.y - tileY) < 3
+        );
+        const cost = editorModeState.active ? 0 : 100;
+        if (!buildable || overlaps) result = eng.ToolResult.TOOLRESULT_FAILED;
+        else if (micropolis.totalFunds < cost) result = eng.ToolResult.TOOLRESULT_NO_MONEY;
+        else {
+          for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
+            micropolisReactive.poke.setTile(left + dx, top + dy, eng.Tiles.DIRT.value);
+          }
+          const data = upsertAgriculturalZone(agriculturalDataBefore!, {
+            id: `${tileX},${tileY}`, x: tileX, y: tileY,
+            level: agriculturalLevel, monthsInStage: 0,
+            specialization: 'MAR', productionMode: 'BIO'
+          });
+          saveScenarioData(data);
+          if (cost > 0) micropolisReactive.poke.setFunds(micropolis.totalFunds - cost);
+          micropolisReactive.poke.updateMaps();
+          result = eng.ToolResult.TOOLRESULT_OK;
+        }
+      }
     } else if (directBuildingCenter !== null) {
       const left = tileX - 1;
       const top = tileY - 1;
@@ -571,12 +609,15 @@
     }
     const afterMap = micropolisReactive.memory.mapU16;
     const fundsDelta = micropolis.totalFunds - fundsBefore;
+    const agriculturalDataAfter = agriculturalDataBefore ? loadScenarioData(agriculturalScenarioId) : null;
+    const agriculturalDataChanged = !!agriculturalDataBefore && !!agriculturalDataAfter &&
+      JSON.stringify(agriculturalDataBefore.agriculturalZones) !== JSON.stringify(agriculturalDataAfter.agriculturalZones);
     if (before && afterMap) {
       const changes: Array<{ index: number; before: number; after: number }> = [];
       for (let i = 0; i < Math.min(before.length, afterMap.length); i++) {
         if (before[i] !== afterMap[i]) changes.push({ index: i, before: before[i], after: afterMap[i] });
       }
-      if (changes.length) {
+      if (changes.length || agriculturalDataChanged) {
         const restore = (field: 'before' | 'after') => {
           const live = micropolisReactive.memory.mapU16;
           if (!live) return;
@@ -588,6 +629,10 @@
           micropolisReactive.poke.updateMaps();
           const currentFunds = micropolisReactive.totalFunds;
           micropolisReactive.poke.setFunds(field === 'before' ? currentFunds - fundsDelta : currentFunds + fundsDelta);
+          if (agriculturalDataChanged && agriculturalDataBefore && agriculturalDataAfter) {
+            saveScenarioData(field === 'before' ? agriculturalDataBefore : agriculturalDataAfter);
+            micropolisReactive.refreshCityClimateIndex();
+          }
           simulator.render();
         };
         commandBus.recordUndo({
@@ -599,7 +644,7 @@
     }
     const feedback = toolResultMessage(result as { value: number });
     toolState.setLastToolFeedback(feedback);
-    if (editorModeState.active) micropolisReactive.refreshCityClimateIndex();
+    if (editorModeState.active || agriculturalLevel !== null) micropolisReactive.refreshCityClimateIndex();
     simulator.render();
   }
 
