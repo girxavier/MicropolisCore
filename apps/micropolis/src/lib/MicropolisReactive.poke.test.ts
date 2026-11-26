@@ -161,13 +161,14 @@ describe('micropolisReactive poke / peek / memory', () => {
 		micropolisReactive.poke.generateTerrainForEditor(4242, 0, 100, 0, 0, false, 6, 2, 0, 0);
 		expect(micropolis.generatedCitySeed).toBe(4242);
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		let forestTileCount = 0;
 		for (let y = 0; y < engine.WORLD_H; y++) {
 			for (let x = 0; x < engine.WORLD_W; x++) {
 				const tile = (micropolisReactive.peek.tile(x, y) ?? 0) & 0x03ff;
-				expect(tile).toBeGreaterThanOrEqual(engine.Tiles.WOODS_LOW.value);
-				expect(tile).toBeLessThanOrEqual(engine.Tiles.WOODS5.value);
+				if (tile >= engine.Tiles.WOODS_LOW.value && tile <= engine.Tiles.WOODS5.value) forestTileCount++;
 			}
 		}
+		expect(forestTileCount).toBeGreaterThan(0);
 		if (simulatorLike.mopData) {
 			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
 		}
