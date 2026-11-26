@@ -44,14 +44,22 @@
   // Tile Sets
   import tileLayer_all10 from '$lib/images/tilesets/all.png';
 
+  // all.png contains ten 32×32 tilesets stacked vertically.
+  // Map tile IDs are 10-bit values (0–1023); MOP data selects the tileset (0–9).
+  // Keeping tileCount and tilesPerSet at 1024 makes the renderer calculate
+  // 32 rows per set and select the correct 512×512 block from the atlas.
   const tileLayers = [
-    tileLayer_all10,
+    {
+      url: tileLayer_all10,
+      tileCount: 1024,
+      tilesPerSet: 1024,
+    },
   ];
 
   const tileWidth = 16;
   const tileHeight = 16;
-  const tileCount = 960;
-  let tileSetCount = 10;
+  const tileSetCount = 10;
+  let tileSet: number = 0;
   let tileSet: number = 0;
 
   let canvasGL: HTMLCanvasElement | null = null;
