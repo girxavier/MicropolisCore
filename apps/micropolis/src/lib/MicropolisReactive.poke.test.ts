@@ -144,10 +144,14 @@ describe('micropolisReactive poke / peek / memory', () => {
 
 	// --- Map generation ---
 
-	it('poke.generateMap increments mapRevision', () => {
+	it('poke.generateMap increments mapRevision and clears stale atlas selectors', () => {
+		simulatorLike.mopData?.fill(7);
 		const before = micropolisReactive.mapRevision;
 		micropolisReactive.poke.generateMap(12345);
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 	});
 
 	it('poke.clearMap clears map tiles and stale MOP atlas selectors', () => {
@@ -202,10 +206,14 @@ describe('micropolisReactive poke / peek / memory', () => {
 
 	// --- poke.loadCity ---
 
-	it('poke.loadCity with valid path returns true and syncs state', () => {
+	it('poke.loadCity with valid path returns true, syncs state and clears stale atlas selectors', () => {
 		micropolisReactive.poke.setFunds(1000);
+		simulatorLike.mopData?.fill(7);
 		const ok = micropolisReactive.poke.loadCity('/cities/bluebird.cty');
 		expect(ok).toBe(true);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 		// Funds should be reset by city load
 		expect(micropolisReactive.totalFunds).toBe(micropolis.totalFunds);
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(0);
