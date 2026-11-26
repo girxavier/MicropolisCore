@@ -548,9 +548,12 @@
         let buildable = true;
         for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
           const tile = micropolis.getTile(left + dx, top + dy) & eng.MapTileBits.LOMASK.value;
-          const isDirt = tile === eng.Tiles.DIRT.value;
-          const isVegetation = tile >= eng.Tiles.WOODS_LOW.value && tile <= eng.Tiles.WOODS_HIGH.value;
-          if (!isDirt && !isVegetation) buildable = false;
+          // Accept bare soil, every tree/forest variant (including WOODS2–5),
+          // and cleared rubble. Water, fire/flood tiles, roads, networks and
+          // constructed buildings remain protected from agricultural placement.
+          const isBuildableNaturalGround = tile === eng.Tiles.DIRT.value ||
+            (tile >= eng.Tiles.WOODS_LOW.value && tile <= eng.Tiles.LASTRUBBLE.value);
+          if (!isBuildableNaturalGround) buildable = false;
         }
         const overlaps = Object.values(agriculturalDataBefore?.agriculturalZones ?? {}).some((zone) =>
           !(zone.x === tileX && zone.y === tileY) && Math.abs(zone.x - tileX) < 3 && Math.abs(zone.y - tileY) < 3
