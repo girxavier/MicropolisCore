@@ -152,7 +152,8 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 			{ id: 'agriculture-maraichage-bio-d5', label: 'Maraîchage BIO · D5', shortcut: '—', cost: 0 },
 		],
 	},
-			id: 'terrain',
+	{
+		id: 'terrain',
 		label: 'Terrain',
 		tools: [
 			{ id: 'terrain-paint', label: 'Pinceau terrain', shortcut: '—', cost: 0 },
