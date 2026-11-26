@@ -1,4 +1,4 @@
-# Lightweight checks on push/PR — no Emscripten, no GitHub Pages deploy.
+# Pull-request checks include a fresh C++/WASM build; no Pages deployment.
 # The live demo at https://micropolisweb.com/ is unchanged by pushes to main.
 # Publish only via: Actions → "Build Wasm Library with Emscripten" → deploy_to_pages ✓
 
