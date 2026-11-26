@@ -1,5 +1,4 @@
 [CmdletBinding()]
-[CmdletBinding()]
 param(
     [switch]$Dev,
     [switch]$SkipGitSync,
