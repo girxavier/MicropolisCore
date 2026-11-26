@@ -26,7 +26,9 @@ export type ToolId =
 	| 'com-building-1' | 'com-building-2' | 'com-building-3' | 'com-building-4' | 'com-building-5'
 	| 'ind-building-1' | 'ind-building-2' | 'ind-building-3' | 'ind-building-4'
 	| 'agriculture-maraichage-bio'
-	| 'agriculture-maraichage-bio-d1' | 'agriculture-maraichage-bio-d2' | 'agriculture-maraichage-bio-d3' | 'agriculture-maraichage-bio-d4' | 'agriculture-maraichage-bio-d5';
+	| 'agriculture-maraichage-bio-d1' | 'agriculture-maraichage-bio-d2' | 'agriculture-maraichage-bio-d3' | 'agriculture-maraichage-bio-d4' | 'agriculture-maraichage-bio-d5'
+	| 'agriculture-maraichage-conv'
+	| 'agriculture-maraichage-conv-d1' | 'agriculture-maraichage-conv-d2' | 'agriculture-maraichage-conv-d3' | 'agriculture-maraichage-conv-d4' | 'agriculture-maraichage-conv-d5';
 
 
 export type TerrainBrushId = 'land' | 'water' | 'forest';
@@ -83,6 +85,7 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 			{ id: 'com', label: 'Commercial', shortcut: 'E', cost: 100 },
 			{ id: 'ind', label: 'Industrial', shortcut: 'T', cost: 100 },
 			{ id: 'agriculture-maraichage-bio', label: 'Maraîchage biologique', shortcut: '—', cost: 100 },
+			{ id: 'agriculture-maraichage-conv', label: 'Maraîchage conventionnel', shortcut: '—', cost: 100 },
 		],
 	},
 	{
@@ -146,6 +149,11 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 			{ id: 'agriculture-maraichage-bio-d3', label: 'Maraîchage BIO · D3', shortcut: '—', cost: 0 },
 			{ id: 'agriculture-maraichage-bio-d4', label: 'Maraîchage BIO · D4', shortcut: '—', cost: 0 },
 			{ id: 'agriculture-maraichage-bio-d5', label: 'Maraîchage BIO · D5', shortcut: '—', cost: 0 },
+			{ id: 'agriculture-maraichage-conv-d1', label: 'Maraîchage CONV · D1', shortcut: '—', cost: 0 },
+			{ id: 'agriculture-maraichage-conv-d2', label: 'Maraîchage CONV · D2', shortcut: '—', cost: 0 },
+			{ id: 'agriculture-maraichage-conv-d3', label: 'Maraîchage CONV · D3', shortcut: '—', cost: 0 },
+			{ id: 'agriculture-maraichage-conv-d4', label: 'Maraîchage CONV · D4', shortcut: '—', cost: 0 },
+			{ id: 'agriculture-maraichage-conv-d5', label: 'Maraîchage CONV · D5', shortcut: '—', cost: 0 },
 		],
 	},
 	{
@@ -224,17 +232,27 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 		case 'agriculture-maraichage-bio':
 		case 'agriculture-maraichage-bio-d1': case 'agriculture-maraichage-bio-d2': case 'agriculture-maraichage-bio-d3':
 		case 'agriculture-maraichage-bio-d4': case 'agriculture-maraichage-bio-d5':
+		case 'agriculture-maraichage-conv':
+		case 'agriculture-maraichage-conv-d1': case 'agriculture-maraichage-conv-d2': case 'agriculture-maraichage-conv-d3':
+		case 'agriculture-maraichage-conv-d4': case 'agriculture-maraichage-conv-d5':
 			return t.TOOL_COMMERCIAL;
 		default:
 			return t.TOOL_ROAD;
 	}
 }
 
-/** Development level encoded by the selected maraîchage BIO placement tool. */
+/** Development level encoded by the selected maraîchage placement tool. */
 export function agriculturalLevelForTool(id: ToolId): number | null {
-	if (id === 'agriculture-maraichage-bio') return 0;
-	const match = /^agriculture-maraichage-bio-d([1-5])$/.exec(id);
+	if (id === 'agriculture-maraichage-bio' || id === 'agriculture-maraichage-conv') return 0;
+	const match = /^agriculture-maraichage-(?:bio|conv)-d([1-5])$/.exec(id);
 	return match ? Number(match[1]) : null;
+}
+
+/** Production mode encoded by the selected maraîchage placement tool. */
+export function agriculturalProductionModeForTool(id: ToolId): 'BIO' | 'CONV' | null {
+	if (id === 'agriculture-maraichage-bio' || id.startsWith('agriculture-maraichage-bio-d')) return 'BIO';
+	if (id === 'agriculture-maraichage-conv' || id.startsWith('agriculture-maraichage-conv-d')) return 'CONV';
+	return null;
 }
 
 /** Tile footprint per tool — mirrors `gToolSize[]` in micropolis-engine `tool.cpp`. */
@@ -267,6 +285,9 @@ const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 	'agriculture-maraichage-bio': 3,
 	'agriculture-maraichage-bio-d1': 3, 'agriculture-maraichage-bio-d2': 3, 'agriculture-maraichage-bio-d3': 3,
 	'agriculture-maraichage-bio-d4': 3, 'agriculture-maraichage-bio-d5': 3,
+	'agriculture-maraichage-conv': 3,
+	'agriculture-maraichage-conv-d1': 3, 'agriculture-maraichage-conv-d2': 3, 'agriculture-maraichage-conv-d3': 3,
+	'agriculture-maraichage-conv-d4': 3, 'agriculture-maraichage-conv-d5': 3,
 };
 
 
