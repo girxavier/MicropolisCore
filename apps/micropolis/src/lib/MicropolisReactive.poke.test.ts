@@ -192,10 +192,14 @@ describe('micropolisReactive poke / peek / memory', () => {
 		expect(micropolisReactive.peek.tile(targetX, targetY)).not.toBe(engine.Tiles.RIVER.value & 0x03ff);
 	});
 
-	it('poke.generateSomeRandomCity increments mapRevision and places non-trivial tiles', () => {
+	it('poke.generateSomeRandomCity increments mapRevision, resets atlas selectors and places non-trivial tiles', () => {
+		simulatorLike.mopData?.fill(7);
 		const before = micropolisReactive.mapRevision;
 		micropolisReactive.poke.generateSomeRandomCity();
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 		// A generated city should have at least some non-zero (non-DIRT) tiles
 		const mapU16 = micropolisReactive.memory.mapU16;
 		if (mapU16) {
