@@ -294,6 +294,7 @@ export function toolCursor(id: ToolId, panning: boolean, shiftPanHeld = false): 
 			return 'crosshair';
 		case 'bulldoze':
 		case 'clear':
+		case 'terrain-paint':
 			return 'cell';
 		default:
 			return 'default';

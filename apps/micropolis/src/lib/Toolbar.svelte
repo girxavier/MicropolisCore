@@ -44,7 +44,9 @@
 		editorModeState.set(next);
 		if (next) micropolisReactive.attachedSimulator?.enterEditorMode();
 		else {
-			if (toolState.activeToolId === 'clear') toolState.setActiveTool('road');
+			if (['clear', 'terrain-paint', 'water', 'land', 'forest'].includes(toolState.activeToolId)) {
+				toolState.setActiveTool('road');
+			}
 			micropolisReactive.refreshCityClimateIndex();
 			micropolisReactive.attachedSimulator?.exitEditorMode();
 		}
