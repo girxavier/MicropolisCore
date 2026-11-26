@@ -11,8 +11,6 @@ export interface RgbaImage {
 	width: number;
 	height: number;
 	data: Uint8ClampedArray;
-	/** Optional virtual tile IDs: `mopSet:tileId` -> source atlas tile and set. */
-	tileAliases?: Record<string, { tileId: number; tileSet: number }>;
 }
 
 export interface TileAtlas {
@@ -39,6 +37,8 @@ export interface TileAtlas {
 	opacity?: number;
 	tint?: [number, number, number, number];
 	data: Uint8ClampedArray;
+	/** Optional virtual tile IDs: `mopSet:tileId` -> source atlas tile and set. */
+	tileAliases?: Record<string, { tileId: number; tileSet: number }>;
 }
 
 // Micropolis stores rendering flags in the high bits of each map cell; the low
