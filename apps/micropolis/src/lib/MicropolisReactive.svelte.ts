@@ -751,6 +751,15 @@ export const micropolisReactive = {
 			syncFromEngine();
 			mapRevision++;
 		},
+		generateTerrainForEditor(seed: number, waterDensity: number, forestDensity: number, wastelandDensity: number, isolatedTreeDensity: number, riverEnabled: boolean, riverFrom: number, riverTo: number, sinuosity: number, riverWidth: number): void {
+			commandBus.clearHistory();
+			const engine = requireMicropolis();
+			engine.generateTerrainForEditor(seed, waterDensity, forestDensity, wastelandDensity, isolatedTreeDensity, riverEnabled, riverFrom, riverTo, sinuosity, riverWidth);
+			resetMopAtlasSelectors();
+			engine.updateMaps();
+			syncFromEngine();
+			mapRevision++;
+		},
 		rebuildTerrainForEditor(x: number, y: number, waterChanged: boolean, treesChanged: boolean, preserveTargetTree: boolean): void {
 			requireMicropolis().rebuildTerrainForEditor(x, y, waterChanged, treesChanged, preserveTargetTree);
 			mapRevision++;
