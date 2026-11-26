@@ -773,7 +773,27 @@ void Micropolis::rebuildTerrainForEditor(int x, int y, bool waterChanged,
         return;
     }
 
-    if (waterChanged) {
+    bool waterNeighborhoodChanged = waterChanged;
+    if (!waterNeighborhoodChanged) {
+        // A land/forest change can also alter a river-edge tile's local
+        // orientation, so inspect the immediate neighborhood before skipping it.
+        for (int dx = -1; dx <= 1 && !waterNeighborhoodChanged; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (!testBounds(xx, yy)) {
+                    continue;
+                }
+                const MapTile tile = map[xx][yy] & LOMASK;
+                if (tile >= WATER_LOW && tile <= WATER_HIGH) {
+                    waterNeighborhoodChanged = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (waterNeighborhoodChanged) {
         // Re-evaluate only the changed cell's 3×3 neighborhood. This mirrors
         // smoothWater()'s edge rules without running its full-map scan.
         for (int dx = -1; dx <= 1; dx++) {
@@ -836,6 +856,8 @@ void Micropolis::rebuildTerrainForEditor(int x, int y, bool waterChanged,
         // smoothRiver() is intentionally unchanged; only the local REDGE
         // markers created above are new when the map was already coherent.
         smoothRiver();
+        // Shoreline conversion can remove tree cells from the local cluster.
+        treesChanged = true;
     }
 
     if (treesChanged) {
