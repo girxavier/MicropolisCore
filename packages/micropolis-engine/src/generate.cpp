@@ -215,6 +215,37 @@ void Micropolis::generateTerrainForEditor(int seed, int waterDensity,
         }
     }
 
+    // Merge scattered water cells into coherent lakes before drawing the
+    // directed river. This single cellular pass removes isolated puddles and
+    // fills small gaps inside water clusters without affecting forest tiles.
+    bool clusteredWater[WORLD_W][WORLD_H] = {};
+    for (int x = 0; x < WORLD_W; x++) {
+        for (int y = 0; y < WORLD_H; y++) {
+            int adjacentWater = 0;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    if (dx == 0 && dy == 0) continue;
+                    const int xx = x + dx, yy = y + dy;
+                    if (testBounds(xx, yy)) {
+                        const MapTile adjacent = map[xx][yy] & LOMASK;
+                        if (adjacent >= WATER_LOW && adjacent <= WATER_HIGH) adjacentWater++;
+                    }
+                }
+            }
+            const MapTile current = map[x][y] & LOMASK;
+            const bool wasWater = current >= WATER_LOW && current <= WATER_HIGH;
+            clusteredWater[x][y] = wasWater ? adjacentWater >= 2 : adjacentWater >= 5;
+        }
+    }
+    for (int x = 0; x < WORLD_W; x++) {
+        for (int y = 0; y < WORLD_H; y++) {
+            const MapTile current = map[x][y] & LOMASK;
+            const bool wasWater = current >= WATER_LOW && current <= WATER_HIGH;
+            if (clusteredWater[x][y]) map[x][y] = RIVER;
+            else if (wasWater) map[x][y] = DIRT;
+        }
+    }
+
     if (riverEnabled) {
         const double centerX = (WORLD_W - 1) / 2.0;
         const double centerY = (WORLD_H - 1) / 2.0;
