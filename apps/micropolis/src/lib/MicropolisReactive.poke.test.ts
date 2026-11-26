@@ -25,6 +25,7 @@ describe('micropolisReactive poke / peek / memory', () => {
 	let engine: MainModule;
 	let micropolis: Micropolis;
 	let jsCallbackWrapper: JSCallback;
+	let simulatorLike: MicropolisSimulator;
 
 	beforeAll(async () => {
 		engine = await loadMicropolisMainModule();
@@ -35,7 +36,6 @@ describe('micropolisReactive poke / peek / memory', () => {
 		micropolis.init();
 		micropolis.loadCity('/cities/haight.cty');
 
-		let simulatorLike: MicropolisSimulator;
 		simulatorLike = {
 			micropolis,
 			micropolisengine: engine,
@@ -150,13 +150,22 @@ describe('micropolisReactive poke / peek / memory', () => {
 		expect(micropolisReactive.mapRevision).toBeGreaterThan(before);
 	});
 
-	it('poke.clearMap fills map with DIRT tiles', () => {
+	it('poke.clearMap clears map tiles and stale MOP atlas selectors', () => {
+		const virtualAgricultureTile = 53;
+		micropolisReactive.poke.setTile(5, 5, virtualAgricultureTile);
+		simulatorLike.mopData?.fill(7);
+
 		micropolisReactive.poke.clearMap();
 		const DIRT = engine.Tiles.DIRT.value;
-		// Sample a few spots — after clear the whole map should be DIRT
+		// Sample a few spots — after clear the whole map should be DIRT.
 		expect(micropolisReactive.peek.tile(0, 0)).toBe(DIRT);
+		expect(micropolisReactive.peek.tile(5, 5)).toBe(DIRT);
 		expect(micropolisReactive.peek.tile(30, 30)).toBe(DIRT);
 		expect(micropolisReactive.peek.tile(engine.WORLD_W - 1, engine.WORLD_H - 1)).toBe(DIRT);
+		// MOP is a separate array: all selectors must return to the base atlas.
+		if (simulatorLike.mopData) {
+			expect(Array.from(simulatorLike.mopData).every((value) => value === 0)).toBe(true);
+		}
 	});
 
 	it('poke.generateSomeRandomCity increments mapRevision and places non-trivial tiles', () => {
