@@ -52,7 +52,7 @@ jobs:
       - run: pnpm --filter micropolis run check
 
   test:
-    name: Tests (sims-io, mooshow, Micropolis WASM)
+    name: Tests (sims-io, mooshow, Micropolis C++/WASM)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +61,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: mymindstorm/setup-emsdk@v14
       - run: pnpm install --frozen-lockfile
+      - name: Build C++/WASM engine before testing
+        run: pnpm --filter @micropolis/engine-wasm run build
       - run: pnpm --filter vitamoo run build
       - run: pnpm --filter mooshow run build
       - run: pnpm --filter mooshow run test
