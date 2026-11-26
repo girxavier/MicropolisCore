@@ -774,10 +774,67 @@ void Micropolis::rebuildTerrainForEditor(int x, int y, bool waterChanged,
     }
 
     if (waterChanged) {
-        smoothWater();
-        if (preserveTargetTree) {
-            map[x][y] = WOODS | BLBNBIT;
+        // Re-evaluate only the changed cell's 3×3 neighborhood. This mirrors
+        // smoothWater()'s edge rules without running its full-map scan.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (!testBounds(xx, yy)) {
+                    continue;
+                }
+
+                MapTile tile = map[xx][yy] & LOMASK;
+                if (tile < WATER_LOW || tile > WATER_HIGH) {
+                    continue;
+                }
+
+                bool allWater = true;
+                const Position pos(xx, yy);
+                for (Direction2 dir = DIR2_BEGIN; dir < DIR2_END; dir = increment90(dir)) {
+                    const MapTile adjacent = getTileFromMap(pos, dir, WATER_LOW);
+                    if (adjacent < WATER_LOW || adjacent > WATER_HIGH) {
+                        allWater = false;
+                        break;
+                    }
+                }
+
+                if (!allWater) {
+                    map[xx][yy] = REDGE;
+                } else if (tile != CHANNEL) {
+                    map[xx][yy] = RIVER;
+                }
+            }
         }
+
+        // Match smoothWater()'s shoreline rule for trees touching river
+        // interiors, while preserving the tree explicitly painted at (x, y).
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (!testBounds(xx, yy) || (preserveTargetTree && xx == x && yy == y)) {
+                    continue;
+                }
+
+                const MapTile tile = map[xx][yy] & LOMASK;
+                if (tile < WOODS_LOW || tile > WOODS_HIGH) {
+                    continue;
+                }
+
+                const Position pos(xx, yy);
+                for (Direction2 dir = DIR2_BEGIN; dir < DIR2_END; dir = increment90(dir)) {
+                    const MapTile adjacent = getTileFromMap(pos, dir, TILE_INVALID);
+                    if (adjacent == RIVER || adjacent == CHANNEL) {
+                        map[xx][yy] = REDGE;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // smoothRiver() is intentionally unchanged; only the local REDGE
+        // markers created above are new when the map was already coherent.
         smoothRiver();
     }
 
