@@ -361,6 +361,46 @@ void Micropolis::doTrees()
 }
 
 
+/**
+ * Rebuild one shoreline tile using the same orientation table as smoothRiver().
+ * Unlike the full-map pass, this leaves unrelated coastlines untouched.
+ */
+void Micropolis::smoothRiverAt(int x, int y)
+{
+    if (!testBounds(x, y) || map[x][y] != REDGE) {
+        return;
+    }
+
+    static short dx[4] = { -1,  0,  1,  0 };
+    static short dy[4] = {  0,  1,  0, -1 };
+    static short redgeTable[16] = {
+        13 | BULLBIT, 13 | BULLBIT, 17 | BULLBIT, 15 | BULLBIT,
+        5 | BULLBIT,  2,            19 | BULLBIT, 17 | BULLBIT,
+        9 | BULLBIT,  11 | BULLBIT, 2,            13 | BULLBIT,
+        7 | BULLBIT,  9 | BULLBIT,  5 | BULLBIT,  2
+    };
+
+    int bitIndex = 0;
+    for (int direction = 0; direction < 4; direction++) {
+        bitIndex <<= 1;
+        const int xx = x + dx[direction];
+        const int yy = y + dy[direction];
+        if (testBounds(xx, yy) &&
+            ((map[xx][yy] & LOMASK) != DIRT) &&
+            (((map[xx][yy] & LOMASK) < WOODS_LOW) ||
+             ((map[xx][yy] & LOMASK) > WOODS_HIGH))) {
+            bitIndex++;
+        }
+    }
+
+    short tile = redgeTable[bitIndex & 15];
+    if (tile != RIVER && getRandom(1)) {
+        tile++;
+    }
+    map[x][y] = tile;
+}
+
+
 void Micropolis::smoothRiver()
 {
     static short dx[4] = { -1,  0,  1,  0 };
@@ -856,9 +896,18 @@ void Micropolis::rebuildTerrainForEditor(int x, int y, bool waterChanged,
             }
         }
 
-        // smoothRiver() is intentionally unchanged; only the local REDGE
-        // markers created above are new when the map was already coherent.
-        smoothRiver();
+        // Rebuild only the edited neighborhood. The full-map smoothRiver()
+        // remains reserved for generation, so painting here cannot redraw
+        // distant coastlines or change their random shoreline variants.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                const int xx = x + dx;
+                const int yy = y + dy;
+                if (testBounds(xx, yy)) {
+                    smoothRiverAt(xx, yy);
+                }
+            }
+        }
         // Shoreline conversion can remove tree cells from the local cluster.
         treesChanged = true;
     }
