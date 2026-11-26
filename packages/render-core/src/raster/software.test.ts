@@ -46,4 +46,26 @@ describe('software Micropolis renderer', () => {
 
 		expect([...image.data]).toEqual([0, 255, 0, 255]);
 	});
+	it('resolves virtual agricultural tiles to their authored atlas set and tile', () => {
+		const description = defaultMicropolisMapRenderDescription({
+			output: { format: 'rgba8', width: 1, height: 1 },
+			map: { width: 1, height: 1, tile_width: 1, tile_height: 1 },
+			viewport: { width: 1, height: 1, centerX: 0.5, centerY: 0.5, zoom: 1 }
+		});
+		const data = new Uint8ClampedArray(2 * 4 * 4);
+		data.set([12, 34, 56, 255], (2 * 2 + 1) * 4);
+		const image = renderMicropolisMapSoftware(
+			description,
+			new Uint16Array([53]),
+			{
+				width: 2, height: 4, tileWidth: 1, tileHeight: 1,
+				tileCount: 2, tilesPerSet: 2,
+				tileAliases: { '1:53': { tileId: 1, tileSet: 2 } },
+				data
+			},
+			new Uint16Array([1])
+		);
+		expect([...image.data]).toEqual([12, 34, 56, 255]);
+	});
+
 });
