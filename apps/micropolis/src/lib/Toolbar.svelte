@@ -214,7 +214,7 @@
 			</label>
 			<fieldset class="density-fields">
 				<legend>Densités relatives</legend>
-				<p class="density-help">Les valeurs règlent la répartition relative des quatre types de terrain.</p>
+				<p class="density-help">Les valeurs règlent la répartition relative des quatre types de terrain. Si les quatre sont à 0, la carte sera nue (sauf rivière).</p>
 				{#each [
 					{ key: 'water', label: 'Eau' },
 					{ key: 'forest', label: 'Forêt' },
@@ -335,7 +335,7 @@
 	}
 	.mode-toggle.active { background: #79522c; border-color: #e3b878; }
 	.terrain-generator-backdrop { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:1rem; background:rgba(5,10,20,.78); }
-	.terrain-generator { width:min(34rem,96vw); max-height:92vh; overflow:auto; padding:1rem; border:1px solid #8090b0; border-radius:8px; background:#182338; color:#edf2ff; box-shadow:0 18px 60px #000b; font: .78rem ui-monospace,monospace; }
+	.terrain-generator { box-sizing:border-box; width:min(34rem,calc(100vw - 2rem)); max-width:100%; min-width:0; max-height:calc(100vh - 2rem); overflow:auto; padding:1rem; border:1px solid #8090b0; border-radius:8px; background:#182338; color:#edf2ff; box-shadow:0 18px 60px #000b; font: .78rem ui-monospace,monospace; }
 	.generator-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
 	.generator-header h2 { margin:0; font-size:1rem; }
 	.generator-close { border:0; background:transparent; color:inherit; font-size:1.6rem; cursor:pointer; }
@@ -345,11 +345,11 @@
 	.density-fields,.river-fields { margin:.75rem 0; padding:.6rem .75rem .75rem; border:1px solid #52647f; border-radius:5px; }
 	.density-fields legend,.river-fields legend { padding:0 .35rem; color:#c8d7f3; font-weight:800; }
 	.density-help { margin:.25rem 0 .65rem; color:#b8c5dc; font-size:.68rem; line-height:1.35; }
-	.density-row { display:grid; grid-template-columns:8.5rem 1fr 2rem; align-items:center; gap:.7rem; margin:.55rem 0; }
+	.density-row { display:grid; grid-template-columns:minmax(5.5rem,7rem) minmax(0,1fr) 1.8rem; align-items:center; gap:.45rem; margin:.55rem 0; }
 	.density-row input { width:100%; accent-color:#8bb4e8; }
 	.density-row output { text-align:right; font-variant-numeric:tabular-nums; }
 	.river-enable { display:flex; align-items:center; gap:.5rem; }
-	.river-direction { display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:.6rem; margin:.7rem 0; }
+	.river-direction { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:end; gap:.45rem; margin:.7rem 0; }
 	.river-direction label { display:grid; gap:.25rem; }
 	.river-direction select,.river-width select { width:100%; padding:.35rem; }
 	.generator-actions { display:flex; justify-content:flex-end; gap:.6rem; margin-top:1rem; }
@@ -359,7 +359,7 @@
 	.save-terrain { margin:.25rem 0 .75rem; }
 	.library-empty { padding:.8rem; color:#b8c5dc; text-align:center; }
 	.terrain-saved-list { display:grid; gap:.45rem; margin:.6rem 0; padding:0; list-style:none; }
-	.terrain-saved-list li { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:.4rem; padding:.55rem; border:1px solid #52647f; border-radius:4px; }
+	.terrain-saved-list li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:.4rem; min-width:0; padding:.55rem; border:1px solid #52647f; border-radius:4px; }
 	.terrain-saved-list li div { display:grid; gap:.2rem; min-width:0; }
 	.terrain-saved-list small { color:#b8c5dc; }
 	.terrain-saved-list button { padding:.35rem .55rem; border:1px solid #7d8ca8; border-radius:4px; background:#28354b; color:#edf2ff; font:inherit; cursor:pointer; }
