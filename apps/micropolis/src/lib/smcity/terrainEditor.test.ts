@@ -16,6 +16,11 @@ describe('SmCity terrain editor model', () => {
     expect(config.densities).not.toBe(DEFAULT_TERRAIN_CONFIG.densities);
   });
 
+  it('keeps the seed in the signed 32-bit range used by the WASM engine', () => {
+    expect(() => validateTerrainConfig({ ...DEFAULT_TERRAIN_CONFIG, seed: 0x80000000 })).toThrow(RangeError);
+    expect(validateTerrainConfig({ ...DEFAULT_TERRAIN_CONFIG, seed: 0x7fffffff }).seed).toBe(0x7fffffff);
+  });
+
   it('validates every density independently in the 0–100 range', () => {
     expect(() => validateTerrainConfig({
       ...DEFAULT_TERRAIN_CONFIG,
