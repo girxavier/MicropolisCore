@@ -48,10 +48,10 @@
   // Map tile IDs are 10-bit values (0–1023); MOP data selects the tileset (0–9).
   // Keeping tileCount and tilesPerSet at 1024 makes the renderer calculate
   // 32 rows per set and select the correct 512×512 block from the atlas.
-  // Nine engine tile IDs reserved for agriculture; MOP values 1–6 identify D0–D5.
+  // Nine unused engine tile IDs reserved for agriculture; avoid 841–843 (fountain animation). MOP values 1–6 identify D0–D5.
   // The aliases point back to the exact 3×3 groups authored in all.png:
   // columns 3–20, rows 31–33. Row 31 belongs to atlas set 0; rows 32–33 to set 1.
-  const agricultureMapTileIds = [53, 54, 55, 223, 610, 611, 841, 842, 843] as const;
+  const agricultureMapTileIds = [53, 54, 55, 223, 610, 611, 1020, 1021, 1022] as const;
   const agricultureTileAliases: Record<string, { tileId: number; tileSet: number; desaturate?: number }> = {};
   for (let stage = 0; stage < 6; stage++) {
     for (let dy = 0; dy < 3; dy++) {
