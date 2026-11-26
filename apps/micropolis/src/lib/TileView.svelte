@@ -48,11 +48,34 @@
   // Map tile IDs are 10-bit values (0–1023); MOP data selects the tileset (0–9).
   // Keeping tileCount and tilesPerSet at 1024 makes the renderer calculate
   // 32 rows per set and select the correct 512×512 block from the atlas.
+  // Nine engine tile IDs reserved for agriculture; MOP values 1–6 identify D0–D5.
+  // The aliases point back to the exact 3×3 groups authored in all.png:
+  // columns 3–20, rows 31–33. Row 31 belongs to atlas set 0; rows 32–33 to set 1.
+  const agricultureMapTileIds = [53, 54, 55, 223, 610, 611, 841, 842, 843] as const;
+  const agricultureTileAliases: Record<string, { tileId: number; tileSet: number }> = {};
+  for (let stage = 0; stage < 6; stage++) {
+    for (let dy = 0; dy < 3; dy++) {
+      for (let dx = 0; dx < 3; dx++) {
+        const sourceColumn = 3 + stage * 3 + dx;
+        const sourceRow = 31 + dy;
+        const sourceSet = Math.floor(sourceRow / 32);
+        const sourceLocalRow = sourceRow % 32;
+        const sourceTileId = sourceLocalRow * 32 + sourceColumn;
+        const mapTileId = agricultureMapTileIds[dy * 3 + dx];
+        agricultureTileAliases[`${stage + 1}:${mapTileId}`] = {
+          tileId: sourceTileId,
+          tileSet: sourceSet,
+        };
+      }
+    }
+  }
+
   const tileLayers = [
     {
       url: tileLayer_all10,
       tileCount: 1024,
       tilesPerSet: 1024,
+      tileAliases: agricultureTileAliases,
     },
   ];
 
@@ -387,9 +410,45 @@
 
   }
 
+  function syncAgriculturalZonesToMap(): void {
+    const simulator = micropolisSimulator;
+    const engine = simulator?.micropolisengine;
+    const map = simulator?.mapData;
+    const mop = simulator?.mopData;
+    if (!engine || !map || !mop) return;
+
+    const reservedIds = new Set<number>(agricultureMapTileIds);
+    // Clear stale agricultural cells first. The placement operation already
+    // turns the underlying 3×3 parcel into dirt, so dirt is the safe base tile.
+    for (let index = 0; index < map.length; index++) {
+      if (reservedIds.has(map[index] & engine.MapTileBits.LOMASK.value)) {
+        map[index] = engine.Tiles.DIRT.value;
+        mop[index] = tileSet;
+      }
+    }
+
+    const scenarioId = micropolisReactive.cityFileName || micropolisReactive.cityName || 'default';
+    const zones = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {});
+    for (const zone of zones) {
+      const left = zone.x - 1;
+      const top = zone.y - 1;
+      if (left < 0 || top < 0 || left + 3 > engine.WORLD_W || top + 3 > engine.WORLD_H) continue;
+      for (let dy = 0; dy < 3; dy++) {
+        for (let dx = 0; dx < 3; dx++) {
+          const index = (left + dx) * engine.WORLD_H + top + dy;
+          map[index] = agricultureMapTileIds[dy * 3 + dx];
+          // MOP 1–6 are virtual agricultural selectors; aliases resolve each
+          // to the actual atlas set/tile without changing normal map tiles.
+          mop[index] = zone.level + 1;
+        }
+      }
+    }
+  }
+
   export function render(): void {
     if (!renderReady || !tileRenderer || !micropolisSimulator) return;
     if (!micropolisSimulator.syncMapViews()) return;
+    syncAgriculturalZonesToMap();
     tileRenderer.mapData = micropolisSimulator.mapData!;
     tileRenderer.mopData = micropolisSimulator.mopData!;
     try {
