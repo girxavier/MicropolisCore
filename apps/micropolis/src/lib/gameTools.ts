@@ -82,6 +82,7 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 			{ id: 'res', label: 'Residential', shortcut: 'U', cost: 100 },
 			{ id: 'com', label: 'Commercial', shortcut: 'E', cost: 100 },
 			{ id: 'ind', label: 'Industrial', shortcut: 'T', cost: 100 },
+			{ id: 'agriculture-maraichage-bio', label: 'Maraîchage biologique', shortcut: '—', cost: 100 },
 		],
 	},
 	{
@@ -135,11 +136,6 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 			{ id: 'ind-building-3', label: 'Industrie · densité 3', shortcut: '—', cost: 0 },
 			{ id: 'ind-building-4', label: 'Industrie · densité 4', shortcut: '—', cost: 0 },
 		],
-	},
-	{
-		id: 'agriculture',
-		label: 'Agriculture',
-		tools: [{ id: 'agriculture-maraichage-bio', label: 'Maraîchage biologique', shortcut: '—', cost: 100 }],
 	},
 	{
 		id: 'agriculture-buildings',
