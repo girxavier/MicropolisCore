@@ -291,7 +291,7 @@
 				</ul>
 			{/if}
 			<footer class="generator-actions"><button type="button" class="generator-cancel" onclick={() => libraryOpen = false}>Fermer</button></footer>
-		</section>
+		</dialog>
 	</div>
 {/if}
 
