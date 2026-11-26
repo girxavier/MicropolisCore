@@ -762,7 +762,8 @@ export const micropolisReactive = {
 		},
 		loadTerrainTiles(width: number, height: number, tiles: readonly number[]): void {
 			const engine = requireMicropolis();
-			if (width !== engine.WORLD_W || height !== engine.WORLD_H || tiles.length !== width * height) {
+			const module = attachedSimulator?.micropolisengine;
+			if (!module || width !== module.WORLD_W || height !== module.WORLD_H || tiles.length !== width * height) {
 				throw new RangeError('Les dimensions de ce terrain ne correspondent pas à la carte actuelle.');
 			}
 			commandBus.clearHistory();
