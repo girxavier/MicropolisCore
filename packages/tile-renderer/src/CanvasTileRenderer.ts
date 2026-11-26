@@ -110,6 +110,7 @@ async function loadTileAtlas(layer: ResolvedTileLayerSpec): Promise<TileAtlas> {
 		blend: layer.blend,
 		opacity: layer.opacity,
 		tint: layer.tint,
+		tileAliases: layer.tileAliases,
 		data: imageData.data
 	};
 }
