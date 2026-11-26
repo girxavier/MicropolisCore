@@ -168,6 +168,22 @@ describe('micropolisReactive poke / peek / memory', () => {
 		}
 	});
 
+	it('rebuildTerrainForEditor reshapes nearby water without redrawing distant coastlines', () => {
+		micropolisReactive.poke.clearMap();
+		const farX = 40;
+		const farY = 40;
+		const targetX = 10;
+		const targetY = 10;
+		const redge = engine.Tiles.REDGE.value;
+		micropolisReactive.poke.setTile(farX, farY, redge);
+		micropolisReactive.poke.setTile(targetX, targetY, engine.Tiles.RIVER.value);
+
+		micropolisReactive.poke.rebuildTerrainForEditor(targetX, targetY, true, false, false);
+
+		expect(micropolisReactive.peek.tile(farX, farY)).toBe(redge & 0x03ff);
+		expect(micropolisReactive.peek.tile(targetX, targetY)).not.toBe(engine.Tiles.RIVER.value & 0x03ff);
+	});
+
 	it('poke.generateSomeRandomCity increments mapRevision and places non-trivial tiles', () => {
 		const before = micropolisReactive.mapRevision;
 		micropolisReactive.poke.generateSomeRandomCity();
