@@ -612,13 +612,17 @@
         result = eng.ToolResult.TOOLRESULT_FAILED;
       } else {
         let buildable = true;
+        const existingZoneAtCenter = agriculturalDataBefore?.agriculturalZones?.[\x60${tileX},${tileY}\x60];
         for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
           const tile = micropolis.getTile(left + dx, top + dy) & eng.MapTileBits.LOMASK.value;
           // Accept bare soil, every tree/forest variant (including WOODS2–5),
-          // and cleared rubble. Water, fire/flood tiles, roads, networks and
-          // constructed buildings remain protected from agricultural placement.
+          // cleared rubble, and this parcel's own virtual agricultural tiles.
+          // Water, fire/flood tiles, roads, networks and buildings stay protected.
+          const isOwnAgriculturalTile = existingZoneAtCenter !== undefined &&
+            agricultureMapTileIds.some((reservedId) => reservedId === tile);
           const isBuildableNaturalGround = tile === eng.Tiles.DIRT.value ||
-            (tile >= eng.Tiles.WOODS_LOW.value && tile <= eng.Tiles.LASTRUBBLE.value);
+            (tile >= eng.Tiles.WOODS_LOW.value && tile <= eng.Tiles.LASTRUBBLE.value) ||
+            isOwnAgriculturalTile;
           if (!isBuildableNaturalGround) buildable = false;
         }
         const overlaps = Object.values(agriculturalDataBefore?.agriculturalZones ?? {}).some((zone) =>
