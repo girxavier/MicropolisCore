@@ -760,6 +760,20 @@ export const micropolisReactive = {
 			syncFromEngine();
 			mapRevision++;
 		},
+		loadTerrainTiles(width: number, height: number, tiles: readonly number[]): void {
+			const engine = requireMicropolis();
+			if (width !== engine.WORLD_W || height !== engine.WORLD_H || tiles.length !== width * height) {
+				throw new RangeError('Les dimensions de ce terrain ne correspondent pas à la carte actuelle.');
+			}
+			commandBus.clearHistory();
+			for (let y = 0; y < height; y++) {
+				for (let x = 0; x < width; x++) engine.setTile(x, y, tiles[y * width + x]);
+			}
+			resetMopAtlasSelectors();
+			engine.updateMaps();
+			syncFromEngine();
+			mapRevision++;
+		},
 		rebuildTerrainForEditor(x: number, y: number, waterChanged: boolean, treesChanged: boolean, preserveTargetTree: boolean): void {
 			requireMicropolis().rebuildTerrainForEditor(x, y, waterChanged, treesChanged, preserveTargetTree);
 			mapRevision++;
