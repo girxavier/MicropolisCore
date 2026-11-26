@@ -197,7 +197,7 @@
   }
 </script>
 
-{#if editorModeState.active && editorModeState.scenarioPanelOpen}
+{#if editorModeState.scenarioPanelOpen}
   <section class="scenario-editor" aria-label="Éditeur des propriétés de construction">
     <header>
       <div>
@@ -226,6 +226,7 @@
         <button type="button" onclick={createScenario} disabled={!newScenarioName.trim()}>Créer</button>
       </div>
     </section>
+    {#if editorModeState.active}
     <div class="editor-fields">
       <label>
         Scénario / ville
@@ -266,11 +267,12 @@
       </div>
     </div>
     <p class="shared-note">Sélectionner une construction avec QUERY identifie automatiquement les zones résidentielles prises en charge. La table modifiée est partagée : aucun réglage individuel n’est créé pour cette occurrence. Les types non encore reliés au catalogue peuvent être choisis dans la liste.</p>
-    {#if status}<p class="status" role="status">{status}</p>{/if}
     <details>
       <summary>Valeurs spécifiques déjà enregistrées</summary>
       <pre>{JSON.stringify(scenarioData.constructionTypes, null, 2)}</pre>
     </details>
+    {/if}
+    {#if status}<p class="status" role="status">{status}</p>{/if}
   </section>
 {/if}
 
