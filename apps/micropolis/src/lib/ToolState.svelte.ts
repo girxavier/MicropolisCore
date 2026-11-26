@@ -1,7 +1,8 @@
-import type { ToolId } from './gameTools';
+import type { TerrainBrushId, ToolId } from './gameTools';
 import { micropolisReactive } from './MicropolisReactive.svelte';
 
 let activeToolId = $state<ToolId>('road');
+let activeTerrainBrush = $state<TerrainBrushId>('land');
 let hoverTile = $state<[number, number] | null>(null);
 let lastToolFeedback = $state<string | null>(null);
 let toolRevision = $state(0);
@@ -13,6 +14,14 @@ export const toolState = {
 	},
 	get toolRevision() {
 		return toolRevision;
+	},
+	get activeTerrainBrush() {
+		return activeTerrainBrush;
+	},
+	setTerrainBrush(id: TerrainBrushId) {
+		if (activeTerrainBrush === id) return;
+		activeTerrainBrush = id;
+		toolRevision += 1;
 	},
 	setActiveTool(id: ToolId) {
 		if (activeToolId === id) return;

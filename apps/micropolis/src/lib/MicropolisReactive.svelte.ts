@@ -715,6 +715,10 @@ export const micropolisReactive = {
 			syncFromEngine();
 			mapRevision++;
 		},
+		rebuildTerrainForEditor(x: number, y: number, waterChanged: boolean, treesChanged: boolean, preserveTargetTree: boolean): void {
+			requireMicropolis().rebuildTerrainForEditor(x, y, waterChanged, treesChanged, preserveTargetTree);
+			mapRevision++;
+		},
 		updateMaps(): void {
 			requireMicropolis().updateMaps();
 			mapRevision++;

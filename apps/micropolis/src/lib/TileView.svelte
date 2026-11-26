@@ -507,6 +507,34 @@
       micropolisReactive.poke.setTile(tileX, tileY, eng.Tiles.DIRT.value);
       micropolisReactive.poke.updateMaps();
       result = eng.ToolResult.TOOLRESULT_OK;
+    } else if (editorModeState.active && toolState.activeToolId === 'terrain-paint') {
+      const brush = toolState.activeTerrainBrush;
+      const currentTile = micropolis.getTile(tileX, tileY) & eng.MapTileBits.LOMASK.value;
+      const wasWater = currentTile >= eng.Tiles.WATER_LOW.value && currentTile <= eng.Tiles.WATER_HIGH.value;
+      const wasTree = currentTile >= eng.Tiles.WOODS_LOW.value && currentTile <= eng.Tiles.WOODS_HIGH.value;
+      const isNaturalTerrain = currentTile === eng.Tiles.DIRT.value || wasWater || wasTree;
+
+      // Remove a complete existing structure/network when possible; the selected cell
+      // is then replaced unconditionally, so the brush works on every map cell.
+      if (!isNaturalTerrain) {
+        micropolisReactive.poke.doTool(eng.EditingTool.TOOL_BULLDOZER, tileX, tileY);
+      }
+
+      const tileValue = brush === 'forest'
+        ? (eng.Tiles.WOODS.value | eng.MapTileBits.BLBNBIT.value)
+        : brush === 'water'
+          ? eng.Tiles.RIVER.value
+          : eng.Tiles.DIRT.value;
+      micropolisReactive.poke.setTile(tileX, tileY, tileValue);
+
+      micropolisReactive.poke.rebuildTerrainForEditor(
+        tileX,
+        tileY,
+        brush === 'water' || wasWater,
+        brush === 'forest' || wasTree,
+        brush === 'forest'
+      );
+      result = eng.ToolResult.TOOLRESULT_OK;
     } else if (directBuildingCenter !== null) {
       const left = tileX - 1;
       const top = tileY - 1;

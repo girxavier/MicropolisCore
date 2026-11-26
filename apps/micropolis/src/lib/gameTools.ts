@@ -21,9 +21,19 @@ export type ToolId =
 	| 'water'
 	| 'land'
 	| 'forest'
+	| 'terrain-paint'
 	| 'res-houses' | 'res-building-1' | 'res-building-2' | 'res-building-3' | 'res-building-4'
 	| 'com-building-1' | 'com-building-2' | 'com-building-3' | 'com-building-4' | 'com-building-5'
 	| 'ind-building-1' | 'ind-building-2' | 'ind-building-3' | 'ind-building-4';
+
+
+export type TerrainBrushId = 'land' | 'water' | 'forest';
+
+export const TERRAIN_BRUSHES: ReadonlyArray<{ id: TerrainBrushId; label: string; tileId: number }> = [
+	{ id: 'land', label: 'Terre nue', tileId: 0 },
+	{ id: 'water', label: 'Eau douce', tileId: 2 },
+	{ id: 'forest', label: 'Forêt', tileId: 37 },
+];
 
 export interface ToolDef {
 	id: ToolId;
@@ -128,6 +138,7 @@ export const GAME_TOOL_GROUPS: ToolGroup[] = [
 		id: 'terrain',
 		label: 'Terrain',
 		tools: [
+			{ id: 'terrain-paint', label: 'Pinceau terrain', shortcut: '—', cost: 0 },
 			{ id: 'water', label: 'Eau douce (rivière / lac)', shortcut: 'M', cost: 0 },
 			{ id: 'forest', label: 'Forêt', shortcut: 'V', cost: 0 },
 			{ id: 'land', label: 'Dégager le terrain', shortcut: 'G', cost: 0 },
@@ -181,6 +192,9 @@ export function resolveEditingTool(module: MainModule, id: ToolId): EditingTool 
 			return t.TOOL_NUCLEARPOWER;
 		case 'airport':
 			return t.TOOL_AIRPORT;
+		case 'terrain-paint':
+			// The editor handles this generic brush directly; this is a safe fallback.
+			return t.TOOL_LAND;
 		case 'water':
 			return t.TOOL_WATER;
 		case 'land':
@@ -220,6 +234,7 @@ const TOOL_FOOTPRINT_SIZE: Record<ToolId, number> = {
 	water: 1,
 	land: 1,
 	forest: 1,
+	'terrain-paint': 1,
 	'res-houses': 3,
 	'res-building-1': 3, 'res-building-2': 3, 'res-building-3': 3, 'res-building-4': 3,
 	'com-building-1': 3, 'com-building-2': 3, 'com-building-3': 3, 'com-building-4': 3, 'com-building-5': 3,
