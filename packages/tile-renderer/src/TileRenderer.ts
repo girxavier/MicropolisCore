@@ -46,7 +46,7 @@ export interface TileLayerSpec {
     colorSpace?: 'srgb' | 'linear';
     premultipliedAlpha?: boolean;
     tint?: [number, number, number, number];
-    tileAliases?: Record<string, { tileId: number; tileSet: number }>;
+    tileAliases?: Record<string, { tileId: number; tileSet: number; desaturate?: number }>;
 }
 
 export interface ResolvedTileLayerSpec {
@@ -75,7 +75,7 @@ export interface ResolvedTileLayerSpec {
     colorSpace: 'srgb' | 'linear';
     premultipliedAlpha: boolean;
     tint?: [number, number, number, number];
-    tileAliases?: Record<string, { tileId: number; tileSet: number }>;
+    tileAliases?: Record<string, { tileId: number; tileSet: number; desaturate?: number }>;
 }
 
 export type TileLayerSource = string | null | TileLayerSpec;
