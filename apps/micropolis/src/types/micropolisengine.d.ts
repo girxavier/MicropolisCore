@@ -414,6 +414,7 @@ export interface Micropolis extends ClassHandle {
   doTool(_0: EditingTool, _1: number, _2: number): ToolResult;
   getActiveSprites(): any;
   generateMap(_0: number): void;
+  generateTerrainForEditor(_seed: number, _waterDensity: number, _forestDensity: number, _wastelandDensity: number, _isolatedTreeDensity: number, _riverEnabled: boolean, _riverFrom: number, _riverTo: number, _sinuosity: number, _riverWidth: number): void;
   clearMap(): void;
   rebuildTerrainForEditor(_x: number, _y: number, _waterChanged: boolean, _treesChanged: boolean, _preserveTargetTree: boolean): void;
   simRandom(): number;
