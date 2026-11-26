@@ -5,10 +5,13 @@
 	import { editorModeState } from '$lib/EditorMode.svelte';
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { commandBus } from '$lib/CommandBus';
-	import { DEFAULT_TERRAIN_CONFIG, validateTerrainConfig, type CompassDirection, type RiverWidth, type TerrainGenerationConfig } from '$lib/smcity/terrainEditor';
+	import { createTerrainSnapshot, DEFAULT_TERRAIN_CONFIG, deleteTerrainSnapshot, listTerrainSnapshots, normalizeBareTerrainTile, saveTerrainSnapshot, validateTerrainConfig, type CompassDirection, type RiverWidth, type TerrainGenerationConfig, type TerrainSnapshot } from '$lib/smcity/terrainEditor';
 	let mobileOpen = $state(false);
 	let editorNotice = $state('');
 	let generatorOpen = $state(false);
+	let libraryOpen = $state(false);
+	let savedTerrains = $state<TerrainSnapshot[]>([]);
+	let lastGeneratedRiverFlow = $state<{ from: CompassDirection; to: CompassDirection } | undefined>(undefined);
 	let terrainSeed = $state(1);
 	let terrainConfig = $state<TerrainGenerationConfig>({
 		seed: DEFAULT_TERRAIN_CONFIG.seed,
@@ -69,8 +72,47 @@
 		micropolisReactive.clearScenarioAgriculturalZones();
 		micropolisReactive.refreshCityClimateIndex();
 		micropolisReactive.syncFromEngine();
+		lastGeneratedRiverFlow = config.river.enabled ? { from: config.river.from, to: config.river.to } : undefined;
 		editorNotice = `Terrain généré · graine ${config.seed}.`;
 		generatorOpen = false;
+	}
+
+	function openTerrainLibrary() {
+		savedTerrains = listTerrainSnapshots();
+		libraryOpen = true;
+		mobileOpen = false;
+	}
+
+	function saveCurrentTerrain() {
+		const name = prompt('Nom de ce terrain :');
+		if (!name?.trim()) return;
+		const width = micropolisReactive.worldWidth;
+		const height = micropolisReactive.worldHeight;
+		if (!width || !height) return;
+		const tiles: number[] = [];
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) tiles.push(normalizeBareTerrainTile(micropolisReactive.peek.tile(x, y) ?? 0));
+		}
+		const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `terrain-${Date.now()}`;
+		const snapshot = createTerrainSnapshot({
+			id, name: name.trim(), createdAt: new Date().toISOString(), width, height, tiles,
+			riverFlow: lastGeneratedRiverFlow
+		});
+		savedTerrains = saveTerrainSnapshot(snapshot);
+	}
+
+	function loadSavedTerrain(snapshot: TerrainSnapshot) {
+		micropolisReactive.poke.loadTerrainTiles(snapshot.width, snapshot.height, snapshot.tiles);
+		micropolisReactive.clearScenarioZoneLocks();
+		micropolisReactive.clearScenarioAgriculturalZones();
+		micropolisReactive.refreshCityClimateIndex();
+		lastGeneratedRiverFlow = snapshot.riverFlow;
+		editorNotice = `Terrain chargé · ${snapshot.name}.`;
+		libraryOpen = false;
+	}
+
+	function removeSavedTerrain(id: string) {
+		savedTerrains = deleteTerrainSnapshot(id);
 	}
 
 	function toggleEditorMode() {
@@ -106,6 +148,7 @@
 		<div class="tool-group-label">Carte et terrain</div>
 		<button type="button" class="tool-item clear-tool" onclick={() => selectTool('clear')}>CLEAR · Terre nue</button>
 		<button type="button" class="tool-item" onclick={openTerrainGenerator}>Générer un terrain</button>
+		<button type="button" class="tool-item" onclick={openTerrainLibrary}>Bibliothèque de terrains</button>
 		<button type="button" class="tool-item" onclick={resetMap}>RESET · Carte vierge</button>
 		{#if editorNotice}<div class="tool-group-label" role="status">{editorNotice}</div>{/if}
 		<div class="tool-group-label">Historique</div>
@@ -225,6 +268,33 @@
 	</div>
 {/if}
 
+{#if libraryOpen}
+	<div class="terrain-generator-backdrop" role="presentation">
+		<section class="terrain-generator terrain-library" role="dialog" aria-modal="true" aria-labelledby="terrain-library-title">
+			<header class="generator-header">
+				<h2 id="terrain-library-title">Bibliothèque de terrains nus</h2>
+				<button type="button" class="generator-close" aria-label="Fermer" onclick={() => libraryOpen = false}>×</button>
+			</header>
+			<p class="generator-warning">Seuls la terre, l'eau et les arbres sont conservés. Bâtiments, réseaux et données de ville sont exclus.</p>
+			<button type="button" class="generator-submit save-terrain" onclick={saveCurrentTerrain}>Enregistrer le terrain actuel</button>
+			{#if savedTerrains.length === 0}
+				<p class="library-empty">Aucun terrain enregistré dans ce navigateur.</p>
+			{:else}
+				<ul class="terrain-saved-list">
+					{#each savedTerrains as snapshot (snapshot.id)}
+						<li>
+							<div><strong>{snapshot.name}</strong><small>{snapshot.width} × {snapshot.height} · {new Date(snapshot.createdAt).toLocaleDateString('fr-FR')}</small></div>
+							<button type="button" onclick={() => loadSavedTerrain(snapshot)}>Charger</button>
+							<button type="button" class="delete-saved" aria-label={`Supprimer ${snapshot.name}`} onclick={() => removeSavedTerrain(snapshot.id)}>×</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+			<footer class="generator-actions"><button type="button" class="generator-cancel" onclick={() => libraryOpen = false}>Fermer</button></footer>
+		</section>
+	</div>
+{/if}
+
 <style>
 	.mobile-toolbar-toggle { display: none; }
 
@@ -286,6 +356,14 @@
 	.generator-actions button { padding:.5rem .9rem; border:1px solid #7d8ca8; border-radius:4px; font:inherit; font-weight:800; cursor:pointer; }
 	.generator-cancel { background:#28354b; color:#edf2ff; }
 	.generator-submit { background:#315b85; border-color:#9bbbe5 !important; color:white; }
+	.save-terrain { margin:.25rem 0 .75rem; }
+	.library-empty { padding:.8rem; color:#b8c5dc; text-align:center; }
+	.terrain-saved-list { display:grid; gap:.45rem; margin:.6rem 0; padding:0; list-style:none; }
+	.terrain-saved-list li { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:.4rem; padding:.55rem; border:1px solid #52647f; border-radius:4px; }
+	.terrain-saved-list li div { display:grid; gap:.2rem; min-width:0; }
+	.terrain-saved-list small { color:#b8c5dc; }
+	.terrain-saved-list button { padding:.35rem .55rem; border:1px solid #7d8ca8; border-radius:4px; background:#28354b; color:#edf2ff; font:inherit; cursor:pointer; }
+	.terrain-saved-list .delete-saved { font-size:1.1rem; }
 
 	.terrain-brush-palette { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.2rem; padding:.25rem .35rem .45rem; }
 	.terrain-brush { display:flex; flex-direction:column; align-items:center; gap:.2rem; min-width:0; padding:.3rem .1rem; border:1px solid #52647f; border-radius:3px; background:#1e293b; color:#e8eeff; font:inherit; font-size:.48rem; cursor:pointer; }
