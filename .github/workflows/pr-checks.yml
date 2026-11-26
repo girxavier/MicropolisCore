@@ -64,7 +64,7 @@ jobs:
       - uses: mymindstorm/setup-emsdk@v14
       - run: pnpm install --frozen-lockfile
       - name: Build C++/WASM engine before testing
-        run: make -C packages/micropolis-engine install SHELL=/bin/bash
+        run: PATH="$PWD/packages/micropolis-engine/node_modules/.bin:$PWD/node_modules/.bin:$PATH" make -C packages/micropolis-engine install SHELL=/bin/bash
       - run: pnpm --filter vitamoo run build
       - run: pnpm --filter mooshow run build
       - run: pnpm --filter mooshow run test
