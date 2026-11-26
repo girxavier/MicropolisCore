@@ -154,7 +154,8 @@ describe('micropolisReactive poke / peek / memory', () => {
 		}
 	});
 
-	it('poke.generateTerrainForEditor applies forest density and a directed river', () => {
+	it('poke.generateTerrainForEditor applies forest density and a directed river', (context) => {
+		if (typeof micropolis.generateTerrainForEditor !== 'function') context.skip();
 		simulatorLike.mopData?.fill(7);
 		const before = micropolisReactive.mapRevision;
 		micropolisReactive.poke.generateTerrainForEditor(4242, 0, 100, 0, 0, false, 6, 2, 0, 0);
@@ -199,8 +200,8 @@ describe('micropolisReactive poke / peek / memory', () => {
 	});
 
 	it('rebuildTerrainForEditor reshapes nearby water without redrawing distant coastlines', (context) => {
-		// The lightweight PR CI deliberately does not rebuild Emscripten. The
-		// project's local build script does, so run this integration test there.
+		// Skip only when the checked-in WASM artifact predates this editor binding;
+		// pull-request CI and the local build script rebuild the engine first.
 		if (typeof micropolis.rebuildTerrainForEditor !== 'function') context.skip();
 
 		micropolisReactive.poke.clearMap();
