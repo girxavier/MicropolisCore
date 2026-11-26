@@ -612,7 +612,7 @@
         result = eng.ToolResult.TOOLRESULT_FAILED;
       } else {
         let buildable = true;
-        const existingZoneAtCenter = agriculturalDataBefore?.agriculturalZones?.[\x60${tileX},${tileY}\x60];
+        const existingZoneAtCenter = agriculturalDataBefore?.agriculturalZones?.[`${tileX},${tileY}`];
         for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
           const tile = micropolis.getTile(left + dx, top + dy) & eng.MapTileBits.LOMASK.value;
           // Accept bare soil, every tree/forest variant (including WOODS2–5),
