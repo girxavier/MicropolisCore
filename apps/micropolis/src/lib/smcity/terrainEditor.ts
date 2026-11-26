@@ -100,6 +100,12 @@ export function validRiverDestinations(from: CompassDirection): CompassDirection
   return TERRAIN_DIRECTIONS.filter((to) => to !== from);
 }
 
+/** Keep only the engine's bare land, water and tree tile IDs when extracting a map. */
+export function normalizeBareTerrainTile(tile: number): number {
+  const id = tile & 0x3ff;
+  return id === 0 || (id >= 2 && id <= 43) ? id : 0;
+}
+
 export function createTerrainSnapshot(input: Omit<TerrainSnapshot, 'format' | 'version'>): TerrainSnapshot {
   if (!input.id.trim() || !input.name.trim()) throw new Error('Un identifiant et un nom sont requis.');
   if (!Number.isInteger(input.width) || input.width < 1 ||
@@ -107,8 +113,9 @@ export function createTerrainSnapshot(input: Omit<TerrainSnapshot, 'format' | 'v
       input.tiles.length !== input.width * input.height) {
     throw new RangeError('Dimensions de terrain invalides.');
   }
-  if (input.tiles.some((tile) => !Number.isInteger(tile) || tile < 0 || tile > 0xffff)) {
-    throw new RangeError('La carte contient un identifiant de tuile invalide.');
+  if (input.tiles.some((tile) => !Number.isInteger(tile) ||
+      !(tile === 0 || (tile >= 2 && tile <= 43)))) {
+    throw new RangeError('Une carte de terrain ne peut contenir que de la terre, de l’eau et des arbres.');
   }
   return { ...input, format: 'smcity-terrain', version: 1, tiles: [...input.tiles] };
 }
