@@ -24,7 +24,7 @@
   import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
   import { toolState } from '$lib/ToolState.svelte';
   import { editorModeState } from '$lib/EditorMode.svelte';
-  import { resolveEditingTool, resolveDirectBuildingCenterTile, agriculturalLevelForTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
+  import { resolveEditingTool, resolveDirectBuildingCenterTile, agriculturalLevelForTool, agriculturalProductionModeForTool, toolCursor, TOOL_BY_SHORTCUT } from '$lib/gameTools';
   import { loadScenarioData, removeAgriculturalZone, saveScenarioData, upsertAgriculturalZone } from '$lib/smcity/scenarioData';
   import {
     syncViewportScreenScale,
@@ -52,7 +52,7 @@
   // The aliases point back to the exact 3×3 groups authored in all.png:
   // columns 3–20, rows 31–33. Row 31 belongs to atlas set 0; rows 32–33 to set 1.
   const agricultureMapTileIds = [53, 54, 55, 223, 610, 611, 841, 842, 843] as const;
-  const agricultureTileAliases: Record<string, { tileId: number; tileSet: number }> = {};
+  const agricultureTileAliases: Record<string, { tileId: number; tileSet: number; desaturate?: number }> = {};
   for (let stage = 0; stage < 6; stage++) {
     for (let dy = 0; dy < 3; dy++) {
       for (let dx = 0; dx < 3; dx++) {
@@ -65,6 +65,12 @@
         agricultureTileAliases[`${stage + 1}:${mapTileId}`] = {
           tileId: sourceTileId,
           tileSet: sourceSet,
+        };
+        // Conventional plots reuse the same sprites with a restrained 22% desaturation.
+        agricultureTileAliases[`${stage + 7}:${mapTileId}`] = {
+          tileId: sourceTileId,
+          tileSet: sourceSet,
+          desaturate: 0.22,
         };
       }
     }
@@ -437,9 +443,9 @@
         for (let dx = 0; dx < 3; dx++) {
           const index = (left + dx) * engine.WORLD_H + top + dy;
           map[index] = agricultureMapTileIds[dy * 3 + dx];
-          // MOP 1–6 are virtual agricultural selectors; aliases resolve each
-          // to the actual atlas set/tile without changing normal map tiles.
-          mop[index] = zone.level + 1;
+          // MOP 1–6 select organic sprites; 7–12 select the same sprites
+          // with a subtle desaturation for conventional production.
+          mop[index] = zone.level + (zone.productionMode === 'CONV' ? 7 : 1);
         }
       }
     }
@@ -565,6 +571,7 @@
     const before = mapBefore ? new Uint16Array(mapBefore) : null;
     const fundsBefore = micropolis.totalFunds;
     const agriculturalLevel = agriculturalLevelForTool(toolState.activeToolId);
+    const agriculturalProductionMode = agriculturalProductionModeForTool(toolState.activeToolId);
     const agriculturalScenarioId = micropolisReactive.cityFileName || micropolisReactive.cityName || 'default';
     const agriculturalDataBefore = loadScenarioData(agriculturalScenarioId);
     const directBuildingCenter = editorModeState.active
@@ -638,7 +645,7 @@
           const data = upsertAgriculturalZone(agriculturalDataBefore!, {
             id: `${tileX},${tileY}`, x: tileX, y: tileY,
             level: agriculturalLevel, monthsInStage: 0,
-            specialization: 'MAR', productionMode: 'BIO'
+            specialization: 'MAR', productionMode: agriculturalProductionMode ?? 'BIO'
           });
           saveScenarioData(data);
           if (cost > 0) micropolisReactive.poke.setFunds(micropolis.totalFunds - cost);
