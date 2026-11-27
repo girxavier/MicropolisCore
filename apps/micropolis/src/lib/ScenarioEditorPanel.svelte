@@ -69,6 +69,14 @@
     }
   });
 
+  // Query can edit shared construction properties and per-building locks outside
+  // this panel. Reload the persisted scenario whenever that shared revision moves.
+  $effect(() => {
+    void micropolisReactive.scenarioDataRevision;
+    const currentId = scenarioId;
+    if (currentId) scenarioData = loadScenarioData(currentId);
+  });
+
   $effect(() => {
     const selection = queriedTile;
     if (!selection) return;
@@ -111,10 +119,12 @@
 
   function exportSave(): void {
     try {
+      const latestScenarioData = loadScenarioData(scenarioId);
+      scenarioData = latestScenarioData;
       exportScenarioSave({
         format: 'smcity-scenario-save',
         version: 1,
-        scenario: scenarioData,
+        scenario: latestScenarioData,
         game: {
           cityFileName: micropolisReactive.cityFileName,
           cityName: micropolisReactive.cityName,
@@ -137,7 +147,8 @@
       const slot = micropolisReactive.attachedSimulator?.saveCurrentCityToBrowserSlot();
       if (!slot) throw new Error('Aucune ville active à sauvegarder.');
       micropolisReactive.syncFromEngine();
-      scenarioData = { ...scenarioData, scenarioId: slot.id };
+      // Query may have changed scenario data since this panel last rendered.
+      scenarioData = { ...loadScenarioData(scenarioId), scenarioId: slot.id };
       saveScenarioData(scenarioData);
       micropolisReactive.refreshCityClimateIndex();
       saveSlotsRevision += 1;
@@ -154,7 +165,7 @@
       const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(label, true);
       if (!saved) throw new Error('Aucun simulateur disponible.');
       micropolisReactive.syncFromEngine();
-      scenarioData = { ...scenarioData, scenarioId: saved.id };
+      scenarioData = { ...loadScenarioData(scenarioId), scenarioId: saved.id };
       saveScenarioData(scenarioData);
       micropolisReactive.refreshCityClimateIndex();
       saveSlotsRevision += 1;
@@ -172,7 +183,8 @@
       const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(name, exists);
       if (!saved) throw new Error('Aucun simulateur disponible.');
       micropolisReactive.syncFromEngine();
-      scenarioData = { ...createEmptyScenarioData(saved.id), agriculturalZones: { ...(scenarioData.agriculturalZones ?? {}) } };
+      const latestScenarioData = loadScenarioData(scenarioId);
+      scenarioData = { ...createEmptyScenarioData(saved.id), agriculturalZones: { ...(latestScenarioData.agriculturalZones ?? {}) } };
       saveScenarioData(scenarioData);
       micropolisReactive.attachedSimulator?.micropolis?.clearZoneLocks();
       micropolisReactive.refreshCityClimateIndex();
