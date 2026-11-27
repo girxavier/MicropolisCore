@@ -968,6 +968,10 @@ export const micropolisReactive = {
 	get cityClimateIndex() {
 		return cityClimateIndex;
 	},
+	/** Revision token for scenario metadata changed through Query or scenario tools. */
+	get scenarioDataRevision() {
+		return zoneLockRevision;
+	},
 	get worldWidth() {
 		return attachedSimulator?.micropolisengine?.WORLD_W ?? 0;
 	},
