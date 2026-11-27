@@ -15,6 +15,15 @@ import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
 import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioTypeProperties, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioTypeProperty, updateScenarioZoneLock } from './smcity/scenarioData';
 import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
+import {
+	dismissClimatePublication as dismissStoredClimatePublication,
+	loadClimatePublicationState,
+	nextClimatePublication,
+	saveClimatePublicationState,
+	visibleClimatePublication,
+	type ClimatePublication,
+	type ClimatePublicationState
+} from './smcity/weatherMessages';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -84,6 +93,9 @@ let temperatureMax = $state(0);
 let temperatureMean = $state(0);
 let climateReady = $state(false);
 let cityClimateIndex = $state<number | null>(null);
+let climatePublication = $state<ClimatePublication | null>(null);
+let climatePublicationHistory = $state<ClimatePublication[]>([]);
+let climatePublicationRevision = $state(0);
 let localClimateTemperatures: Float32Array | null = null;
 let zoneLockRevision = $state(0);
 
@@ -196,6 +208,44 @@ function refreshLocalClimateTemperatureField(): void {
 	if (!simulator?.mapData || simulator.mapData.length !== 12000) return;
 	const scenario = loadScenarioData(cityFileName || simulator.cityFileName || simulator.micropolis?.cityName || 'default');
 	localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, scenario, 1);
+}
+
+function refreshClimatePublications(): void {
+	const simulator = attachedSimulator;
+	const engine = simulator?.micropolis;
+	if (!engine || !climateReady || typeof engine.getClimateForecast !== 'function') return;
+	const scenarioId = cityFileName || simulator?.cityFileName || engine.cityName || 'default';
+	try {
+		// The C++ climate model has already generated this year's complete,
+		// deterministic sequence. The forecast stops at the year boundary because
+		// next year's city-wide climate contribution is not yet finalized.
+		const forecast = engine.getClimateForecast(8);
+		if (forecast.length === 0) return;
+		const state = loadClimatePublicationState(scenarioId);
+		const decision = nextClimatePublication(
+			forecast,
+			forecast[0].cityTime,
+			state.activeEvents,
+			state.publishedIds
+		);
+		let nextState: ClimatePublicationState = {
+			...state,
+			activeEvents: decision.activeEvents
+		};
+		if (decision.publication) {
+			nextState = {
+				...nextState,
+				history: [...nextState.history, decision.publication].slice(-100),
+				publishedIds: [...nextState.publishedIds, decision.publication.id]
+			};
+		}
+		saveClimatePublicationState(scenarioId, nextState);
+		climatePublication = visibleClimatePublication(nextState);
+		climatePublicationHistory = [...nextState.history].reverse();
+		climatePublicationRevision++;
+	} catch (error) {
+		console.warn('SmCity climate publications could not be refreshed:', error);
+	}
 }
 
 function refreshCityClimateIndex(): void {
@@ -421,6 +471,7 @@ class MicropolisReactiveCallback {
 		temperatureMean = tmoy;
 		climateReady = true;
 		refreshLocalClimateTemperatureField();
+		refreshClimatePublications();
 	}
 
 	updateDemand(_micropolis: Micropolis | null, _callbackVal: unknown, r: number, c: number, i: number): void {
@@ -653,6 +704,23 @@ export const micropolisReactive = {
 	 */
 	get cityFileNames(): string[] {
 		return attachedSimulator?.cityFileNames ?? [];
+	},
+	get climatePublication(): ClimatePublication | null {
+		void climatePublicationRevision;
+		return climatePublication;
+	},
+	get climatePublicationHistory(): ClimatePublication[] {
+		void climatePublicationRevision;
+		return climatePublicationHistory;
+	},
+	dismissClimatePublication(id: string): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const state = loadClimatePublicationState(scenarioId);
+		const next = dismissStoredClimatePublication(state, id);
+		saveClimatePublicationState(scenarioId, next);
+		climatePublication = visibleClimatePublication(next);
+		climatePublicationHistory = [...next.history].reverse();
+		climatePublicationRevision++;
 	},
 
 	loadCity(fileName: string): boolean {
