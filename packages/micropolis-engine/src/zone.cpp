@@ -782,9 +782,8 @@ void Micropolis::doCommercial(const Position &pos, bool zonePower)
         TrfGood = 1;
     }
 
-    // Keep ordinary activity, but freeze automatic growth and decline for this zone.
-    if (isZoneLocked(pos.posX, pos.posY)) return;
-
+    // A lock prevents upward development only. Traffic pressure and poor
+    // conditions must still be able to reduce or empty this commercial zone.
     if (TrfGood == -1) {
         value = getLandPollutionValue(pos);
         doComOut(pos, tpop, value);
