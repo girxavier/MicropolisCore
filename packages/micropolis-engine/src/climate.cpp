@@ -403,6 +403,7 @@ void Micropolis::updateClimateForTime()
 
 emscripten::val Micropolis::getClimateForecast(int maxUnits)
 {
+#if defined(__EMSCRIPTEN__)
     emscripten::val forecast = emscripten::val::array();
     if (!climateReady || maxUnits <= 0) return forecast;
 
@@ -431,4 +432,10 @@ emscripten::val Micropolis::getClimateForecast(int maxUnits)
     }
 
     return forecast;
+#else
+    // Native tests exercise the climate model itself; only WASM needs the JS
+    // forecast payload consumed by the browser publication layer.
+    (void)maxUnits;
+    return emscripten::val();
+#endif
 }
