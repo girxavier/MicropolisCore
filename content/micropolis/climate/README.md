@@ -8,6 +8,7 @@ The climate data used by the Micropolis engine live in this directory. The C++ i
 - `climat_parametres_smcity.csv`: city-specific annual warming increments.
 - `climat_seuils_smcity.csv`: inclusive Tmin/Tmax thresholds and their increments.
 - `climat_regles_smcity.csv`: anomaly ranges, persistence and high-temperature limiter parameters.
+- `climat_meteo_profils_smcity.csv`: initial seasonal weather-profile parameters for the five reference cities. These are explicit gameplay calibration values, not measured precipitation normals.
 
 ## Calculation order for each of the 48 annual units
 
@@ -48,4 +49,48 @@ V1 publishes thermal episodes only:
 
 An advance message may be published when an episode is forecast to begin within the next two units. A second publication marks the episode as active. The event identity is based on its type and starting city-time, so a phase is not repeated on every simulation callback. Publications and dismissal state are stored separately for each scenario; the most recent 100 publications are retained.
 
-The current climate tables contain temperature references, not precipitation, cloud cover or sunshine observations. Therefore V1 does not claim to forecast rain, storms, sunshine or snow from temperature alone. Those categories require explicit weather variables and a separately documented model.
+## Simulated weather categories (V1)
+
+The weather model uses the same deterministic climate-year readings as the temperature model. It adds a weather category, precipitation total and sunshine duration to each 7.6-day unit. It does not create another temperature series and uses an independent random stream, so enabling weather cannot alter Tmin/Tmax or their historical reproducibility.
+
+The seven categories are:
+
+| Code | Category |
+|---:|---|
+| 0 | Grand soleil |
+| 1 | Couvert sans pluie |
+| 2 | Variable, soleil / nuages / averses |
+| 3 | Pluie fine / crachin |
+| 4 | Couvert et averses |
+| 5 | Orage |
+| 6 | Temps neigeux |
+
+### Calculation order
+
+1. Select the city's seasonal profile from `climat_meteo_profils_smcity.csv`: probability of a wet regime, sunshine probability during a dry regime, drizzle share, thunderstorm share and snow share.
+2. Draw a dry or wet regime. The regime persists for 2 or 3 consecutive units, then is drawn again. This creates multi-week weather sequences rather than changing the weather independently every simulation tick.
+3. In a dry regime, select grand soleil or cloudy without rain using the seasonal city profile.
+4. In a wet regime, apply temperature constraints:
+   - Snow is possible only when Tmin <= 0°C and Tmax <= 5°C, with a much higher probability in Gap than in Brest.
+   - Thunderstorms require Tmax >= 25°C. Their probability increases above 30°C; Brest's profile keeps them rare.
+   - Drizzle is eligible when Tmin >= 2°C and Tmax <= 19°C.
+   - Other wet situations become variable showers or overcast with showers.
+5. Generate precipitation totals and sunshine duration within category-specific ranges.
+
+### Quantities and interpretation
+
+Precipitation is expressed in millimetres **over the whole 7.6-day unit**, not per day. Sunshine is expressed in hours over the same period. Initial category ranges are:
+
+- Grand soleil: 42–80 h of sunshine, no precipitation.
+- Couvert sans pluie: 3–22 h, no precipitation.
+- Variable / averses: 1–10 mm and 14–42 h.
+- Pluie fine / crachin: 0.5–5 mm and 2–15 h.
+- Couvert et averses: 4–22 mm and 0–12 h.
+- Orage: 6–36 mm and 0–10 h.
+- Temps neigeux: 1–13 mm water equivalent and 0–12 h.
+
+These are initial simulation ranges for gameplay, not claims about observed weather measurements. The temperature reference CSVs do not contain historical rainfall or sunshine observations. The city-season probabilities therefore remain transparent, editable calibration parameters and should be compared with the intended city climatology before being treated as a scientific reconstruction.
+
+The snow rule deliberately uses both the temperature interval and the city-season snow profile: a cold reading alone does not force snowfall. In particular, Brest has very low snow and thunderstorm probabilities; Gap has a substantially higher winter snow probability.
+
+The same weather fields are exposed to the browser forecast. The bottom information bar displays the current category and the unit's precipitation and sunshine totals; thermal episode alerts remain separate editorial publications.
