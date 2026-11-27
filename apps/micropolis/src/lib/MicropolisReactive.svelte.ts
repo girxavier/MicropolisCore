@@ -129,13 +129,18 @@ function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
 	const engine = attachedSimulator?.micropolisengine;
 	if (!map || !engine) return { x, y };
 	const zoneBit = engine.MapTileBits.ZONEBIT.value;
-	for (let radius = 0; radius <= 4; radius += 1) {
+	// R/C/I zones occupy exactly 3×3 tiles. Their unique center is therefore
+	// at most one tile away on either axis; a wider search could accidentally
+	// attach a click on a road or empty lot to a neighbouring building.
+	for (let radius = 0; radius <= 1; radius += 1) {
 		for (let dx = -radius; dx <= radius; dx += 1) for (let dy = -radius; dy <= radius; dy += 1) {
 			if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
 			const cx = x + dx, cy = y + dy;
 			if (cx < 0 || cy < 0 || cx >= engine.WORLD_W || cy >= engine.WORLD_H) continue;
 			const tile = map[cx * engine.WORLD_H + cy];
-			if (tile !== undefined && (tile & zoneBit) !== 0) return { x: cx, y: cy };
+			if (tile !== undefined && (tile & zoneBit) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile))) {
+				return { x: cx, y: cy };
+			}
 		}
 	}
 	return { x, y };
