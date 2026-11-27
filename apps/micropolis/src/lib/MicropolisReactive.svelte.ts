@@ -171,7 +171,9 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 		validLocks[key] = true;
 		engine.setZoneLocked(x, y, true);
 	}
-	if (Object.keys(validLocks).length !== Object.keys(data.lockedZones ?? {}).length) {
+	if (Object.keys(validLocks).length !== Object.keys(data.lockedZones ?? {}).length && typeof localStorage !== 'undefined') {
+		// Tests and server-side rendering have no browser storage; keep the in-memory
+		// engine state valid without trying to persist a browser-only cleanup.
 		saveScenarioData({ ...data, lockedZones: validLocks, updatedAt: new Date().toISOString() });
 	}
 	zoneLockRevision++;
@@ -195,7 +197,9 @@ function refreshCityClimateIndex(): void {
 		const data = recordMonthlyClimateIndex(scenario, cityYear, cityMonth, index);
 		// Cartographic field only: never fed back into the annual climate engine.
 		localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, data, 1);
-		saveScenarioData(data);
+		// Climate calculations also run in Node-based tests and during SSR.
+		// Persist only when browser storage exists; the calculation itself remains active.
+		if (typeof localStorage !== 'undefined') saveScenarioData(data);
 		applyScenarioZoneLocks(data);
 		const engine = simulator.micropolis;
 		if (engine && typeof engine.setAnnualCityClimateIndex === 'function') {
