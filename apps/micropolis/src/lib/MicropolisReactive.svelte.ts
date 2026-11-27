@@ -121,13 +121,19 @@ function resetMopAtlasSelectors(): void {
 
 /** Recompute and persist the current month's map-derived urban climate index. */
 function isLockableZoneType(typeId: string | null): boolean {
-	return !!typeId && (typeId.startsWith('R.') || typeId.startsWith('C.') || typeId.startsWith('I.'));
+	return !!typeId && (typeId.startsWith('R.') || typeId.startsWith('C.') || typeId.startsWith('I.')); // Agriculture is resolved from scenario parcels below.
 }
 
 function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
 	const map = attachedSimulator?.mapData;
 	const engine = attachedSimulator?.micropolisengine;
 	if (!map || !engine) return { x, y };
+	const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+	// Agricultural parcels are stored in scenario metadata rather than legacy
+	// Micropolis map tiles, so resolve their 3×3 footprint before checking R/C/I.
+	const agriculturalZone = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {})
+		.find((zone) => Math.abs(zone.x - x) <= 1 && Math.abs(zone.y - y) <= 1);
+	if (agriculturalZone) return { x: agriculturalZone.x, y: agriculturalZone.y };
 	const zoneBit = engine.MapTileBits.ZONEBIT.value;
 	// R/C/I zones occupy exactly 3×3 tiles. Their unique center is therefore
 	// at most one tile away on either axis; a wider search could accidentally
@@ -150,6 +156,10 @@ function isLockableZoneCenter(x: number, y: number): boolean {
 	const map = attachedSimulator?.mapData;
 	const engine = attachedSimulator?.micropolisengine;
 	if (!map || !engine || x < 0 || y < 0 || x >= engine.WORLD_W || y >= engine.WORLD_H) return false;
+	const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+	const agriculturalCenter = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {})
+		.some((zone) => zone.x === x && zone.y === y);
+	if (agriculturalCenter) return true;
 	const tile = map[x * engine.WORLD_H + y] ?? 0;
 	return (tile & engine.MapTileBits.ZONEBIT.value) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
 }
@@ -167,7 +177,9 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 		const [x, y] = key.split(',').map(Number);
 		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= module.WORLD_W || y >= module.WORLD_H) continue;
 		const tile = map[x * module.WORLD_H + y];
-		if ((tile & zoneBit) === 0 || !isLockableZoneType(resolveConstructionTypeFromTileId(tile))) continue;
+		const agriculturalCenter = Object.values(data.agriculturalZones ?? {}).some((zone) => zone.x === x && zone.y === y);
+		const legacyGrowthZone = (tile & zoneBit) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
+		if (!agriculturalCenter && !legacyGrowthZone) continue;
 		validLocks[key] = true;
 		engine.setZoneLocked(x, y, true);
 	}
