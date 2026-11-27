@@ -6,6 +6,7 @@ import {
   loadClimatePublicationState,
   nextClimatePublication,
   saveClimatePublicationState,
+  summarizeWeather,
   visibleClimatePublication,
   type WeatherForecastReading
 } from './weatherMessages';
@@ -17,6 +18,40 @@ function readings(values: Array<[number, number, number]>): WeatherForecastReadi
     unit: cityTime % 4
   }));
 }
+
+describe('SmCity weather summary', () => {
+  it('maps all seven engine weather codes to the agreed French categories', () => {
+    const labels = [
+      'Grand soleil',
+      'Couvert sans pluie',
+      'Variable, soleil / nuages / averses',
+      'Pluie fine / crachin',
+      'Couvert et averses',
+      'Orage',
+      'Temps neigeux'
+    ];
+    expect(labels.map((_, weatherCode) => summarizeWeather({
+      cityTime: 0, tmin: 0, tmax: 10, tmoy: 5, month: 0, unit: 0,
+      weatherCode, precipitationMm: 4.2, sunshineHours: 18
+    })?.label)).toEqual(labels);
+  });
+
+  it('keeps precipitation and sunshine non-negative and reports the 7.6-day unit values', () => {
+    expect(summarizeWeather({
+      cityTime: 0, tmin: 5, tmax: 18, tmoy: 11.5, month: 0, unit: 0,
+      weatherCode: 3, precipitationMm: -2, sunshineHours: 12.5
+    })).toMatchObject({
+      label: 'Pluie fine / crachin', precipitationMm: 0, sunshineHours: 12.5
+    });
+  });
+
+  it('rejects unknown weather codes instead of silently inventing a category', () => {
+    expect(summarizeWeather({
+      cityTime: 0, tmin: 5, tmax: 18, tmoy: 11.5, month: 0, unit: 0,
+      weatherCode: 9
+    })).toBeNull();
+  });
+});
 
 describe('SmCity thermal event detection', () => {
   it('requires two consecutive units before declaring a heat sequence', () => {
