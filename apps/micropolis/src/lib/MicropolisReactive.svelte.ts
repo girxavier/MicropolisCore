@@ -13,7 +13,7 @@ import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
-import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
+import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioTypeProperties, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioTypeProperty, updateScenarioZoneLock } from './smcity/scenarioData';
 import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
@@ -70,6 +70,7 @@ export type MicropolisZoneStatus =
 			x: number;
 			y: number;
 			tileId: number;
+			constructionTypeId: string | null;
 	  };
 
 let zoneStatus = $state<MicropolisZoneStatus>({ visible: false });
@@ -325,7 +326,8 @@ class MicropolisReactiveCallback {
 			growthRate: growthRateIndex,
 			x,
 			y,
-			tileId: _micropolis?.getTile(x, y) ?? 0
+			tileId: _micropolis?.getTile(x, y) ?? 0,
+			constructionTypeId: resolveConstructionTypeFromTileId(_micropolis?.getTile(x, y) ?? 0)
 		};
 	}
 
@@ -575,6 +577,17 @@ export const micropolisReactive = {
 		void zoneLockRevision;
 		const center = findZoneLockCenter(x, y);
 		return getScenarioZoneLock(loadScenarioData(cityFileName || attachedSimulator?.micropolis?.cityName || 'default'), center.x, center.y);
+	},
+	getScenarioConstructionProperties(typeId: string): Record<string, string | number | boolean | null> {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		return getScenarioTypeProperties(loadScenarioData(scenarioId), typeId);
+	},
+	setScenarioConstructionProperty(typeId: string, property: string, value: number | string | boolean | null): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const next = updateScenarioTypeProperty(loadScenarioData(scenarioId), typeId, property, value);
+		saveScenarioData(next);
+		refreshCityClimateIndex();
+		zoneLockRevision++;
 	},
 	setZoneLockedAt(x: number, y: number, locked: boolean): void {
 		const center = findZoneLockCenter(x, y);
