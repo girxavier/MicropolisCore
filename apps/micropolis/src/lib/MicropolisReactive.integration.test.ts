@@ -84,6 +84,31 @@ describe('micropolisReactive bridge', () => {
 		}
 	});
 
+	it('generates deterministic weather categories and bounded unit values for all five SmCity cities', () => {
+		const cities = ['/cities/marseille.cty', '/cities/gap.cty', '/cities/orleans.cty', '/cities/brest.cty', '/cities/toulouse.cty'];
+		for (const city of cities) {
+			expect(micropolis.loadCity(city)).toBe(true);
+			const forecast = micropolis.getClimateForecast(8) as Array<{
+				cityTime: number;
+				weatherCode: number;
+				precipitationMm: number;
+				sunshineHours: number;
+			}>;
+			expect(forecast.length).toBeGreaterThan(0);
+			for (const reading of forecast) {
+				expect(Number.isInteger(reading.weatherCode)).toBe(true);
+				expect(reading.weatherCode).toBeGreaterThanOrEqual(0);
+				expect(reading.weatherCode).toBeLessThanOrEqual(6);
+				expect(Number.isFinite(reading.precipitationMm)).toBe(true);
+				expect(reading.precipitationMm).toBeGreaterThanOrEqual(0);
+				expect(Number.isFinite(reading.sunshineHours)).toBe(true);
+				expect(reading.sunshineHours).toBeGreaterThanOrEqual(0);
+			}
+			const repeated = micropolis.getClimateForecast(8) as typeof forecast;
+			expect(repeated).toEqual(forecast);
+		}
+	});
+
 	it('routes a Query tool click through WASM to the reactive zone-status panel', () => {
 		const x = 10;
 		const y = 12;
