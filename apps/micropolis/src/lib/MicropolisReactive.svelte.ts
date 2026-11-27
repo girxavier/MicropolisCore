@@ -321,6 +321,11 @@ class MicropolisReactiveCallback {
 		x: number,
 		y: number
 	): void {
+		// Embind callback arguments are not guaranteed to expose the full Micropolis
+		// instance as a callable JS object. Read the authoritative engine attached to
+		// this reactive bridge instead; otherwise Query throws before the panel opens.
+		const engine = attachedSimulator?.micropolis;
+		const tileId = engine?.getTile(x, y) ?? 0;
 		zoneStatus = {
 			visible: true,
 			tileCategory: tileCategoryIndex,
@@ -331,14 +336,14 @@ class MicropolisReactiveCallback {
 			growthRate: growthRateIndex,
 			x,
 			y,
-			tileId: _micropolis?.getTile(x, y) ?? 0,
+			tileId,
 			constructionTypeId: (() => {
-				const scenarioId = cityFileName || _micropolis?.cityName || 'default';
+				const scenarioId = cityFileName || engine?.cityName || 'default';
 				const agriculturalZone = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {})
 					.find((zone) => Math.abs(zone.x - x) <= 1 && Math.abs(zone.y - y) <= 1);
 				return agriculturalZone
 					? `A.${agriculturalZone.specialization}.D${Math.max(1, agriculturalZone.level)}.${agriculturalZone.productionMode}`
-					: resolveConstructionTypeFromTileId(_micropolis?.getTile(x, y) ?? 0);
+					: resolveConstructionTypeFromTileId(tileId);
 			})()
 		};
 	}
