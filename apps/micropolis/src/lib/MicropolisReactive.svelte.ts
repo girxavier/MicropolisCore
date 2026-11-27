@@ -21,8 +21,10 @@ import {
 	nextClimatePublication,
 	saveClimatePublicationState,
 	visibleClimatePublication,
+	summarizeWeather,
 	type ClimatePublication,
-	type ClimatePublicationState
+	type ClimatePublicationState,
+	type WeatherSummary
 } from './smcity/weatherMessages';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
@@ -95,6 +97,7 @@ let climateReady = $state(false);
 let cityClimateIndex = $state<number | null>(null);
 let climatePublication = $state<ClimatePublication | null>(null);
 let climatePublicationHistory = $state<ClimatePublication[]>([]);
+let climateWeather = $state<WeatherSummary | null>(null);
 let climatePublicationRevision = $state(0);
 let localClimateTemperatures: Float32Array | null = null;
 let zoneLockRevision = $state(0);
@@ -221,6 +224,7 @@ function refreshClimatePublications(): void {
 		// next year's city-wide climate contribution is not yet finalized.
 		const forecast = engine.getClimateForecast(8);
 		if (forecast.length === 0) return;
+		climateWeather = summarizeWeather(forecast[0]);
 		const state = loadClimatePublicationState(scenarioId);
 		const decision = nextClimatePublication(
 			forecast,
@@ -712,6 +716,10 @@ export const micropolisReactive = {
 	get climatePublicationHistory(): ClimatePublication[] {
 		void climatePublicationRevision;
 		return climatePublicationHistory;
+	},
+	get climateWeather(): WeatherSummary | null {
+		void climatePublicationRevision;
+		return climateWeather;
 	},
 	dismissClimatePublication(id: string): void {
 		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
