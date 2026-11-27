@@ -95,6 +95,7 @@ describe('micropolisReactive bridge', () => {
 		if (status.visible) {
 			expect(status.x).toBe(x);
 			expect(status.y).toBe(y);
+			expect(status.tileId).toBe(micropolis.getTile(x, y));
 		}
 	});
 
