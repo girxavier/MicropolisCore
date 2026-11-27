@@ -53,7 +53,7 @@
 				</div>
 			{/if}
 			{#if canLockZone}
-				<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Verrouiller ce bâtiment contre les hausses de densité (le déclin reste possible)</label>
+				<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Bloquer les évolutions à la hausse (le déclin reste possible)</label>
 			{/if}
 		{:else}
 			<div class="query-prompt">
