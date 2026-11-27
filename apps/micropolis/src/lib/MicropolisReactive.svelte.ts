@@ -327,7 +327,14 @@ class MicropolisReactiveCallback {
 			x,
 			y,
 			tileId: _micropolis?.getTile(x, y) ?? 0,
-			constructionTypeId: resolveConstructionTypeFromTileId(_micropolis?.getTile(x, y) ?? 0)
+			constructionTypeId: (() => {
+				const scenarioId = cityFileName || _micropolis?.cityName || 'default';
+				const agriculturalZone = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {})
+					.find((zone) => Math.abs(zone.x - x) <= 1 && Math.abs(zone.y - y) <= 1);
+				return agriculturalZone
+					? `A.${agriculturalZone.specialization}.D${Math.max(1, agriculturalZone.level)}.${agriculturalZone.productionMode}`
+					: resolveConstructionTypeFromTileId(_micropolis?.getTile(x, y) ?? 0);
+			})()
 		};
 	}
 
