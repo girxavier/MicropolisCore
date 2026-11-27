@@ -13,7 +13,7 @@ import type { MicropolisSimulator } from './MicropolisSimulator';
 import { heapU16FromEmscriptenModule } from './wasm/heap';
 import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
-import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioZoneLock } from './smcity/scenarioData';
+import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioTypeProperties, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioTypeProperty, updateScenarioZoneLock } from './smcity/scenarioData';
 import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
@@ -70,6 +70,7 @@ export type MicropolisZoneStatus =
 			x: number;
 			y: number;
 			tileId: number;
+			constructionTypeId: string | null;
 	  };
 
 let zoneStatus = $state<MicropolisZoneStatus>({ visible: false });
@@ -128,13 +129,18 @@ function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
 	const engine = attachedSimulator?.micropolisengine;
 	if (!map || !engine) return { x, y };
 	const zoneBit = engine.MapTileBits.ZONEBIT.value;
-	for (let radius = 0; radius <= 4; radius += 1) {
+	// R/C/I zones occupy exactly 3×3 tiles. Their unique center is therefore
+	// at most one tile away on either axis; a wider search could accidentally
+	// attach a click on a road or empty lot to a neighbouring building.
+	for (let radius = 0; radius <= 1; radius += 1) {
 		for (let dx = -radius; dx <= radius; dx += 1) for (let dy = -radius; dy <= radius; dy += 1) {
 			if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
 			const cx = x + dx, cy = y + dy;
 			if (cx < 0 || cy < 0 || cx >= engine.WORLD_W || cy >= engine.WORLD_H) continue;
 			const tile = map[cx * engine.WORLD_H + cy];
-			if (tile !== undefined && (tile & zoneBit) !== 0) return { x: cx, y: cy };
+			if (tile !== undefined && (tile & zoneBit) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile))) {
+				return { x: cx, y: cy };
+			}
 		}
 	}
 	return { x, y };
@@ -165,7 +171,9 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 		validLocks[key] = true;
 		engine.setZoneLocked(x, y, true);
 	}
-	if (Object.keys(validLocks).length !== Object.keys(data.lockedZones ?? {}).length) {
+	if (Object.keys(validLocks).length !== Object.keys(data.lockedZones ?? {}).length && typeof localStorage !== 'undefined') {
+		// Tests and server-side rendering have no browser storage; keep the in-memory
+		// engine state valid without trying to persist a browser-only cleanup.
 		saveScenarioData({ ...data, lockedZones: validLocks, updatedAt: new Date().toISOString() });
 	}
 	zoneLockRevision++;
@@ -189,7 +197,9 @@ function refreshCityClimateIndex(): void {
 		const data = recordMonthlyClimateIndex(scenario, cityYear, cityMonth, index);
 		// Cartographic field only: never fed back into the annual climate engine.
 		localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, data, 1);
-		saveScenarioData(data);
+		// Climate calculations also run in Node-based tests and during SSR.
+		// Persist only when browser storage exists; the calculation itself remains active.
+		if (typeof localStorage !== 'undefined') saveScenarioData(data);
 		applyScenarioZoneLocks(data);
 		const engine = simulator.micropolis;
 		if (engine && typeof engine.setAnnualCityClimateIndex === 'function') {
@@ -315,6 +325,11 @@ class MicropolisReactiveCallback {
 		x: number,
 		y: number
 	): void {
+		// Embind callback arguments are not guaranteed to expose the full Micropolis
+		// instance as a callable JS object. Read the authoritative engine attached to
+		// this reactive bridge instead; otherwise Query throws before the panel opens.
+		const engine = attachedSimulator?.micropolis;
+		const tileId = engine?.getTile(x, y) ?? 0;
 		zoneStatus = {
 			visible: true,
 			tileCategory: tileCategoryIndex,
@@ -325,7 +340,15 @@ class MicropolisReactiveCallback {
 			growthRate: growthRateIndex,
 			x,
 			y,
-			tileId: _micropolis?.getTile(x, y) ?? 0
+			tileId,
+			constructionTypeId: (() => {
+				const scenarioId = cityFileName || engine?.cityName || 'default';
+				const agriculturalZone = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {})
+					.find((zone) => Math.abs(zone.x - x) <= 1 && Math.abs(zone.y - y) <= 1);
+				return agriculturalZone
+					? `A.${agriculturalZone.specialization}.D${Math.max(1, agriculturalZone.level)}.${agriculturalZone.productionMode}`
+					: resolveConstructionTypeFromTileId(tileId);
+			})()
 		};
 	}
 
@@ -575,6 +598,18 @@ export const micropolisReactive = {
 		void zoneLockRevision;
 		const center = findZoneLockCenter(x, y);
 		return getScenarioZoneLock(loadScenarioData(cityFileName || attachedSimulator?.micropolis?.cityName || 'default'), center.x, center.y);
+	},
+	getScenarioConstructionProperties(typeId: string): Record<string, string | number | boolean | null> {
+		void zoneLockRevision;
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		return getScenarioTypeProperties(loadScenarioData(scenarioId), typeId);
+	},
+	setScenarioConstructionProperty(typeId: string, property: string, value: number | string | boolean | null): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const next = updateScenarioTypeProperty(loadScenarioData(scenarioId), typeId, property, value);
+		saveScenarioData(next);
+		refreshCityClimateIndex();
+		zoneLockRevision++;
 	},
 	setZoneLockedAt(x: number, y: number, locked: boolean): void {
 		const center = findZoneLockCenter(x, y);
@@ -852,6 +887,10 @@ export const micropolisReactive = {
 	get demandI() {
 		return demandI;
 	},
+	/** Provisional agricultural market pressure: food demand is weighted toward residents. */
+	get demandA() {
+		return Math.round(demandR * 0.7 + demandC * 0.2 + demandI * 0.1);
+	},
 	get gameLevel() {
 		return gameLevel;
 	},
@@ -932,6 +971,10 @@ export const micropolisReactive = {
 	},
 	get cityClimateIndex() {
 		return cityClimateIndex;
+	},
+	/** Revision token for scenario metadata changed through Query or scenario tools. */
+	get scenarioDataRevision() {
+		return zoneLockRevision;
 	},
 	get worldWidth() {
 		return attachedSimulator?.micropolisengine?.WORLD_W ?? 0;

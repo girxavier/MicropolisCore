@@ -70,23 +70,32 @@ describe('SmCity scenario data', () => {
     expect(reset.constructionTypes['C.PROX']?.climateIndex).toBe(20);
   });
 
-  it('persists local evolution locks independently of shared construction properties', () => {
+  it('keeps evolution locks independent for neighbouring buildings', () => {
     const initial = createEmptyScenarioData('orleans');
-    const locked = updateScenarioZoneLock(initial, 12, 34, true);
-    expect(getScenarioZoneLock(locked, 12, 34)).toBe(true);
-    const unlocked = updateScenarioZoneLock(locked, 12, 34, false);
-    expect(getScenarioZoneLock(unlocked, 12, 34)).toBe(false);
-    expect(Object.keys(unlocked.constructionTypes)).toHaveLength(0);
+    const first = updateScenarioZoneLock(initial, 12, 34, true);
+    const both = updateScenarioZoneLock(first, 16, 34, true);
+    expect(getScenarioZoneLock(both, 12, 34)).toBe(true);
+    expect(getScenarioZoneLock(both, 16, 34)).toBe(true);
+
+    const onlySecond = updateScenarioZoneLock(both, 12, 34, false);
+    expect(getScenarioZoneLock(onlySecond, 12, 34)).toBe(false);
+    expect(getScenarioZoneLock(onlySecond, 16, 34)).toBe(true);
+    expect(Object.keys(onlySecond.constructionTypes)).toHaveLength(0);
   });
 
   it('round-trips a scenario-bound game save bundle', () => {
-    const scenario = updateScenarioTypeProperty(createEmptyScenarioData('orleans'), 'R.D1', 'climateIndex', -20);
+    let scenario = updateScenarioTypeProperty(createEmptyScenarioData('orleans'), 'R.D1', 'climateIndex', -20);
+    scenario = updateScenarioZoneLock(scenario, 12, 34, true);
+    scenario = updateScenarioZoneLock(scenario, 16, 34, true);
     const serialized = serializeScenarioSave({
       format: 'smcity-scenario-save',
       version: 1,
       scenario,
       game: { cityFileName: 'orleans.cty', cityName: 'Orléans', cityYear: 2026, cityMonth: 0 }
     });
-    expect(parseScenarioSave(serialized).scenario.constructionTypes['R.D1'].climateIndex).toBe(-20);
+    const restored = parseScenarioSave(serialized).scenario;
+    expect(restored.constructionTypes['R.D1'].climateIndex).toBe(-20);
+    expect(getScenarioZoneLock(restored, 12, 34)).toBe(true);
+    expect(getScenarioZoneLock(restored, 16, 34)).toBe(true);
   });
 });
