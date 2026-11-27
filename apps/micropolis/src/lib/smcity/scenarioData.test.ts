@@ -55,6 +55,21 @@ describe('SmCity scenario data', () => {
     expect(data.agriculturalZones['20,30'].level).toBe(5);
   });
 
+  it('prevents an agricultural parcel from advancing while its Query lock is active', () => {
+    let data = createEmptyScenarioData('orleans');
+    data = upsertAgriculturalZone(data, {
+      id: '20,30', x: 20, y: 30, level: 2, monthsInStage: 11,
+      specialization: 'MAR', productionMode: 'BIO'
+    });
+    data = updateScenarioZoneLock(data, 20, 30, true);
+    const locked = advanceAgriculturalDevelopment(data);
+    expect(locked.agriculturalZones['20,30'].level).toBe(2);
+    expect(locked.agriculturalZones['20,30'].monthsInStage).toBe(11);
+    const unlocked = advanceAgriculturalDevelopment(updateScenarioZoneLock(locked, 20, 30, false));
+    expect(unlocked.agriculturalZones['20,30'].level).toBe(3);
+    expect(unlocked.agriculturalZones['20,30'].monthsInStage).toBe(0);
+  });
+
   it('records city climate indices above 100 without clamping', () => {
     let data = createEmptyScenarioData('orleans');
     for (let month = 0; month < 12; month++) data = recordMonthlyClimateIndex(data, 2026, month, 125);
