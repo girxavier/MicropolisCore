@@ -6,10 +6,21 @@
 	const zs = $derived(micropolisReactive.zoneStatus);
 
 	const zoneLocked = $derived(zs.visible ? micropolisReactive.isZoneLockedAt(zs.x, zs.y) : false);
+	const typeProperties = $derived(zs.visible && zs.constructionTypeId ? micropolisReactive.getScenarioConstructionProperties(zs.constructionTypeId) : {});
+	const canEditType = $derived(editorModeState.active && !!zs.visible && !!zs.constructionTypeId);
 
 	function setLocalLock(event: Event): void {
 		if (!zs.visible) return;
 		micropolisReactive.setZoneLockedAt(zs.x, zs.y, (event.currentTarget as HTMLInputElement).checked);
+	}
+
+	function setNumericProperty(property: string, event: Event, min?: number, max?: number): void {
+		if (!zs.visible || !zs.constructionTypeId) return;
+		const raw = (event.currentTarget as HTMLInputElement).value;
+		if (raw.trim() === '') return;
+		const value = Number(raw);
+		if (!Number.isFinite(value) || (min !== undefined && value < min) || (max !== undefined && value > max)) return;
+		micropolisReactive.setScenarioConstructionProperty(zs.constructionTypeId, property, value);
 	}
 
 	function close(): void {
@@ -20,7 +31,7 @@
 {#if zs.visible && toolState.activeToolId === 'query'}
 	<div class="zone-panel" role="dialog" aria-label="Zone query">
 		<div class="zone-header">
-			<span class="zone-title">Zone query</span>
+			<span class="zone-title">Query · {zs.constructionTypeId ?? 'Terrain / objet non catalogué'}</span>
 			<span class="zone-tile">Tile {zs.x}, {zs.y}</span>
 			<button type="button" class="zone-close" onclick={close}>Close</button>
 		</div>
@@ -50,8 +61,14 @@
 				<dd>{zs.growthRate}</dd>
 			</div>
 		</dl>
+		{#if canEditType}
+			<div class="type-editor" aria-label="Paramètres du type de construction">
+				<label>Indice climatique <input type="number" min="-100" max="100" step="1" value={typeProperties.climateIndex ?? ''} placeholder="Défaut" onchange={(event) => setNumericProperty('climateIndex', event, -100, 100)} /></label>
+				<label>Facteur de pollution <input type="number" step="1" value={typeProperties.pollution ?? ''} placeholder="Défaut" onchange={(event) => setNumericProperty('pollution', event)} /></label>
+			</div>
+		{/if}
 		{#if editorModeState.active && micropolisReactive.isZoneLockableAt(zs.x, zs.y)}
-			<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Geler l'évolution automatique de cette zone (activité maintenue)</label>
+			<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Bloquer les hausses de densité (le bâtiment peut toujours dépérir)</label>
 		{/if}
 	</div>
 {/if}
@@ -76,6 +93,9 @@
 		pointer-events: auto;
 	}
 
+	.type-editor { display:flex; flex-wrap:wrap; gap:.45rem 1rem; padding-top:.2rem; }
+	.type-editor label { display:flex; align-items:center; gap:.4rem; color:#c9d8ee; }
+	.type-editor input { width:5.5rem; border:1px solid rgba(255,255,255,.25); border-radius:3px; padding:.2rem .3rem; background:rgba(255,255,255,.08); color:#fff; font:inherit; }
 	.zone-lock { display:flex; align-items:center; gap:.45rem; color:#c9f3d5; font-weight:600; }
 	.zone-lock input { accent-color:#42a77e; }
 
