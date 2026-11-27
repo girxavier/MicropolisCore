@@ -4,16 +4,19 @@ import type { ScenarioData } from './scenarioData';
 
 type CatalogType = {
 	id: string;
+	label?: string;
 };
 
 type AgricultureSpecialization = {
 	id: string;
+	label?: string;
 };
 
 type CatalogCategory = {
 	id: string;
 	types?: CatalogType[];
 	specializations?: AgricultureSpecialization[];
+	scales?: Array<{ id: string; label?: string }>;
 };
 
 type ConstructionCatalog = {
@@ -113,7 +116,7 @@ export function getConstructionTypeLabel(constructionId: string): string {
 	}
 	for (const category of smCityConstructionCatalog.categories) {
 		const type = category.types?.find((item) => item.id === constructionId);
-		if (type) return `${category.label} · ${(type as CatalogType & { label?: string }).label ?? constructionId}`;
+		if (type) return `${category.label} · ${type.label ?? constructionId}`;
 	}
 	return constructionId;
 }
