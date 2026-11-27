@@ -586,12 +586,13 @@ void Micropolis::doResidential(const Position &pos, bool zonePower)
         if (zscore > -350 &&
             ((short)(zscore - 26380) > ((short)getRandom16Signed()))) {
 
+            if (isZoneLocked(pos.posX, pos.posY)) return; // A lock prevents growth, never decline.
+
             if (!tpop && !(getRandom16() & 3)) {
                 makeHospital(pos);
                 return;
             }
 
-            if (isZoneLocked(pos.posX, pos.posY)) return; // A lock prevents growth, never decline.
             value = getLandPollutionValue(pos);
             doResIn(pos, tpop, value);
             return;
