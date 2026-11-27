@@ -27,7 +27,7 @@ describe('SmCity thermal event detection', () => {
 
   it('detects a multi-unit heat sequence and its maximum', () => {
     const events = detectThermalEvents(readings([
-      [20, 19, 29], [21, 20, 31], [22, 21, 34], [23, 18, 28]
+      [20, 17, 29], [21, 18, 31], [22, 19, 34], [23, 17, 28]
     ]));
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
@@ -72,7 +72,7 @@ describe('climate publication lifecycle', () => {
 
   it('publishes an active alert when the current unit belongs to the sequence', () => {
     const decision = nextClimatePublication(
-      readings([[101, 20, 31], [102, 21, 33], [103, 20, 32]]),
+      readings([[101, 17, 31], [102, 18, 33], [103, 19, 32]]),
       101, [], [], '2026-11-27T12:00:00.000Z'
     );
     expect(decision.publication?.phase).toBe('active');
@@ -80,7 +80,7 @@ describe('climate publication lifecycle', () => {
   });
 
   it('does not republish a phase already present in the publication ledger', () => {
-    const forecast = readings([[101, 20, 31], [102, 21, 33]]);
+    const forecast = readings([[101, 17, 31], [102, 18, 33]]);
     const first = nextClimatePublication(forecast, 101, [], []);
     expect(first.publication).not.toBeNull();
     const second = nextClimatePublication(forecast, 101, [], [first.publication!.id]);
