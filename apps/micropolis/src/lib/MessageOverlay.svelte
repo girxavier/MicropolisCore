@@ -8,6 +8,7 @@
 
 	const publication = $derived(micropolisReactive.climatePublication);
 	const publicationHistory = $derived(micropolisReactive.climatePublicationHistory);
+	const weather = $derived(micropolisReactive.climateWeather);
 	const displayText = $derived(
 		micropolisReactive.messageIndex >= 0
 			? messageText(micropolisReactive.messageIndex)
@@ -32,7 +33,10 @@
 			aria-live="polite"
 			role="status"
 		>
-			<span class="publication-tag">MÉTÉO</span>
+			<span class="publication-tag">ALERTE MÉTÉO</span>
+			{#if weather}
+				<span class="weather-current" title={`${weather.precipitationMm.toFixed(1)} mm de précipitations · ${weather.sunshineHours.toFixed(0)} h d’ensoleillement sur 7,6 jours`}>{weather.label}</span>
+			{/if}
 			<button class="message-text publication-preview" type="button" onclick={() => expanded = !expanded} aria-expanded={expanded}>
 				{publication.text}
 			</button>
@@ -44,6 +48,9 @@
 			<section class="publication-detail" aria-label="Détail de la publication météo">
 				<strong>{publication.title}</strong>
 				<p>{publication.detail}</p>
+				{#if weather}
+					<p>Météo actuelle : {weather.label} · {weather.precipitationMm.toFixed(1)} mm · {weather.sunshineHours.toFixed(0)} h de soleil sur 7,6 jours</p>
+				{/if}
 				<small>Publication climatique · {new Date(publication.publishedAt).toLocaleString('fr-FR')}</small>
 			</section>
 		{/if}
@@ -72,6 +79,9 @@
 			aria-live="polite"
 			role="status"
 		>
+			{#if weather}
+				<span class="publication-tag" title={`${weather.precipitationMm.toFixed(1)} mm · ${weather.sunshineHours.toFixed(0)} h de soleil sur 7,6 jours`}>MÉTÉO · {weather.label}</span>
+			{/if}
 			<span class="message-text">{displayText}</span>
 			{#if showCoords}
 				<span class="coords">({micropolisReactive.messageX}, {micropolisReactive.messageY})</span>
@@ -136,6 +146,15 @@
 	}
 	.message-text {
 		flex: 0 1 auto;
+	}
+	.weather-current {
+		flex: 0 0 auto;
+		max-width: 13rem;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		color: #c9e6ff;
+		font-size: .68rem;
 	}
 	.publication-preview {
 		min-width: 0;
