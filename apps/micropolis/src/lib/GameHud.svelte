@@ -74,6 +74,7 @@
 			<span class="rci-item"><span class="rci-letter">R</span> {micropolisReactive.demandR}</span>
 			<span class="rci-item"><span class="rci-letter">C</span> {micropolisReactive.demandC}</span>
 			<span class="rci-item"><span class="rci-letter">I</span> {micropolisReactive.demandI}</span>
+			<span class="rci-item agricultural-demand" title="Indicateur agricole provisoire : 70 % R + 20 % C + 10 % I. La disponibilité en eau et la sécheresse agiront ensuite sur le développement réel des exploitations."><span class="rci-letter">A</span> {micropolisReactive.demandA}</span>
 		</span>
 		<span class="hud-tax">{taxLabel}</span>
 		<span class="hud-speed" class:paused={micropolisReactive.simPaused}>{simLabel}</span>
@@ -188,6 +189,8 @@
 		align-items: baseline;
 		gap: 0.35rem;
 	}
+
+	.agricultural-demand .rci-letter { color: #a6d88c; }
 
 	.rci-letter {
 		font-weight: 700;
