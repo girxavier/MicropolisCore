@@ -212,17 +212,19 @@ bool SmCityClimate::loadTables()
             for (std::size_t i = 0; i < sizeof(values) / sizeof(values[0]); ++i) {
                 if (values[i] < 0.0 || values[i] > 1.0) return false;
             }
+            if (references.find(city) == references.end()) return false;
+            if ((profileRows[city] & (1 << seasonIndex)) != 0) return false;
             if (weatherProfiles.find(city) == weatherProfiles.end()) {
-                std::array<WeatherProfile, 4> profiles;
+                std::array<WeatherProfile, 4> profiles = {};
                 weatherProfiles[city] = profiles;
             }
             weatherProfiles[city][seasonIndex] = profile;
-            ++profileRows[city];
+            profileRows[city] |= (1 << seasonIndex);
         }
 
         for (std::map<std::string, std::array<MonthlyReference, 12> >::const_iterator it = references.begin();
              it != references.end(); ++it) {
-            if (profileRows[it->first] != 4) return false;
+            if (profileRows[it->first] != 15) return false;
         }
     }
 
