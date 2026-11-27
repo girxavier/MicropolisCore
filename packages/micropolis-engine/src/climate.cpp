@@ -297,20 +297,29 @@ void SmCityClimate::generateYear(std::size_t yearIndex)
     generatedYears.push_back(year);
 }
 
-bool SmCityClimate::update(long long cityTime)
+const SmCityClimateReading *SmCityClimate::readingAt(long long cityTime)
 {
-    if (!ready) return false;
+    if (!ready) return NULL;
 
     long long elapsed = cityTime - climateEpoch;
     if (elapsed < 0) elapsed = 0;
     const std::size_t yearIndex = static_cast<std::size_t>(elapsed / 48);
     const int unitIndex = static_cast<int>(elapsed % 48);
 
+    // The full climate year is generated deterministically on first access.
+    // Looking ahead therefore reuses the same readings that gameplay will later consume.
     while (generatedYears.size() <= yearIndex) {
         generateYear(generatedYears.size());
     }
 
-    currentReading = generatedYears[yearIndex].readings[unitIndex];
+    return &generatedYears[yearIndex].readings[unitIndex];
+}
+
+bool SmCityClimate::update(long long cityTime)
+{
+    const SmCityClimateReading *reading = readingAt(cityTime);
+    if (reading == NULL) return false;
+    currentReading = *reading;
     return true;
 }
 
