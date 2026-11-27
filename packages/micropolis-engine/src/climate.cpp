@@ -389,8 +389,12 @@ void SmCityClimate::generateWeather(ClimateYear &year, std::size_t yearIndex)
                 // determines how often clear skies dominate dry periods.
                 reading.weatherCode = chance(random) < profile.sunnyWhenDry ? 0 : 1;
             } else {
+                // Snow is possible when the Tmin/Tmax interval crosses
+                // 0°C (or remains entirely below freezing), not simply because
+                // the daytime maximum is "near cold".
                 const bool coldEnoughForSnow =
-                    reading.tmin <= 0.0 && reading.tmax <= 5.0;
+                    reading.tmin <= 0.0 &&
+                    (reading.tmax >= 0.0 || reading.tmax < 0.0);
                 if (coldEnoughForSnow && chance(random) < profile.snowWhenCold) {
                     reading.weatherCode = 6;
                 } else {
