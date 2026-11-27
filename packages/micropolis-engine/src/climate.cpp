@@ -393,8 +393,8 @@ void SmCityClimate::generateWeather(ClimateYear &year, std::size_t yearIndex)
                 // 0°C (or remains entirely below freezing), not simply because
                 // the daytime maximum is "near cold".
                 const bool coldEnoughForSnow =
-                    reading.tmin <= 0.0 &&
-                    (reading.tmax >= 0.0 || reading.tmax < 0.0);
+                    (reading.tmin <= 0.0 && reading.tmax >= 0.0) ||
+                    reading.tmax < 0.0;
                 if (coldEnoughForSnow && chance(random) < profile.snowWhenCold) {
                     reading.weatherCode = 6;
                 } else {
