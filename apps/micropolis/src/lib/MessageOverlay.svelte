@@ -65,15 +65,32 @@
 		{/if}
 	</div>
 {:else}
-	<div
-		class="message-bar"
-		class:important={micropolisReactive.messageImportant}
-		aria-live="polite"
-		role="status"
-	>
-		<span class="message-text">{displayText}</span>
-		{#if showCoords}
-			<span class="coords">({micropolisReactive.messageX}, {micropolisReactive.messageY})</span>
+	<div class="publication-stack">
+		<div
+			class="message-bar"
+			class:important={micropolisReactive.messageImportant}
+			aria-live="polite"
+			role="status"
+		>
+			<span class="message-text">{displayText}</span>
+			{#if showCoords}
+				<span class="coords">({micropolisReactive.messageX}, {micropolisReactive.messageY})</span>
+			{/if}
+			{#if publicationHistory.length > 0}
+				<button class="message-action" type="button" onclick={() => historyOpen = !historyOpen}>Historique météo</button>
+			{/if}
+		</div>
+		{#if historyOpen}
+			<section class="publication-history" aria-label="Historique des publications météo">
+				<strong>Historique météo</strong>
+				{#each publicationHistory.slice(0, 10) as item (item.id)}
+					<article class="history-item">
+						<strong>{item.title}</strong>
+						<span>{item.text}</span>
+						<small>{new Date(item.publishedAt).toLocaleString('fr-FR')}</small>
+					</article>
+				{/each}
+			</section>
 		{/if}
 	</div>
 {/if}
