@@ -14,6 +14,7 @@ type AgricultureSpecialization = {
 
 type CatalogCategory = {
 	id: string;
+	label?: string;
 	types?: CatalogType[];
 	specializations?: AgricultureSpecialization[];
 	scales?: Array<{ id: string; label?: string }>;
