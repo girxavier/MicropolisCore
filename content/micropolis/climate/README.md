@@ -71,7 +71,7 @@ The seven categories are:
 2. Draw a dry or wet regime. The regime persists for 2 or 3 consecutive units, then is drawn again. This creates multi-week weather sequences rather than changing the weather independently every simulation tick.
 3. In a dry regime, select grand soleil or cloudy without rain using the seasonal city profile.
 4. In a wet regime, apply temperature constraints:
-   - Snow is possible only when Tmin <= 0°C and Tmax <= 5°C, with a much higher probability in Gap than in Brest.
+   - Snow is possible when the Tmin/Tmax interval crosses 0°C (Tmin <= 0°C <= Tmax), or remains below freezing. The city-season snow probability is much higher in Gap than in Brest.
    - Thunderstorms require Tmax >= 25°C. Their probability increases above 30°C; Brest's profile keeps them rare.
    - Drizzle is eligible when Tmin >= 2°C and Tmax <= 19°C.
    - Other wet situations become variable showers or overcast with showers.
@@ -91,6 +91,6 @@ Precipitation is expressed in millimetres **over the whole 7.6-day unit**, not p
 
 These are initial simulation ranges for gameplay, not claims about observed weather measurements. The temperature reference CSVs do not contain historical rainfall or sunshine observations. The city-season probabilities therefore remain transparent, editable calibration parameters and should be compared with the intended city climatology before being treated as a scientific reconstruction.
 
-The snow rule deliberately uses both the temperature interval and the city-season snow profile: a cold reading alone does not force snowfall. In particular, Brest has very low snow and thunderstorm probabilities; Gap has a substantially higher winter snow probability.
+The snow rule combines a crossing of the freezing point (or temperatures entirely below it) with the city-season snow profile: a cold reading alone does not force snowfall. In particular, Brest has very low snow and thunderstorm probabilities; Gap has a substantially higher winter snow probability.
 
 The same weather fields are exposed to the browser forecast. The bottom information bar displays the current category and the unit's precipitation and sunshine totals; thermal episode alerts remain separate editorial publications.
