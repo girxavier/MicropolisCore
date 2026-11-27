@@ -568,9 +568,6 @@ void Micropolis::doResidential(const Position &pos, bool zonePower)
         TrfGood = 1;
     }
 
-    // Keep ordinary activity, but freeze automatic growth and decline for this zone.
-    if (isZoneLocked(pos.posX, pos.posY)) return;
-
     if (TrfGood == -1) {
         value = getLandPollutionValue(pos);
         doResOut(pos, tpop, value);
@@ -594,6 +591,7 @@ void Micropolis::doResidential(const Position &pos, bool zonePower)
                 return;
             }
 
+            if (isZoneLocked(pos.posX, pos.posY)) return; // A lock prevents growth, never decline.
             value = getLandPollutionValue(pos);
             doResIn(pos, tpop, value);
             return;
@@ -804,6 +802,7 @@ void Micropolis::doCommercial(const Position &pos, bool zonePower)
         if (TrfGood &&
             (zscore > -350) &&
             (((short)(zscore - 26380)) > ((short)getRandom16Signed()))) {
+            if (isZoneLocked(pos.posX, pos.posY)) return; // A lock prevents growth, never decline.
             value = getLandPollutionValue(pos);
             doComIn(pos, tpop, value);
             return;
@@ -938,9 +937,6 @@ void Micropolis::doIndustrial(const Position &pos, bool zonePower)
         TrfGood = 1;
     }
 
-    // Keep production-side activity, but freeze automatic density changes.
-    if (isZoneLocked(pos.posX, pos.posY)) return;
-
     if (TrfGood == -1) {
         doIndOut(pos, tpop, getRandom16() & 1);
         return;
@@ -955,6 +951,7 @@ void Micropolis::doIndustrial(const Position &pos, bool zonePower)
 
         if (zscore > -350 &&
             (((short)(zscore - 26380)) > ((short)getRandom16Signed()))) {
+            if (isZoneLocked(pos.posX, pos.posY)) return; // A lock prevents growth, never decline.
             doIndIn(pos, tpop, getRandom16() & 1);
             return;
         }
