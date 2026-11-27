@@ -586,6 +586,7 @@ export const micropolisReactive = {
 		return getScenarioZoneLock(loadScenarioData(cityFileName || attachedSimulator?.micropolis?.cityName || 'default'), center.x, center.y);
 	},
 	getScenarioConstructionProperties(typeId: string): Record<string, string | number | boolean | null> {
+		void zoneLockRevision;
 		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
 		return getScenarioTypeProperties(loadScenarioData(scenarioId), typeId);
 	},
