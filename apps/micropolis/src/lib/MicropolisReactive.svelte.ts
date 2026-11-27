@@ -872,6 +872,10 @@ export const micropolisReactive = {
 	get demandI() {
 		return demandI;
 	},
+	/** Provisional agricultural market pressure: food demand is weighted toward residents. */
+	get demandA() {
+		return Math.round(demandR * 0.7 + demandC * 0.2 + demandI * 0.1);
+	},
 	get gameLevel() {
 		return gameLevel;
 	},
