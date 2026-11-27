@@ -378,6 +378,7 @@ export interface Micropolis extends ClassHandle {
   setCallback(_0: Callback | null, _1: any): void;
   init(): void;
   setAnnualCityClimateIndex(_0: number, _1: number): boolean;
+  getClimateForecast(_0: number): Array<{ cityTime: number; tmin: number; tmax: number; tmoy: number; month: number; unit: number }>;
   setZoneLocked(_0: number, _1: number, _2: boolean): boolean;
   isZoneLocked(_0: number, _1: number): boolean;
   clearZoneLocks(): void;
