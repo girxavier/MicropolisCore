@@ -26,6 +26,8 @@ public:
     bool initialize(const std::string &cityName, long long cityTime,
                     long long savedEpoch = -1);
     bool update(long long cityTime);
+    // Read a deterministic future unit without changing the active climate reading.
+    const SmCityClimateReading *readingAt(long long cityTime);
     bool setAnnualCityClimateIndex(std::size_t yearIndex, double index);
 
     bool isReady() const;
