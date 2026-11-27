@@ -584,8 +584,19 @@
       micropolisReactive.poke.setTile(tileX, tileY, eng.Tiles.DIRT.value);
       micropolisReactive.poke.updateMaps();
       result = eng.ToolResult.TOOLRESULT_OK;
-    } else if (editorModeState.active && toolState.activeToolId === 'terrain-paint') {
-      const brush = toolState.activeTerrainBrush;
+    } else if (editorModeState.active && (
+      toolState.activeToolId === 'terrain-paint' ||
+      toolState.activeToolId === 'water' ||
+      toolState.activeToolId === 'land' ||
+      toolState.activeToolId === 'forest'
+    )) {
+      // In Maquettiste mode, the dedicated Water / Land / Forest tools must use
+      // the same terrain-aware brush as the palette. The engine's legacy water
+      // tool only places its classic tile and does not reliably excavate a
+      // complete solid-land shoreline with the local contour reconstruction.
+      const brush = toolState.activeToolId === 'terrain-paint'
+        ? toolState.activeTerrainBrush
+        : toolState.activeToolId;
       const currentTile = micropolis.getTile(tileX, tileY) & eng.MapTileBits.LOMASK.value;
       const wasWater = currentTile >= eng.Tiles.WATER_LOW.value && currentTile <= eng.Tiles.WATER_HIGH.value;
       const wasTree = currentTile >= eng.Tiles.WOODS_LOW.value && currentTile <= eng.Tiles.WOODS_HIGH.value;
