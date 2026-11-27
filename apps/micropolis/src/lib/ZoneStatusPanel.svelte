@@ -53,7 +53,7 @@
 				</div>
 			{/if}
 			{#if canLockZone}
-				<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Bloquer les évolutions à la hausse (le déclin reste possible)</label>
+				<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Bloquer uniquement les évolutions à la hausse</label>
 			{/if}
 		{:else}
 			<div class="query-prompt">
