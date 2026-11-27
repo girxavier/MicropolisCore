@@ -13,6 +13,39 @@ export interface WeatherForecastReading {
   tmoy: number;
   month: number;
   unit: number;
+  weatherCode?: number;
+  precipitationMm?: number;
+  sunshineHours?: number;
+}
+
+export type WeatherCategoryCode = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface WeatherSummary {
+  code: WeatherCategoryCode;
+  label: string;
+  precipitationMm: number;
+  sunshineHours: number;
+}
+
+const WEATHER_LABELS: Record<WeatherCategoryCode, string> = {
+  0: 'Grand soleil',
+  1: 'Couvert sans pluie',
+  2: 'Variable, soleil / nuages / averses',
+  3: 'Pluie fine / crachin',
+  4: 'Couvert et averses',
+  5: 'Orage',
+  6: 'Temps neigeux'
+};
+
+export function summarizeWeather(reading: WeatherForecastReading): WeatherSummary | null {
+  const code = reading.weatherCode;
+  if (code === undefined || code < 0 || code > 6 || !Number.isInteger(code)) return null;
+  return {
+    code: code as WeatherCategoryCode,
+    label: WEATHER_LABELS[code as WeatherCategoryCode],
+    precipitationMm: Math.max(0, reading.precipitationMm ?? 0),
+    sunshineHours: Math.max(0, reading.sunshineHours ?? 0)
+  };
 }
 
 export type ThermalEventKind = 'heat' | 'warm-night' | 'cold';
