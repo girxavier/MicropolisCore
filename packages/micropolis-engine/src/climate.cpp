@@ -400,3 +400,35 @@ void Micropolis::updateClimateForTime()
                                 reading.unit);
     }
 }
+
+emscripten::val Micropolis::getClimateForecast(int maxUnits)
+{
+    emscripten::val forecast = emscripten::val::array();
+    if (!climateReady || maxUnits <= 0) return forecast;
+
+    long long elapsed = static_cast<long long>(cityTime) -
+                        static_cast<long long>(climateEpochCityTime);
+    if (elapsed < 0) elapsed = 0;
+    const int unitInYear = static_cast<int>(elapsed % 48);
+    // Do not invent next year's city-wide warming shift: that annual map index
+    // is only finalized after the current year has been played.
+    const int available = 48 - unitInYear;
+    const int count = std::min(maxUnits, available);
+
+    for (int offset = 0; offset < count; ++offset) {
+        const long long forecastTime = static_cast<long long>(cityTime) + offset;
+        const SmCityClimateReading *reading = climateModel.readingAt(forecastTime);
+        if (reading == NULL) break;
+
+        emscripten::val item = emscripten::val::object();
+        item.set("cityTime", static_cast<double>(forecastTime));
+        item.set("tmin", reading->tmin);
+        item.set("tmax", reading->tmax);
+        item.set("tmoy", reading->tmoy);
+        item.set("month", reading->month);
+        item.set("unit", reading->unit);
+        forecast.call<void>("push", item);
+    }
+
+    return forecast;
+}
