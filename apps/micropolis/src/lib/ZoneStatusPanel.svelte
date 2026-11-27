@@ -2,6 +2,7 @@
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { toolState } from '$lib/ToolState.svelte';
 	import { editorModeState } from '$lib/EditorMode.svelte';
+	import { getConstructionTypeLabel } from '$lib/smcity/constructionCatalog';
 
 	const zs = $derived(micropolisReactive.zoneStatus);
 
@@ -31,7 +32,7 @@
 {#if zs.visible && toolState.activeToolId === 'query'}
 	<div class="zone-panel" role="dialog" aria-label="Zone query">
 		<div class="zone-header">
-			<span class="zone-title">Query · {zs.constructionTypeId ?? 'Terrain / objet non catalogué'}</span>
+			<span class="zone-title">Query · {zs.constructionTypeId ? getConstructionTypeLabel(zs.constructionTypeId) : 'Terrain / objet non catalogué'}</span>
 			<span class="zone-tile">Tile {zs.x}, {zs.y}</span>
 			<button type="button" class="zone-close" onclick={close}>Close</button>
 		</div>
