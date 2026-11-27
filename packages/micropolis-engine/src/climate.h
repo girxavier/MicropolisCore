@@ -16,6 +16,12 @@ struct SmCityClimateReading {
     bool tmaxThreshold;
     int month;
     int unit;
+    // Weather is a deterministic city/season simulation layered on the same
+    // temperature reading. Precipitation is mm and sunshine is hours per
+    // 7.6-day Micropolis climate unit.
+    int weatherCode;
+    double precipitationMm;
+    double sunshineHours;
 };
 
 class SmCityClimate {
@@ -40,6 +46,14 @@ private:
         double tmax;
     };
 
+    struct WeatherProfile {
+        double wetProbability;
+        double sunnyWhenDry;
+        double drizzleWhenWet;
+        double stormWhenWet;
+        double snowWhenCold;
+    };
+
     struct ClimateYear {
         std::array<SmCityClimateReading, 48> readings;
         std::array<double, 12> monthlyMeanTmin;
@@ -48,6 +62,7 @@ private:
 
     std::map<std::string, std::array<MonthlyReference, 12> > references;
     std::map<std::string, double> cityWarmingCoefficient;
+    std::map<std::string, std::array<WeatherProfile, 4> > weatherProfiles;
     double baseWarming;
     std::vector<ClimateYear> generatedYears;
     std::map<std::size_t, double> annualCityClimateIndices;
@@ -71,6 +86,7 @@ private:
 
     bool loadTables();
     void generateYear(std::size_t yearIndex);
+    void generateWeather(ClimateYear &year, std::size_t yearIndex);
     static std::string normalizeCity(const std::string &name);
     static std::uint32_t stableHash(const std::string &value);
     static double limitHighTemperature(double value, double start,
