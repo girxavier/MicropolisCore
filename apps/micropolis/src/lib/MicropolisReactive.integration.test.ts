@@ -37,16 +37,8 @@ describe('micropolisReactive bridge', () => {
 
 	afterAll(() => {
 		micropolisReactive.detach();
-		try {
-			micropolis.delete();
-		} catch {
-			/* ignore */
-		}
-		try {
-			jsCallbackWrapper.delete();
-		} catch {
-			/* ignore */
-		}
+		try { micropolis.delete(); } catch { /* ignore */ }
+		try { jsCallbackWrapper.delete(); } catch { /* ignore */ }
 	});
 
 	it('exposes wasm module constants after attach', () => {
@@ -61,40 +53,27 @@ describe('micropolisReactive bridge', () => {
 		expect(b?.w).toBe(engine.WORLD_W);
 		expect(b?.h).toBe(engine.WORLD_H);
 		expect(micropolisReactive.memory.tileLinearIndex(0, 0)).toBe(0);
-		expect(micropolisReactive.memory.tileLinearIndex(engine.WORLD_W - 1, engine.WORLD_H - 1)).toBe(
-			engine.WORLD_W * engine.WORLD_H - 1
-		);
+		expect(micropolisReactive.memory.tileLinearIndex(engine.WORLD_W - 1, engine.WORLD_H - 1)).toBe(engine.WORLD_W * engine.WORLD_H - 1);
 		expect(micropolisReactive.memory.tileLinearIndex(engine.WORLD_W, 0)).toBeNull();
 		const mapU16 = micropolisReactive.memory.mapU16;
-		if (mapU16) {
-			expect(mapU16.length).toBe(micropolisReactive.memory.mapWordLength);
-		}
+		if (mapU16) expect(mapU16.length).toBe(micropolisReactive.memory.mapWordLength);
 	});
 
 	it('loads city and syncs reactive + peek scalars', () => {
 		const ok = micropolis.loadCity('/cities/haight.cty');
 		expect(ok).toBe(true);
 		micropolisReactive.syncFromEngine();
-
 		expect(micropolisReactive.totalFunds).toBe(micropolis.totalFunds);
 		const peek = micropolisReactive.peek.scalars();
 		expect(peek).not.toBeNull();
 		expect(peek!.totalFunds).toBe(micropolis.totalFunds);
-
 		const snap = micropolisReactive.getSnapshot();
 		expect(snap.worldWidth).toBe(engine.WORLD_W);
 		expect(snap.totalFunds).toBe(micropolis.totalFunds);
 	});
 
 	it('loads all five SmCity maps and initializes their climate profiles', () => {
-		const cities = [
-			'/cities/marseille.cty',
-			'/cities/gap.cty',
-			'/cities/orleans.cty',
-			'/cities/brest.cty',
-			'/cities/toulouse.cty'
-		];
-
+		const cities = ['/cities/marseille.cty', '/cities/gap.cty', '/cities/orleans.cty', '/cities/brest.cty', '/cities/toulouse.cty'];
 		for (const city of cities) {
 			expect(micropolis.loadCity(city)).toBe(true);
 			micropolisReactive.syncFromEngine();
@@ -102,6 +81,20 @@ describe('micropolisReactive bridge', () => {
 			expect(Number.isFinite(micropolis.temperatureMin)).toBe(true);
 			expect(Number.isFinite(micropolis.temperatureMax)).toBe(true);
 			expect(micropolisReactive.climateReady).toBe(true);
+		}
+	});
+
+	it('routes a Query tool click through WASM to the reactive zone-status panel', () => {
+		const x = 10;
+		const y = 12;
+		micropolisReactive.clearZoneStatus();
+		const result = micropolisReactive.poke.doTool(engine.EditingTool.TOOL_QUERY, x, y);
+		expect(result.value).toBe(engine.ToolResult.TOOLRESULT_OK.value);
+		const status = micropolisReactive.zoneStatus;
+		expect(status.visible).toBe(true);
+		if (status.visible) {
+			expect(status.x).toBe(x);
+			expect(status.y).toBe(y);
 		}
 	});
 
