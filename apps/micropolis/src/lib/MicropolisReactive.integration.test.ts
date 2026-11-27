@@ -99,6 +99,20 @@ describe('micropolisReactive bridge', () => {
 		}
 	});
 
+	it('keeps WASM evolution locks isolated by exact zone-center coordinates', () => {
+		micropolis.clearZoneLocks();
+		expect(micropolis.setZoneLocked(10, 12, true)).toBe(true);
+		expect(micropolis.setZoneLocked(14, 12, true)).toBe(true);
+		expect(micropolis.isZoneLocked(10, 12)).toBe(true);
+		expect(micropolis.isZoneLocked(14, 12)).toBe(true);
+		expect(micropolis.isZoneLocked(11, 12)).toBe(false);
+
+		micropolis.setZoneLocked(10, 12, false);
+		expect(micropolis.isZoneLocked(10, 12)).toBe(false);
+		expect(micropolis.isZoneLocked(14, 12)).toBe(true);
+		micropolis.clearZoneLocks();
+	});
+
 	it('peek.tile matches getTile', () => {
 		const a = micropolis.getTile(10, 12);
 		const b = micropolisReactive.peek.tile(10, 12);
