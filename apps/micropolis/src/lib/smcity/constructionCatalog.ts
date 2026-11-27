@@ -101,3 +101,19 @@ export function getAgriculturalClimateRule(
 	if (typeof scenarioValue === 'number') return fixedOrUnassigned(scenarioValue);
 	return fixedOrUnassigned(climateCoefficients.agriculture[specializationId]?.[scaleId]?.[productionMode]);
 }
+
+/** Human-readable label for a catalogued building or agricultural parcel. */
+export function getConstructionTypeLabel(constructionId: string): string {
+	const agricultureMatch = /^A\.([A-Z]+)\.(D[1-5])\.(BIO|CONV)$/.exec(constructionId);
+	if (agricultureMatch) {
+		const agriculture = smCityConstructionCatalog.categories.find((item) => item.id === 'A');
+		const specialization = agriculture?.specializations?.find((item) => item.id === agricultureMatch[1]);
+		const scale = agriculture?.scales?.find((item) => item.id === agricultureMatch[2]);
+		return [specialization?.label ?? agricultureMatch[1], scale?.label ?? agricultureMatch[2], agricultureMatch[3]].join(' · ');
+	}
+	for (const category of smCityConstructionCatalog.categories) {
+		const type = category.types?.find((item) => item.id === constructionId);
+		if (type) return `${category.label} · ${(type as CatalogType & { label?: string }).label ?? constructionId}`;
+	}
+	return constructionId;
+}
