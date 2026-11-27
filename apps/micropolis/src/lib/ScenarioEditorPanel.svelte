@@ -144,11 +144,13 @@
 
   function saveCurrentMap(): void {
     try {
+      // Capture before the save changes the simulator's cityFileName.
+      const sourceScenarioData = loadScenarioData(scenarioId);
       const slot = micropolisReactive.attachedSimulator?.saveCurrentCityToBrowserSlot();
       if (!slot) throw new Error('Aucune ville active à sauvegarder.');
       micropolisReactive.syncFromEngine();
       // Query may have changed scenario data since this panel last rendered.
-      scenarioData = { ...loadScenarioData(scenarioId), scenarioId: slot.id };
+      scenarioData = { ...sourceScenarioData, scenarioId: slot.id };
       saveScenarioData(scenarioData);
       micropolisReactive.refreshCityClimateIndex();
       saveSlotsRevision += 1;
@@ -158,6 +160,8 @@
 
   function saveAsExistingScenario(): void {
     if (!selectedExistingScenario) return;
+    // Keep the active scenario's latest metadata before switching the city name.
+    const sourceScenarioData = loadScenarioData(scenarioId);
     const slot = saveSlots.find((item) => item.id === selectedExistingScenario);
     const label = slot?.name ?? selectedExistingScenario;
     if (!confirm(`Remplacer la carte du scénario « ${label} » ?`)) return;
@@ -165,7 +169,7 @@
       const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(label, true);
       if (!saved) throw new Error('Aucun simulateur disponible.');
       micropolisReactive.syncFromEngine();
-      scenarioData = { ...loadScenarioData(scenarioId), scenarioId: saved.id };
+      scenarioData = { ...sourceScenarioData, scenarioId: saved.id };
       saveScenarioData(scenarioData);
       micropolisReactive.refreshCityClimateIndex();
       saveSlotsRevision += 1;
@@ -176,6 +180,8 @@
   function createScenario(): void {
     const name = newScenarioName.trim();
     if (!name) { status = 'Donnez un nom au nouveau scénario.'; return; }
+    // Preserve current farm metadata before saveCityAs changes the active scenario ID.
+    const sourceScenarioData = loadScenarioData(scenarioId);
     const id = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
     const exists = saveSlots.some((slot) => slot.id.toLowerCase() === id);
     if (exists && !confirm(`Le scénario « ${name} » existe déjà. Le remplacer ?`)) return;
@@ -183,8 +189,7 @@
       const saved = micropolisReactive.attachedSimulator?.saveCityAsBrowserSlot(name, exists);
       if (!saved) throw new Error('Aucun simulateur disponible.');
       micropolisReactive.syncFromEngine();
-      const latestScenarioData = loadScenarioData(scenarioId);
-      scenarioData = { ...createEmptyScenarioData(saved.id), agriculturalZones: { ...(latestScenarioData.agriculturalZones ?? {}) } };
+      scenarioData = { ...createEmptyScenarioData(saved.id), agriculturalZones: { ...(sourceScenarioData.agriculturalZones ?? {}) } };
       saveScenarioData(scenarioData);
       micropolisReactive.attachedSimulator?.micropolis?.clearZoneLocks();
       micropolisReactive.refreshCityClimateIndex();
