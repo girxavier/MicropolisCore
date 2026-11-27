@@ -581,6 +581,9 @@ emscripten::val Micropolis::getClimateForecast(int maxUnits)
         item.set("tmoy", reading->tmoy);
         item.set("month", reading->month);
         item.set("unit", reading->unit);
+        item.set("weatherCode", reading->weatherCode);
+        item.set("precipitationMm", reading->precipitationMm);
+        item.set("sunshineHours", reading->sunshineHours);
         forecast.call<void>("push", item);
     }
 
