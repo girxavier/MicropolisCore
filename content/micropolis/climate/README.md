@@ -33,3 +33,19 @@ The first climate year generated after a city is loaded is N1 (2026); each subse
 ## Remaining extension
 
 The map-dependent local thermal coefficients and their aggregation into a city-wide effect are deliberately kept separate from these baseline climate rules. Their values must be established before that layer is activated.
+
+## Thermal weather publications (V1)
+
+The first weather-publication layer reads the same deterministic Tmin/Tmax/Tmean sequence as gameplay. It does not generate a second temperature series and does not change the active climate reading when it looks ahead.
+
+Micropolis advances 16 simulation phases per city-time unit, four units per month and 48 units per year. One climate unit represents approximately 7.6 days. The browser requests up to eight readings ahead, but the forecast stops at the current climate-year boundary: the next year's map-derived city climate contribution is only finalized after the current year has been played.
+
+V1 publishes thermal episodes only:
+
+- **Strong-heat sequence:** Tmax >= 30°C for at least two consecutive units.
+- **Warm/tropical nights:** Tmin >= 20°C for at least two consecutive units.
+- **Intense cold:** Tmin <= 0°C and Tmax <= 5°C for at least two consecutive units.
+
+An advance message may be published when an episode is forecast to begin within the next two units. A second publication marks the episode as active. The event identity is based on its type and starting city-time, so a phase is not repeated on every simulation callback. Publications and dismissal state are stored separately for each scenario; the most recent 100 publications are retained.
+
+The current climate tables contain temperature references, not precipitation, cloud cover or sunshine observations. Therefore V1 does not claim to forecast rain, storms, sunshine or snow from temperature alone. Those categories require explicit weather variables and a separately documented model.
