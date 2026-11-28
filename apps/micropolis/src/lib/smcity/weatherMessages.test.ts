@@ -74,7 +74,7 @@ describe('Climate and municipal news events', () => {
       [20, 8, 15, 32, 4], [21, 9, 14, 34, 4], [22, 8, 13, 13, 4]
     ]));
     expect(flood.find((event) => event.kind === 'flood')).toMatchObject({
-      startCityTime: 20, totalRainMm: 66, units: 2
+      startCityTime: 21, totalRainMm: 66, units: 2
     });
     expect(flood.some((event) => event.kind === 'rain')).toBe(false);
   });
@@ -83,7 +83,7 @@ describe('Climate and municipal news events', () => {
     const events = detectClimateEvents(readings([
       [30, 12, 24, 0], [31, 13, 26, 0], [32, 14, 27, 0], [33, 15, 28, 0]
     ]));
-    expect(events.find((event) => event.kind === 'drought')).toMatchObject({ units: 4, totalRainMm: 0 });
+    expect(events.find((event) => event.kind === 'drought')).toMatchObject({ startCityTime: 33, units: 4, totalRainMm: 0 });
   });
 
   it('distinguishes snow from snow-related traffic disruption', () => {
