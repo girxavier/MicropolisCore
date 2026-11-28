@@ -1,61 +1,29 @@
 <script lang="ts">
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
-	import { messageText } from '$lib/engineMessages';
 
 	let expanded = $state(false);
-	let dismissedEngineMessage = $state(false);
-
 	const publication = $derived(micropolisReactive.climatePublication);
-	const displayText = $derived(
-		micropolisReactive.messageIndex >= 0
-			? messageText(micropolisReactive.messageIndex)
-			: '',
-	);
-	const showEngineMessage = $derived(micropolisReactive.messageIndex >= 0 && !dismissedEngineMessage);
-	const hasMessage = $derived(!!publication || showEngineMessage);
-
-	$effect(() => {
-		const publicationId = publication?.id;
-		const messageIndex = micropolisReactive.messageIndex;
-		if (publicationId || messageIndex >= 0) {
-			expanded = false;
-			dismissedEngineMessage = false;
-		}
-	});
-
-	function dismissMessage(): void {
-		if (publication) {
-			micropolisReactive.dismissClimatePublication(publication.id);
-		} else {
-			dismissedEngineMessage = true;
-		}
-		expanded = false;
-	}
 </script>
 
-{#if hasMessage}
+{#if publication}
 	<div class="publication-stack">
 		<div
 			class="message-bar"
-			class:important={publication?.important ?? micropolisReactive.messageImportant}
+			class:important={publication.important}
 			aria-live="polite"
 			role="status"
 		>
-			{#if publication}
-				<span class="publication-tag">MÉTÉO · {publication.title}</span>
-				<button class="message-text publication-preview" type="button" onclick={() => expanded = !expanded} aria-expanded={expanded}>
-					{publication.text}
-				</button>
-				{#if expanded}
-					<section class="publication-detail" aria-label="Détail du bulletin météo">
-						<p>{publication.detail}</p>
-					</section>
-				{/if}
-			{:else}
-				<span class="message-text">{displayText}</span>
-			{/if}
-			<button class="message-close" type="button" onclick={dismissMessage} aria-label="Fermer le message" title="Fermer le message">×</button>
+			<span class="publication-tag">MÉTÉO · {publication.title}</span>
+			<button class="message-text publication-preview" type="button" onclick={() => expanded = !expanded} aria-expanded={expanded}>
+				{publication.text}
+			</button>
+			<button class="message-close" type="button" onclick={() => { micropolisReactive.dismissClimatePublication(publication.id); expanded = false; }} aria-label="Fermer le message" title="Fermer le message">×</button>
 		</div>
+		{#if expanded}
+			<section class="publication-detail" aria-label="Détail du bulletin météo">
+				<p>{publication.detail}</p>
+			</section>
+		{/if}
 	</div>
 {/if}
 
