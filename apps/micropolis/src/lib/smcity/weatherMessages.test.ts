@@ -69,7 +69,7 @@ describe('Climate and municipal news events', () => {
     ]);
     const events = detectClimateEvents(forecast);
     expect(events.some((event) => event.kind === 'rain')).toBe(true);
-    expect(events.some((event) => event.kind === 'flood')).toBe(true);
+    expect(events.find((event) => event.kind === 'flood')).toMatchObject({ startCityTime: 10, totalRainMm: 66, units: 2 });
   });
 
   it('detects four dry weeks as agricultural drought concern', () => {
