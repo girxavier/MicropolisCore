@@ -236,7 +236,8 @@ function refreshClimatePublications(): void {
 			state.activeEvents,
 			state.publishedIds
 		);
-		const publication = stillVisible ?? decision.publication;
+		// A newly detected event replaces the previous bulletin; otherwise it stays visible for up to four weeks.
+		const publication = decision.publication ?? stillVisible;
 		const nextState: ClimatePublicationState = {
 			currentPublication: publication,
 			publishedIds: decision.publication
