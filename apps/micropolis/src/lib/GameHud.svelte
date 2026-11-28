@@ -55,16 +55,23 @@
 {/if}
 		<span class="hud-date" title={dateLabel}>{dateLabel}</span>
 	</div>
-    <div class="hud-row hud-climate" aria-label="Températures du moteur climatique">
+    <div class="hud-row hud-climate" aria-label="Températures et météo de la ville">
         <span class="climate-reading">
-            <span class="climate-label">T° MIN</span>
+            <span class="climate-label">MIN</span>
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMin.toFixed(1)} °C` : '—'}</strong>
         </span>
         <span class="climate-reading climate-max">
-            <span class="climate-label">T° MAX</span>
+            <span class="climate-label">MAX</span>
             <strong>{micropolisReactive.climateReady ? `${micropolisReactive.temperatureMax.toFixed(1)} °C` : '—'}</strong>
         </span>
     </div>
+    {#if micropolisReactive.climateWeather}
+        <div class="hud-weather" aria-label="Météo de la semaine">
+            <strong>{micropolisReactive.climateWeather.label}</strong>
+            <span>{micropolisReactive.climateWeather.precipitationMm.toFixed(1)} mm de pluie</span>
+            <span>{micropolisReactive.climateWeather.sunshineHours.toFixed(0)} h de soleil</span>
+        </div>
+    {/if}
     <div class="hud-row hud-city-climate-index" aria-label="Indice climat de la carte">
         <span>INDICE CLIMAT</span>
         <strong>{micropolisReactive.cityClimateIndex === null ? '—' : `${micropolisReactive.cityClimateIndex >= 0 ? '+' : ''}${micropolisReactive.cityClimateIndex.toFixed(1)}`}</strong>
@@ -135,6 +142,26 @@
         grid-template-columns: 1fr 1fr;
         gap: 0.4rem;
         font-size: 0.82rem;
+    }
+
+    .hud-weather {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.2rem 0.5rem;
+        margin-top: 0.22rem;
+        padding: 0.2rem 0.35rem;
+        border-radius: 3px;
+        background: rgba(105, 165, 220, 0.14);
+        color: #dcecff;
+        font-size: 0.68rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .hud-weather strong {
+        color: #b8dcff;
+        font-size: 0.75rem;
     }
 
     .climate-reading {
