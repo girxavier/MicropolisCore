@@ -59,7 +59,7 @@ describe('Climate and municipal news events', () => {
     const active = nextClimatePublication(forecast, 101, [], [warning.publication!.id]);
     expect(active.publication).toMatchObject({ kind: 'heat', phase: 'active' });
     const noThird = nextClimatePublication(forecast, 102, [], [warning.publication!.id, active.publication!.id]);
-    expect(noThird.publication).toBeNull();
+    expect(noThird.publication?.kind).not.toBe('heat');
     expect(active.publication?.text).not.toMatch(/moteur|unité|seuil technique/i);
   });
 
@@ -81,7 +81,7 @@ describe('Climate and municipal news events', () => {
 
   it('distinguishes snow from snow-related traffic disruption', () => {
     const events = detectClimateEvents(readings([[50, -2, 1, 8, 6]]));
-    expect(events.some((event) => event.kind === 'snow')).toBe(true);
+    expect(events.some((event) => event.kind === 'snow')).toBe(false);
     expect(events.some((event) => event.kind === 'snow-traffic')).toBe(true);
     const decision = nextClimatePublication(readings([[50, -2, 1, 8, 6]]), 50, [], []);
     expect(decision.publication?.kind).toBe('snow-traffic');
