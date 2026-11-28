@@ -133,7 +133,8 @@ export function detectClimateEvents(readings: readonly WeatherForecastReading[])
         events.push({
           key: `${kind}:${first.cityTime}`,
           kind,
-          startCityTime: first.cityTime,
+          // Flood and drought notices become effective when their rolling total / duration is confirmed.
+          startCityTime: kind === 'flood' || kind === 'drought' ? last.cityTime : first.cityTime,
           endCityTime: last.cityTime,
           minTmin: Math.min(...eventReadings.map((item) => item.tmin)),
           maxTmax: Math.max(...eventReadings.map((item) => item.tmax)),
