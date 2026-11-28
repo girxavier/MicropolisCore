@@ -1077,6 +1077,7 @@ function createTypedArrayFromMap(mapInstance) {
     .function("setCallback", &Micropolis::setCallback, allow_raw_pointers())
     .function("init", &Micropolis::init)
     .function("setAnnualCityClimateIndex", &Micropolis::setAnnualCityClimateIndex)
+    .function("getClimateForecast", &Micropolis::getClimateForecast)
     .function("setZoneLocked", &Micropolis::setZoneLocked)
     .function("isZoneLocked", &Micropolis::isZoneLocked)
     .function("clearZoneLocks", &Micropolis::clearZoneLocks)

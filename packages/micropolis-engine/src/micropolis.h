@@ -958,6 +958,8 @@ public:
 
     // Apply a completed annual map-derived climate index to one climate year.
     bool setAnnualCityClimateIndex(int yearIndex, double index);
+    // Return current and upcoming deterministic readings, stopping at the current climate-year boundary.
+    emscripten::val getClimateForecast(int maxUnits);
     bool setZoneLocked(int x, int y, bool locked);
     bool isZoneLocked(int x, int y) const;
     void clearZoneLocks();

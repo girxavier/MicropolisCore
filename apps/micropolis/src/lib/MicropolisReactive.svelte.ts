@@ -15,6 +15,17 @@ import { commandBus } from './CommandBus';
 import { computeAnnualCityClimateIndex, computeMapCellTemperatures, computeMapCityClimateIndex } from './smcity/urbanClimate';
 import { advanceAgriculturalDevelopment, getAnnualClimateIndices, getScenarioTypeProperties, getScenarioZoneLock, loadScenarioData, recordMonthlyClimateIndex, saveScenarioData, updateScenarioTypeProperty, updateScenarioZoneLock } from './smcity/scenarioData';
 import { resolveConstructionTypeFromTileId } from './smcity/constructionCatalog';
+import {
+	dismissClimatePublication as dismissStoredClimatePublication,
+	loadClimatePublicationState,
+	nextClimatePublication,
+	saveClimatePublicationState,
+	visibleClimatePublication,
+	summarizeWeather,
+	type ClimatePublication,
+	type ClimatePublicationState,
+	type WeatherSummary
+} from './smcity/weatherMessages';
 
 // --- Attached simulator (not exported; drives sync + optional actions) ---
 let attachedSimulator = $state<MicropolisSimulator | null>(null);
@@ -84,6 +95,10 @@ let temperatureMax = $state(0);
 let temperatureMean = $state(0);
 let climateReady = $state(false);
 let cityClimateIndex = $state<number | null>(null);
+let climatePublication = $state<ClimatePublication | null>(null);
+let climatePublicationHistory = $state<ClimatePublication[]>([]); // Kept empty for compatibility; the UI no longer stores or displays a history.
+let climateWeather = $state<WeatherSummary | null>(null);
+let climatePublicationRevision = $state(0);
 let localClimateTemperatures: Float32Array | null = null;
 let zoneLockRevision = $state(0);
 
@@ -121,13 +136,19 @@ function resetMopAtlasSelectors(): void {
 
 /** Recompute and persist the current month's map-derived urban climate index. */
 function isLockableZoneType(typeId: string | null): boolean {
-	return !!typeId && (typeId.startsWith('R.') || typeId.startsWith('C.') || typeId.startsWith('I.'));
+	return !!typeId && (typeId.startsWith('R.') || typeId.startsWith('C.') || typeId.startsWith('I.')); // Agriculture is resolved from scenario parcels below.
 }
 
 function findZoneLockCenter(x: number, y: number): { x: number; y: number } {
 	const map = attachedSimulator?.mapData;
 	const engine = attachedSimulator?.micropolisengine;
 	if (!map || !engine) return { x, y };
+	const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+	// Agricultural parcels are stored in scenario metadata rather than legacy
+	// Micropolis map tiles, so resolve their 3×3 footprint before checking R/C/I.
+	const agriculturalZone = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {})
+		.find((zone) => Math.abs(zone.x - x) <= 1 && Math.abs(zone.y - y) <= 1);
+	if (agriculturalZone) return { x: agriculturalZone.x, y: agriculturalZone.y };
 	const zoneBit = engine.MapTileBits.ZONEBIT.value;
 	// R/C/I zones occupy exactly 3×3 tiles. Their unique center is therefore
 	// at most one tile away on either axis; a wider search could accidentally
@@ -150,6 +171,10 @@ function isLockableZoneCenter(x: number, y: number): boolean {
 	const map = attachedSimulator?.mapData;
 	const engine = attachedSimulator?.micropolisengine;
 	if (!map || !engine || x < 0 || y < 0 || x >= engine.WORLD_W || y >= engine.WORLD_H) return false;
+	const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+	const agriculturalCenter = Object.values(loadScenarioData(scenarioId).agriculturalZones ?? {})
+		.some((zone) => zone.x === x && zone.y === y);
+	if (agriculturalCenter) return true;
 	const tile = map[x * engine.WORLD_H + y] ?? 0;
 	return (tile & engine.MapTileBits.ZONEBIT.value) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
 }
@@ -167,7 +192,9 @@ function applyScenarioZoneLocks(data: ReturnType<typeof loadScenarioData>): void
 		const [x, y] = key.split(',').map(Number);
 		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= module.WORLD_W || y >= module.WORLD_H) continue;
 		const tile = map[x * module.WORLD_H + y];
-		if ((tile & zoneBit) === 0 || !isLockableZoneType(resolveConstructionTypeFromTileId(tile))) continue;
+		const agriculturalCenter = Object.values(data.agriculturalZones ?? {}).some((zone) => zone.x === x && zone.y === y);
+		const legacyGrowthZone = (tile & zoneBit) !== 0 && isLockableZoneType(resolveConstructionTypeFromTileId(tile));
+		if (!agriculturalCenter && !legacyGrowthZone) continue;
 		validLocks[key] = true;
 		engine.setZoneLocked(x, y, true);
 	}
@@ -184,6 +211,47 @@ function refreshLocalClimateTemperatureField(): void {
 	if (!simulator?.mapData || simulator.mapData.length !== 12000) return;
 	const scenario = loadScenarioData(cityFileName || simulator.cityFileName || simulator.micropolis?.cityName || 'default');
 	localClimateTemperatures = computeMapCellTemperatures(simulator.mapData, temperatureMean, scenario, 1);
+}
+
+function refreshClimatePublications(): void {
+	const simulator = attachedSimulator;
+	const engine = simulator?.micropolis;
+	if (!engine || !climateReady || typeof engine.getClimateForecast !== 'function') return;
+	const scenarioId = cityFileName || simulator?.cityFileName || engine.cityName || 'default';
+	try {
+		// The forecast is already generated by the climate model. It is read-only:
+		// looking ahead never changes the weather currently applied to the city.
+		const forecast = engine.getClimateForecast(8);
+		if (forecast.length === 0) return;
+		climateWeather = summarizeWeather(forecast[0]);
+		const currentCityTime = forecast[0].cityTime;
+		const state = loadClimatePublicationState(scenarioId);
+		const stillVisible = state.currentPublication &&
+			currentCityTime < state.currentPublication.expiresAtCityTime
+			? state.currentPublication
+			: null;
+		const decision = nextClimatePublication(
+			forecast,
+			currentCityTime,
+			state.activeEvents,
+			state.publishedIds
+		);
+		// A newly detected event replaces the previous bulletin; otherwise it stays visible for up to four weeks.
+		const publication = decision.publication ?? stillVisible;
+		const nextState: ClimatePublicationState = {
+			currentPublication: publication,
+			publishedIds: decision.publication
+				? [...state.publishedIds, decision.publication.id]
+				: state.publishedIds,
+			activeEvents: decision.activeEvents
+		};
+		saveClimatePublicationState(scenarioId, nextState);
+		climatePublication = visibleClimatePublication(nextState, currentCityTime);
+		climatePublicationHistory = [];
+		climatePublicationRevision++;
+	} catch (error) {
+		console.warn('SmCity weather publications could not be refreshed:', error);
+	}
 }
 
 function refreshCityClimateIndex(): void {
@@ -409,6 +477,7 @@ class MicropolisReactiveCallback {
 		temperatureMean = tmoy;
 		climateReady = true;
 		refreshLocalClimateTemperatureField();
+		refreshClimatePublications();
 	}
 
 	updateDemand(_micropolis: Micropolis | null, _callbackVal: unknown, r: number, c: number, i: number): void {
@@ -641,6 +710,28 @@ export const micropolisReactive = {
 	 */
 	get cityFileNames(): string[] {
 		return attachedSimulator?.cityFileNames ?? [];
+	},
+	get climatePublication(): ClimatePublication | null {
+		void climatePublicationRevision;
+		return climatePublication;
+	},
+	get climatePublicationHistory(): ClimatePublication[] {
+		void climatePublicationRevision;
+		return climatePublicationHistory;
+	},
+	get climateWeather(): WeatherSummary | null {
+		void climatePublicationRevision;
+		return climateWeather;
+	},
+	dismissClimatePublication(id: string): void {
+		const scenarioId = cityFileName || attachedSimulator?.cityFileName || attachedSimulator?.micropolis?.cityName || 'default';
+		const state = loadClimatePublicationState(scenarioId);
+		if (state.currentPublication?.id !== id) return;
+		const next = dismissStoredClimatePublication(state);
+		saveClimatePublicationState(scenarioId, next);
+		climatePublication = null;
+		climatePublicationHistory = [];
+		climatePublicationRevision++;
 	},
 
 	loadCity(fileName: string): boolean {

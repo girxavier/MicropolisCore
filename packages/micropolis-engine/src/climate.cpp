@@ -53,6 +53,9 @@ SmCityClimate::SmCityClimate()
     currentReading.tmaxThreshold = false;
     currentReading.month = 0;
     currentReading.unit = 0;
+    currentReading.weatherCode = 0;
+    currentReading.precipitationMm = 0.0;
+    currentReading.sunshineHours = 0.0;
 }
 
 std::string SmCityClimate::normalizeCity(const std::string &name)
@@ -93,6 +96,7 @@ bool SmCityClimate::loadTables()
 {
     references.clear();
     cityWarmingCoefficient.clear();
+    weatherProfiles.clear();
     std::map<std::string, double> expectedAnnualWarming;
     std::map<std::string, int> referenceRows;
 
@@ -173,6 +177,54 @@ bool SmCityClimate::loadTables()
             else if (key == "limiteurdebut") limiterStart = value;
             else if (key == "limiteuramplitude") limiterAmplitude = value;
             else if (key == "rechauffementbase") baseWarming = value;
+        }
+    }
+
+    {
+        std::ifstream file("climate/climat_meteo_profils_smcity.csv");
+        if (!file.is_open()) return false;
+        std::map<std::string, int> profileRows;
+        std::string line;
+        std::getline(file, line); // header
+        while (std::getline(file, line)) {
+            const std::vector<std::string> f = splitCsv(line);
+            if (f.size() < 7) continue;
+            const std::string city = normalizeCity(f[0]);
+            const std::string season = normalizeCity(f[1]);
+            int seasonIndex = -1;
+            if (season == "hiver") seasonIndex = 0;
+            else if (season == "printemps") seasonIndex = 1;
+            else if (season == "ete") seasonIndex = 2;
+            else if (season == "automne") seasonIndex = 3;
+            if (seasonIndex < 0) return false;
+
+            WeatherProfile profile;
+            profile.wetProbability = parseNumber(f[2], -1.0);
+            profile.sunnyWhenDry = parseNumber(f[3], -1.0);
+            profile.drizzleWhenWet = parseNumber(f[4], -1.0);
+            profile.stormWhenWet = parseNumber(f[5], -1.0);
+            profile.snowWhenCold = parseNumber(f[6], -1.0);
+            const double values[] = {
+                profile.wetProbability, profile.sunnyWhenDry,
+                profile.drizzleWhenWet, profile.stormWhenWet,
+                profile.snowWhenCold
+            };
+            for (std::size_t i = 0; i < sizeof(values) / sizeof(values[0]); ++i) {
+                if (values[i] < 0.0 || values[i] > 1.0) return false;
+            }
+            if (references.find(city) == references.end()) return false;
+            if ((profileRows[city] & (1 << seasonIndex)) != 0) return false;
+            if (weatherProfiles.find(city) == weatherProfiles.end()) {
+                std::array<WeatherProfile, 4> profiles = {};
+                weatherProfiles[city] = profiles;
+            }
+            weatherProfiles[city][seasonIndex] = profile;
+            profileRows[city] |= (1 << seasonIndex);
+        }
+
+        for (std::map<std::string, std::array<MonthlyReference, 12> >::const_iterator it = references.begin();
+             it != references.end(); ++it) {
+            if (profileRows[it->first] != 15) return false;
         }
     }
 
@@ -294,23 +346,139 @@ void SmCityClimate::generateYear(std::size_t yearIndex)
         year.monthlyMeanTmax[month] = monthlyMaxTotal / 4.0;
     }
 
+    // Use an independent random stream so adding weather never changes the
+    // validated Tmin/Tmax sequence or its save/load reproducibility.
+    generateWeather(year, yearIndex);
     generatedYears.push_back(year);
 }
 
-bool SmCityClimate::update(long long cityTime)
+void SmCityClimate::generateWeather(ClimateYear &year, std::size_t yearIndex)
 {
-    if (!ready) return false;
+    const std::array<WeatherProfile, 4> &profiles = weatherProfiles[activeCity];
+    std::uint32_t seed = stableHash(activeCity);
+    seed ^= static_cast<std::uint32_t>(yearIndex * 0x85ebca6bu);
+    seed ^= 0x57454154u; // "WEAT": independent from the temperature random stream.
+    std::mt19937 random(seed);
+    std::uniform_real_distribution<double> chance(0.0, 1.0);
+    std::uniform_real_distribution<double> amount(0.0, 1.0);
+    std::uniform_int_distribution<int> persistence(2, 3);
+
+    for (int month = 0; month < 12; ++month) {
+        // Four seasonal regimes: winter, spring, summer, autumn.
+        const int season = (month == 11 || month <= 1) ? 0
+            : (month <= 4) ? 1
+            : (month <= 7) ? 2 : 3;
+        const WeatherProfile &profile = profiles[season];
+        int remaining = 0;
+        bool wetRegime = false;
+
+        for (int unit = 0; unit < 4; ++unit) {
+            if (remaining <= 0) {
+                wetRegime = chance(random) < profile.wetProbability;
+                remaining = persistence(random);
+            }
+            --remaining;
+
+            SmCityClimateReading &reading = year.readings[month * 4 + unit];
+            reading.weatherCode = 1; // cloudy without precipitation by default
+            reading.precipitationMm = 0.0;
+            reading.sunshineHours = 0.0;
+
+            if (!wetRegime) {
+                // A dry spell can still be overcast; the city's seasonal profile
+                // determines how often clear skies dominate dry periods.
+                reading.weatherCode = chance(random) < profile.sunnyWhenDry ? 0 : 1;
+            } else {
+                // Snow is possible when the Tmin/Tmax interval crosses
+                // 0°C (or remains entirely below freezing), not simply because
+                // the daytime maximum is "near cold".
+                const bool coldEnoughForSnow =
+                    (reading.tmin <= 0.0 && reading.tmax >= 0.0) ||
+                    reading.tmax < 0.0;
+                if (coldEnoughForSnow && chance(random) < profile.snowWhenCold) {
+                    reading.weatherCode = 6;
+                } else {
+                    double stormChance = profile.stormWhenWet;
+                    // Hot, unstable air makes storms more likely, while Brest's
+                    // deliberately tiny profile keeps thunderstorms uncommon.
+                    if (reading.tmax >= 30.0) stormChance = std::min(0.70, stormChance + 0.18);
+                    else if (reading.tmax >= 25.0) stormChance = std::min(0.55, stormChance + 0.08);
+
+                    if (reading.tmax >= 25.0 && chance(random) < stormChance) {
+                        reading.weatherCode = 5;
+                    } else if (reading.tmin >= 2.0 && reading.tmax <= 19.0 &&
+                               chance(random) < profile.drizzleWhenWet) {
+                        reading.weatherCode = 3;
+                    } else {
+                        reading.weatherCode = chance(random) < 0.48 ? 2 : 4;
+                    }
+                }
+            }
+
+            // Amounts are totals over one 7.6-day climate unit, not daily rates.
+            // Values are deliberately bounded by category and generated from a
+            // separate stream; they are simulated gameplay values, not observations.
+            const double r = amount(random);
+            switch (reading.weatherCode) {
+                case 0: // Grand soleil
+                    reading.sunshineHours = 42.0 + r * 38.0;
+                    break;
+                case 1: // Couvert sans pluie
+                    reading.sunshineHours = 3.0 + r * 19.0;
+                    break;
+                case 2: // Variable soleil / nuages / averses
+                    reading.precipitationMm = 1.0 + r * 9.0;
+                    reading.sunshineHours = 14.0 + amount(random) * 28.0;
+                    break;
+                case 3: // Pluie fine / crachin
+                    reading.precipitationMm = 0.5 + r * 4.5;
+                    reading.sunshineHours = 2.0 + amount(random) * 13.0;
+                    break;
+                case 4: // Couvert et averses
+                    reading.precipitationMm = 4.0 + r * 18.0;
+                    reading.sunshineHours = amount(random) * 12.0;
+                    break;
+                case 5: // Orage
+                    reading.precipitationMm = 6.0 + r * 30.0;
+                    reading.sunshineHours = amount(random) * 10.0;
+                    break;
+                case 6: // Temps neigeux (water equivalent)
+                    reading.precipitationMm = 1.0 + r * 12.0;
+                    reading.sunshineHours = amount(random) * 12.0;
+                    break;
+                default:
+                    reading.weatherCode = 1;
+                    reading.precipitationMm = 0.0;
+                    reading.sunshineHours = 8.0;
+                    break;
+            }
+        }
+    }
+}
+
+const SmCityClimateReading *SmCityClimate::readingAt(long long cityTime)
+{
+    if (!ready) return NULL;
 
     long long elapsed = cityTime - climateEpoch;
     if (elapsed < 0) elapsed = 0;
     const std::size_t yearIndex = static_cast<std::size_t>(elapsed / 48);
     const int unitIndex = static_cast<int>(elapsed % 48);
 
+    // The full climate year is generated deterministically on first access.
+    // Looking ahead therefore reuses the same readings that gameplay will later consume.
     while (generatedYears.size() <= yearIndex) {
         generateYear(generatedYears.size());
     }
 
-    currentReading = generatedYears[yearIndex].readings[unitIndex];
+    return &generatedYears[yearIndex].readings[unitIndex];
+}
+
+bool SmCityClimate::update(long long cityTime)
+{
+    const SmCityClimateReading *reading = readingAt(cityTime);
+    if (reading == NULL) return false;
+    currentReading = *reading;
     return true;
 }
 
@@ -390,4 +558,46 @@ void Micropolis::updateClimateForTime()
                                 temperatureMean, reading.month,
                                 reading.unit);
     }
+}
+
+emscripten::val Micropolis::getClimateForecast(int maxUnits)
+{
+#if defined(__EMSCRIPTEN__)
+    emscripten::val forecast = emscripten::val::array();
+    if (!climateReady || maxUnits <= 0) return forecast;
+
+    long long elapsed = static_cast<long long>(cityTime) -
+                        static_cast<long long>(climateEpochCityTime);
+    if (elapsed < 0) elapsed = 0;
+    const int unitInYear = static_cast<int>(elapsed % 48);
+    // Do not invent next year's city-wide warming shift: that annual map index
+    // is only finalized after the current year has been played.
+    const int available = 48 - unitInYear;
+    const int count = std::min(maxUnits, available);
+
+    for (int offset = 0; offset < count; ++offset) {
+        const long long forecastTime = static_cast<long long>(cityTime) + offset;
+        const SmCityClimateReading *reading = climateModel.readingAt(forecastTime);
+        if (reading == NULL) break;
+
+        emscripten::val item = emscripten::val::object();
+        item.set("cityTime", static_cast<double>(forecastTime));
+        item.set("tmin", reading->tmin);
+        item.set("tmax", reading->tmax);
+        item.set("tmoy", reading->tmoy);
+        item.set("month", reading->month);
+        item.set("unit", reading->unit);
+        item.set("weatherCode", reading->weatherCode);
+        item.set("precipitationMm", reading->precipitationMm);
+        item.set("sunshineHours", reading->sunshineHours);
+        forecast.call<void>("push", item);
+    }
+
+    return forecast;
+#else
+    // Native tests exercise the climate model itself; only WASM needs the JS
+    // forecast payload consumed by the browser publication layer.
+    (void)maxUnits;
+    return emscripten::val();
+#endif
 }

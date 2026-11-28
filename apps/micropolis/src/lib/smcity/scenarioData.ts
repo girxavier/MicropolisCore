@@ -125,7 +125,13 @@ export function advanceAgriculturalDevelopment(data: ScenarioData): ScenarioData
   let changed = false;
   const agriculturalZones: Record<string, AgriculturalZone> = {};
   for (const [key, zone] of Object.entries(current)) {
-    if (zone.level >= 5) { agriculturalZones[key] = zone; continue; }
+    // Query locks stop upward stage progression for farms just as they stop
+    // density increases for R/C/I zones. A future agricultural decline rule
+    // remains independent and must still be allowed to reduce the level.
+    if (data.lockedZones?.[key] || zone.level >= 5) {
+      agriculturalZones[key] = zone;
+      continue;
+    }
     const elapsed = zone.monthsInStage + 1;
     agriculturalZones[key] = elapsed >= 12
       ? { ...zone, level: zone.level + 1, monthsInStage: 0 }
