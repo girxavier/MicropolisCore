@@ -259,7 +259,7 @@ export function dismissClimatePublication(state: ClimatePublicationState): Clima
 export function nextClimatePublication(
   readings: readonly WeatherForecastReading[],
   currentCityTime: number,
-  previousActiveEvents: readonly ClimateEvent[],
+  _previousActiveEvents: readonly ClimateEvent[],
   publishedIds: readonly string[],
   publishedAt = new Date().toISOString()
 ): ClimatePublicationDecision {
