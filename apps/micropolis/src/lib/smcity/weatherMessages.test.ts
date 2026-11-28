@@ -65,7 +65,7 @@ describe('Climate and municipal news events', () => {
 
   it('detects persistent rain and distinguishes a flood-level two-week rainfall total', () => {
     const forecast = readings([
-      [10, 8, 15, 12, 4], [11, 9, 14, 14, 4], [12, 8, 13, 13, 4]
+      [10, 8, 15, 32, 4], [11, 9, 14, 34, 4], [12, 8, 13, 13, 4]
     ]);
     const events = detectClimateEvents(forecast);
     expect(events.some((event) => event.kind === 'rain')).toBe(true);
