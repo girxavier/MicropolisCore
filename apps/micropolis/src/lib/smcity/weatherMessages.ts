@@ -150,7 +150,10 @@ export function detectClimateEvents(readings: readonly WeatherForecastReading[])
   }
 
   // Les alertes d'inondation et de circulation sous la neige priment sur les bulletins généraux.
-  return events.sort((a, b) => a.startCityTime - b.startCityTime || eventPriority(b.kind) - eventPriority(a.kind));
+  const trafficSnowStarts = new Set(events.filter((event) => event.kind === 'snow-traffic').map((event) => event.startCityTime));
+  return events
+    .filter((event) => event.kind !== 'snow' || !trafficSnowStarts.has(event.startCityTime))
+    .sort((a, b) => a.startCityTime - b.startCityTime || eventPriority(b.kind) - eventPriority(a.kind));
 }
 
 function weekLabel(cityTime: number): string {
