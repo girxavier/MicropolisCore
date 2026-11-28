@@ -63,13 +63,20 @@ describe('Climate and municipal news events', () => {
     expect(active.publication?.text).not.toMatch(/moteur|unité|seuil technique/i);
   });
 
-  it('detects persistent rain and distinguishes a flood-level two-week rainfall total', () => {
-    const forecast = readings([
-      [10, 8, 15, 32, 4], [11, 9, 14, 34, 4], [12, 8, 13, 13, 4]
-    ]);
-    const events = detectClimateEvents(forecast);
-    expect(events.some((event) => event.kind === 'rain')).toBe(true);
-    expect(events.find((event) => event.kind === 'flood')).toMatchObject({ startCityTime: 10, totalRainMm: 66, units: 2 });
+  it('detects prolonged rain and gives priority to a flood-level two-week rainfall total', () => {
+    const persistentRain = detectClimateEvents(readings([
+      [10, 8, 15, 12, 4], [11, 9, 14, 14, 4], [12, 8, 13, 13, 4]
+    ]));
+    expect(persistentRain.some((event) => event.kind === 'rain')).toBe(true);
+    expect(persistentRain.some((event) => event.kind === 'flood')).toBe(false);
+
+    const flood = detectClimateEvents(readings([
+      [20, 8, 15, 32, 4], [21, 9, 14, 34, 4], [22, 8, 13, 13, 4]
+    ]));
+    expect(flood.find((event) => event.kind === 'flood')).toMatchObject({
+      startCityTime: 20, totalRainMm: 66, units: 2
+    });
+    expect(flood.some((event) => event.kind === 'rain')).toBe(false);
   });
 
   it('detects four dry weeks as agricultural drought concern', () => {
