@@ -9,6 +9,7 @@
 	const typeProperties = $derived(zs.visible && zs.constructionTypeId ? micropolisReactive.getScenarioConstructionProperties(zs.constructionTypeId) : {});
 	const canEditType = $derived(!!zs.visible && !!zs.constructionTypeId);
 	const canLockZone = $derived(zs.visible && micropolisReactive.isZoneLockableAt(zs.x, zs.y));
+	const isAgriculturalParcel = $derived(!!zs.visible && !!zs.constructionTypeId?.startsWith('A.'));
 
 	function setLocalLock(event: Event): void {
 		if (!zs.visible) return;
@@ -53,7 +54,8 @@
 				</div>
 			{/if}
 			{#if canLockZone}
-				<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> Bloquer uniquement les évolutions à la hausse</label>
+				<label class="zone-lock"><input type="checkbox" checked={zoneLocked} onchange={setLocalLock} /> {isAgriculturalParcel ? "Bloquer le développement de cette parcelle uniquement" : "Bloquer l’évolution de ce bâtiment uniquement"}</label>
+				<small class="zone-lock-note">Ce réglage est enregistré séparément pour ce bâtiment, à cette adresse, sans modifier les autres constructions de la même catégorie.</small>
 			{/if}
 		{:else}
 			<div class="query-prompt">
@@ -91,6 +93,7 @@
 	.type-editor input { width:5.5rem; border:1px solid rgba(255,255,255,.25); border-radius:3px; padding:.2rem .3rem; background:rgba(255,255,255,.08); color:#fff; font:inherit; }
 	.zone-lock { display:flex; align-items:center; gap:.45rem; color:#c9f3d5; font-weight:600; }
 	.zone-lock input { accent-color:#42a77e; }
+	.zone-lock-note { margin-left: 1.35rem; color: #aebed3; font-size: .65rem; }
 	.zone-header { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.75rem; }
 	.zone-title { font-weight:700; font-size:.76rem; white-space:nowrap; }
 	.zone-tile { color:#ffc840; font-variant-numeric:tabular-nums; white-space:nowrap; }
