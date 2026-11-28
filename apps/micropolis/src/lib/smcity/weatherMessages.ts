@@ -121,17 +121,24 @@ export function detectClimateEvents(readings: readonly WeatherForecastReading[])
     const flush = () => {
       const required = kind === 'drought' ? 4 : kind === 'snow' || kind === 'snow-traffic' || kind === 'flood' ? 1 : MIN_SEQUENCE;
       if (run.length >= required) {
-        const first = run[0];
-        const last = run[run.length - 1];
+        const firstRunReading = run[0];
+        // A flood warning is based on a rolling two-week total. Include the
+        // preceding week's rainfall in the event itself, not just in its trigger.
+        const precedingWeek = kind === 'flood'
+          ? ordered.find((item) => item.cityTime === firstRunReading.cityTime - 1)
+          : undefined;
+        const eventReadings = precedingWeek ? [precedingWeek, ...run] : run;
+        const first = eventReadings[0];
+        const last = eventReadings[eventReadings.length - 1];
         events.push({
           key: `${kind}:${first.cityTime}`,
           kind,
           startCityTime: first.cityTime,
           endCityTime: last.cityTime,
-          minTmin: Math.min(...run.map((item) => item.tmin)),
-          maxTmax: Math.max(...run.map((item) => item.tmax)),
-          totalRainMm: run.reduce((sum, item) => sum + Math.max(0, item.precipitationMm ?? 0), 0),
-          units: run.length
+          minTmin: Math.min(...eventReadings.map((item) => item.tmin)),
+          maxTmax: Math.max(...eventReadings.map((item) => item.tmax)),
+          totalRainMm: eventReadings.reduce((sum, item) => sum + Math.max(0, item.precipitationMm ?? 0), 0),
+          units: eventReadings.length
         });
       }
       run = [];
@@ -151,8 +158,12 @@ export function detectClimateEvents(readings: readonly WeatherForecastReading[])
 
   // Les alertes d'inondation et de circulation sous la neige priment sur les bulletins généraux.
   const trafficSnowStarts = new Set(events.filter((event) => event.kind === 'snow-traffic').map((event) => event.startCityTime));
+  const floodPeriods = events.filter((event) => event.kind === 'flood');
   return events
     .filter((event) => event.kind !== 'snow' || !trafficSnowStarts.has(event.startCityTime))
+    .filter((event) => event.kind !== 'rain' || !floodPeriods.some((flood) =>
+      event.startCityTime <= flood.endCityTime && event.endCityTime >= flood.startCityTime
+    ))
     .sort((a, b) => a.startCityTime - b.startCityTime || eventPriority(b.kind) - eventPriority(a.kind));
 }
 
