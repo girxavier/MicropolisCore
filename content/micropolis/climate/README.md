@@ -35,19 +35,29 @@ The first climate year generated after a city is loaded is N1 (2026); each subse
 
 The map-dependent local thermal coefficients and their aggregation into a city-wide effect are deliberately kept separate from these baseline climate rules. Their values must be established before that layer is activated.
 
-## Thermal weather publications (V1)
+## Weather publications and municipal news (V2)
 
-The first weather-publication layer reads the same deterministic Tmin/Tmax/Tmean sequence as gameplay. It does not generate a second temperature series and does not change the active climate reading when it looks ahead.
+Weather publications use the same deterministic forecast as the city weather display. Their editorial voice is that of a local newspaper or municipal bulletin: no references to engine internals, simulation units or technical thresholds in the public-facing text.
 
-Micropolis advances 16 simulation phases per city-time unit, four units per month and 48 units per year. One climate unit represents approximately 7.6 days. The browser requests up to eight readings ahead, but the forecast stops at the current climate-year boundary: the next year's map-derived city climate contribution is only finalized after the current year has been played.
+Only one message is displayed at a time. A newly published event replaces the previous message; the player can dismiss it immediately with the close control. If no new event replaces it, the message disappears after four simulated weeks. There is no on-screen history and no archive is retained for display.
 
-V1 publishes thermal episodes only:
+A heatwave has exactly two possible publications for the same episode:
+- **Advance warning:** published when a sequence of at least two consecutive weeks with Tmax >= 30°C is forecast to begin within the next two weeks.
+- **City-life report:** published once the heatwave begins, with a short local-news angle (evening activity, parks, attention to isolated residents).
+No additional heatwave updates or end-of-episode publication are generated for that same event.
 
-- **Strong-heat sequence:** Tmax >= 30°C for at least two consecutive units.
-- **Warm/tropical nights:** Tmin >= 20°C for at least two consecutive units.
-- **Intense cold:** Tmin <= 0°C and Tmax <= 5°C for at least two consecutive units.
+Other editorial events use the same one-warning / one-active-report pattern:
+- **Warm nights:** Tmin >= 20°C for at least two consecutive weeks.
+- **Intense cold:** Tmin <= 0°C and Tmax <= 5°C for at least two consecutive weeks; active copy refers to shelters and outreach to people sleeping rough.
+- **Prolonged rain:** at least 8 mm in each of two consecutive weeks.
+- **Flood warning:** at least 60 mm accumulated over two consecutive weeks. The first message warns of danger in low-lying neighbourhoods; the active report covers evacuation and temporary rehousing.
+- **Snow:** a snowy weather category with at least 1 mm water equivalent in a week.
+- **Snow-related traffic disruption:** a snowy week with at least 4 mm water equivalent; this report takes priority over a generic snowfall report.
+- **Agricultural drought:** less than 0.5 mm in each of four consecutive weeks (approximately one month), with copy about soil drying and concern for harvests.
 
-An advance message may be published when an episode is forecast to begin within the next two units. A second publication marks the episode as active. The event identity is based on its type and starting city-time, so a phase is not repeated on every simulation callback. Publications and dismissal state are stored separately for each scenario; the most recent 100 publications are retained.
+These rainfall, flood and drought thresholds are initial gameplay thresholds, not hydrological or agronomic standards. The flood threshold is a citywide alert signal; it does not yet represent a detailed river-basin, drainage-network or building-level flood simulation. Likewise, evacuation and rehousing are currently represented in the editorial layer and do not yet change resident placement or housing capacity in the simulation. The same applies to the cold-weather shelter reports: they are news events, not yet a modeled shelter-capacity system.
+
+Event identities prevent repeated publications for the same phase of the same episode. A later event may replace the currently visible message, but an already published phase is not replayed on every climate update.
 
 ## Simulated weather categories (V1)
 
@@ -93,4 +103,4 @@ These are initial simulation ranges for gameplay, not claims about observed weat
 
 The snow rule combines a crossing of the freezing point (or temperatures entirely below it) with the city-season snow profile: a cold reading alone does not force snowfall. In particular, Brest has very low snow and thunderstorm probabilities; Gap has a substantially higher winter snow probability.
 
-The same weather fields are exposed to the browser forecast. The bottom information bar displays the current category and the unit's precipitation and sunshine totals; thermal episode alerts remain separate editorial publications.
+The same weather fields are exposed to the browser forecast. The top city HUD displays the current weather category, weekly precipitation and sunshine totals alongside minimum and maximum temperatures. Editorial publications appear separately in the single bottom message strip.
