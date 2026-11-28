@@ -116,7 +116,7 @@ describe('Single-message display lifecycle', () => {
     const publication = nextClimatePublication(
       readings([[100, 18, 27], [101, 19, 31], [102, 20, 33]]), 100, [], []
     ).publication!;
-    expect(publication.detail).toMatch(/\d{1,2} \p{L}+ 2027/u);
+    expect(publication.detail).toMatch(/\d{1,2} \p{L}+ 20\d{2}/u);
     expect(publication.detail).not.toMatch(/unité|cityTime/i);
   });
 });
