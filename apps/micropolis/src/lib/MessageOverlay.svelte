@@ -2,106 +2,60 @@
 	import { micropolisReactive } from '$lib/MicropolisReactive.svelte';
 	import { messageText } from '$lib/engineMessages';
 
-	const DEFAULT_MESSAGE = 'Welcome to Micropolis.';
 	let expanded = $state(false);
-	let historyOpen = $state(false);
+	let dismissedEngineMessage = $state(false);
 
 	const publication = $derived(micropolisReactive.climatePublication);
-	const publicationHistory = $derived(micropolisReactive.climatePublicationHistory);
-	const weather = $derived(micropolisReactive.climateWeather);
 	const displayText = $derived(
 		micropolisReactive.messageIndex >= 0
 			? messageText(micropolisReactive.messageIndex)
-			: DEFAULT_MESSAGE,
+			: '',
 	);
-	const showCoords = $derived(
-		micropolisReactive.messageIndex >= 0 && micropolisReactive.messageX >= 0,
-	);
+	const showEngineMessage = $derived(micropolisReactive.messageIndex >= 0 && !dismissedEngineMessage);
+	const hasMessage = $derived(!!publication || showEngineMessage);
 
-	function dismissPublication(): void {
-		if (!publication) return;
-		micropolisReactive.dismissClimatePublication(publication.id);
+	$effect(() => {
+		const publicationId = publication?.id;
+		const messageIndex = micropolisReactive.messageIndex;
+		if (publicationId || messageIndex >= 0) {
+			expanded = false;
+			dismissedEngineMessage = false;
+		}
+	});
+
+	function dismissMessage(): void {
+		if (publication) {
+			micropolisReactive.dismissClimatePublication(publication.id);
+		} else {
+			dismissedEngineMessage = true;
+		}
 		expanded = false;
 	}
 </script>
 
-{#if publication}
-	<div class="publication-stack">
-		<div
-			class="message-bar climate-publication"
-			class:important={publication.important}
-			aria-live="polite"
-			role="status"
-		>
-			<span class="publication-tag">ALERTE MÉTÉO</span>
-			{#if weather}
-				<span class="weather-current" title={`${weather.precipitationMm.toFixed(1)} mm de précipitations · ${weather.sunshineHours.toFixed(0)} h d’ensoleillement sur 7,6 jours`}>{weather.label}</span>
-			{/if}
-			<button class="message-text publication-preview" type="button" onclick={() => expanded = !expanded} aria-expanded={expanded}>
-				{publication.text}
-			</button>
-			<button class="message-action" type="button" onclick={() => expanded = !expanded}>{expanded ? 'Réduire' : 'Détails'}</button>
-			<button class="message-action" type="button" onclick={() => historyOpen = !historyOpen}>Historique</button>
-			<button class="message-close" type="button" onclick={dismissPublication} aria-label="Fermer la publication">×</button>
-		</div>
-		{#if expanded}
-			<section class="publication-detail" aria-label="Détail de la publication météo">
-				<strong>{publication.title}</strong>
-				<p>{publication.detail}</p>
-				{#if weather}
-					<p>Météo actuelle : {weather.label} · {weather.precipitationMm.toFixed(1)} mm · {weather.sunshineHours.toFixed(0)} h de soleil sur 7,6 jours</p>
-				{/if}
-				<small>Publication climatique · {new Date(publication.publishedAt).toLocaleString('fr-FR')}</small>
-			</section>
-		{/if}
-		{#if historyOpen}
-			<section class="publication-history" aria-label="Historique des publications météo">
-				<strong>Historique météo</strong>
-				{#if publicationHistory.length === 0}
-					<p>Aucune publication enregistrée.</p>
-				{:else}
-					{#each publicationHistory.slice(0, 10) as item (item.id)}
-						<article class="history-item">
-							<strong>{item.title}</strong>
-						<span>{item.text}</span>
-						<small>{new Date(item.publishedAt).toLocaleString('fr-FR')}</small>
-					</article>
-					{/each}
-				{/if}
-			</section>
-		{/if}
-	</div>
-{:else}
+{#if hasMessage}
 	<div class="publication-stack">
 		<div
 			class="message-bar"
-			class:important={micropolisReactive.messageImportant}
+			class:important={publication?.important ?? micropolisReactive.messageImportant}
 			aria-live="polite"
 			role="status"
 		>
-			{#if weather}
-				<span class="publication-tag" title={`${weather.precipitationMm.toFixed(1)} mm · ${weather.sunshineHours.toFixed(0)} h de soleil sur 7,6 jours`}>MÉTÉO · {weather.label}</span>
+			{#if publication}
+				<span class="publication-tag">MÉTÉO · {publication.title}</span>
+				<button class="message-text publication-preview" type="button" onclick={() => expanded = !expanded} aria-expanded={expanded}>
+					{publication.text}
+				</button>
+				{#if expanded}
+					<section class="publication-detail" aria-label="Détail du bulletin météo">
+						<p>{publication.detail}</p>
+					</section>
+				{/if}
+			{:else}
+				<span class="message-text">{displayText}</span>
 			{/if}
-			<span class="message-text">{displayText}</span>
-			{#if showCoords}
-				<span class="coords">({micropolisReactive.messageX}, {micropolisReactive.messageY})</span>
-			{/if}
-			{#if publicationHistory.length > 0}
-				<button class="message-action" type="button" onclick={() => historyOpen = !historyOpen}>Historique météo</button>
-			{/if}
+			<button class="message-close" type="button" onclick={dismissMessage} aria-label="Fermer le message" title="Fermer le message">×</button>
 		</div>
-		{#if historyOpen}
-			<section class="publication-history" aria-label="Historique des publications météo">
-				<strong>Historique météo</strong>
-				{#each publicationHistory.slice(0, 10) as item (item.id)}
-					<article class="history-item">
-						<strong>{item.title}</strong>
-						<span>{item.text}</span>
-						<small>{new Date(item.publishedAt).toLocaleString('fr-FR')}</small>
-					</article>
-				{/each}
-			</section>
-		{/if}
 	</div>
 {/if}
 
@@ -116,14 +70,13 @@
 	.message-bar {
 		flex-shrink: 0;
 		z-index: 25;
-		height: var(--message-bar-height, 2.5rem);
 		min-height: var(--message-bar-height, 2.5rem);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.65rem;
 		width: 100%;
-		padding: 0 0.75rem;
+		padding: 0.35rem 0.75rem;
 		box-sizing: border-box;
 		background: rgba(20, 24, 36, 0.94);
 		border-top: 1px solid rgba(255, 255, 255, 0.18);
@@ -139,25 +92,17 @@
 	}
 	.publication-tag {
 		flex: 0 0 auto;
+		max-width: 13rem;
 		font-size: 0.68rem;
 		font-weight: 800;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.04em;
 		color: #9ed8ff;
 	}
 	.message-text {
 		flex: 0 1 auto;
-	}
-	.weather-current {
-		flex: 0 0 auto;
-		max-width: 13rem;
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-		color: #c9e6ff;
-		font-size: .68rem;
+		min-width: 0;
 	}
 	.publication-preview {
-		min-width: 0;
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
@@ -169,48 +114,35 @@
 		text-align: left;
 		cursor: pointer;
 	}
-	.message-action, .message-close {
+	.message-close {
 		flex: 0 0 auto;
-		border: 1px solid rgba(255,255,255,.25);
-		border-radius: 3px;
-		padding: .18rem .4rem;
-		background: rgba(255,255,255,.08);
+		width: 1.8rem;
+		height: 1.8rem;
+		border: 1px solid rgba(255,255,255,.35);
+		border-radius: 4px;
+		background: rgba(255,255,255,.12);
 		color: #fff;
 		font: inherit;
-		font-size: .68rem;
+		font-size: 1.2rem;
+		line-height: 1;
 		cursor: pointer;
 	}
-	.message-close {
-		font-size: .9rem;
-		line-height: 1;
-	}
-	.message-action:hover, .message-close:hover { background: rgba(255,255,255,.18); }
-	.publication-detail, .publication-history {
-		padding: .65rem .9rem;
+	.message-close:hover { background: rgba(255,255,255,.28); }
+	.publication-detail {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 100%;
+		padding: .55rem .9rem;
 		background: rgba(8, 12, 20, .96);
-		border-top: 1px solid rgba(255,255,255,.16);
-		color: #eef2ff;
+		border: 1px solid rgba(255,255,255,.16);
+		color: #d3deef;
 		font-size: .75rem;
+		text-align: left;
 	}
-	.publication-detail p { margin: .35rem 0; color: #d3deef; }
-	.publication-detail small, .history-item small { color: #9caec7; }
-	.publication-history {
-		max-height: 13rem;
-		overflow-y: auto;
-		display: grid;
-		gap: .45rem;
-	}
-	.publication-history > strong { color: #9ed8ff; }
-	.history-item {
-		display: grid;
-		gap: .15rem;
-		padding: .35rem 0;
-		border-top: 1px solid rgba(255,255,255,.1);
-	}
-	.history-item span { color: #d3deef; }
-	.coords {
-		flex: 0 0 auto;
-		font-size: 0.72rem;
-		color: #ffc840;
+	.publication-detail p { margin: 0; }
+	@media (max-width: 700px) {
+		.message-bar { justify-content: flex-start; gap: .4rem; font-size: .7rem; }
+		.publication-tag { max-width: 8rem; }
 	}
 </style>
